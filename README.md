@@ -18,6 +18,7 @@ read more here: https://pikocore.com
 - [Instructions for uploading firmware](https://infinitedigits.co/wares/pikocore/#update)
 - [Video demonstration](https://www.youtube.com/watch?v=mKPq1Chm9Tg)
 - [Video DIY guide](https://www.youtube.com/watch?v=VG0q74ASlLQ)
+- [Port RP2350-PiZero + GamePi13](README-GAMEPI13.md)
 
 ## usage
 
