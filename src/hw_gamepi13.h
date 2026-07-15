@@ -24,3 +24,12 @@
 
 #define GAMEPI_KNOB_STEP 164    // ~4% of 4095 per repeat (full sweep ~2.5 s held)
 #define GAMEPI_REPEAT_TICKS 25  // repeat every 100 ms at the 250 Hz input scan
+
+// LCD ST7789 1.3" 240x240 on SPI1 (Fase 2)
+// Pins verified against Gamepi13-RP2040-Demo/C/lib/Config/DEV_Config.c:162-171.
+#define GAMEPI_LCD_CS_PIN 8
+#define GAMEPI_LCD_CLK_PIN 10
+#define GAMEPI_LCD_MOSI_PIN 11
+#define GAMEPI_LCD_DC_PIN 25
+#define GAMEPI_LCD_RST_PIN 27
+#define GAMEPI_LCD_BL_PIN 7  // backlight, PWM
