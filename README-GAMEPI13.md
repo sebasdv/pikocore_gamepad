@@ -28,10 +28,17 @@ Modos: 0 sample/break · 1 filtro/stretch · 2 gate/prob-gate ·
 3 prob-jump/prob-retrig · 4 prob-tunnel/prob-reversa ·
 5 secuenciador rec/play · 6 save/load · 7 volumen
 
+## pantalla
+
+Dashboard 240×240: BPM + fuente de clock, sample (número y nombre), barra de
+8 LEDs virtuales (reemplaza los LED físicos del pikocore original), modo del
+selector con barras A/B, y puntos de modo. Al presionar Select o L/R aparece
+un overlay grande con el modo/parámetro que se desvanece ~1 s después.
+
 ## pines
 
 Audio GP18 (parlante/jack del HAT) · LED de beat GP28 · clock in GP22 ·
-trigger out GP12 · resto: ver `src/hw_gamepi13.h`.
+trigger out GP12 · LCD: SPI1 (CLK GP10, MOSI GP11, CS GP8, DC GP25,
+RST GP27, backlight GP7) · resto: ver `src/hw_gamepi13.h`.
 
-La UI en el LCD (reemplazo de los 8 LEDs y visualización de knobs) es la
-fase 2 del port; los valores ya quedan en memoria (`LED::Val()`).
+Pendiente (Fase 2.1): waveform con playhead, iconos de estado (mute/seq/lock).
