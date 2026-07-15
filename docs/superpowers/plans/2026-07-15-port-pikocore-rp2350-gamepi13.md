@@ -657,13 +657,13 @@ Cargar muestras con la web app (`cd web && npm run dev`).
 | Select | cicla el modo de parámetro 0–7 (equivale al knob selector) |
 | L / R | baja / sube el parámetro activo (Function A); mantener repite |
 | Start + L/R | ajusta Function B |
+| Up+Down+B+A | reset de FX |
+| Up+Right+Y+A | mute / start-stop |
+| Down+Left+X+B | lock de clock |
 
 Modos: 0 sample/break · 1 filtro/stretch · 2 gate/prob-gate ·
 3 prob-jump/prob-retrig · 4 prob-tunnel/prob-reversa ·
 5 secuenciador rec/play · 6 save/load · 7 volumen
-| Up+Down+B+A | reset de FX |
-| Up+Right+Y+A | mute / start-stop |
-| Down+Left+X+B | lock de clock |
 
 ## pines
 
