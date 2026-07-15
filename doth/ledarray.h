@@ -24,6 +24,8 @@ class LEDArray {
 
   void LedUpdate(uint8_t i) { led[i].Update(); }
 
+  uint8_t Get(uint8_t i) { return vals[i]; }
+
   void Update() {
     for (uint8_t i = 0; i < 8; i++) {
       if (vals[i] != led[i].Val()) {

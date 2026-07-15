@@ -76,10 +76,107 @@ static void flush(const Rect &r) {
 
 static uint8_t pct(uint16_t v) { return (uint8_t)((uint32_t)v * 100u / 4095u); }
 
-// ---- widget draw functions: bodies filled in a later task ----
+// ---- widget draw functions ----
+static void clear_zone(const Rect &r) {
+  Paint_ClearWindows(r.x, r.y, (uint16_t)(r.x + r.w), (uint16_t)(r.y + r.h),
+                     COL_BG);
+}
+
+static void draw_top(const GamepiUiState &s) {
+  clear_zone(kRect[W_TOP]);
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%3u", s.bpm);
+  Paint_DrawString_EN(8, 4, buf, &Font20, COL_GREEN, COL_BG);
+  static const char *kSrc[3] = {"INT", "EXT", "MIDI"};
+  Paint_DrawString_EN(58, 10, kSrc[s.clock_src < 3 ? s.clock_src : 0], &Font12,
+                      COL_GRAY, COL_BG);
+  if (s.sample_count > 0) {
+    snprintf(buf, sizeof(buf), "%02u/%02u", (unsigned)(s.sample_idx + 1),
+             (unsigned)s.sample_count);
+  } else {
+    snprintf(buf, sizeof(buf), "--/--");
+  }
+  Paint_DrawString_EN(240 - 8 - 5 * 11, 6, buf, &Font16, COL_BLUE, COL_BG);
+}
+
+static void draw_name(const GamepiUiState &s) {
+  clear_zone(kRect[W_NAME]);
+  Paint_DrawString_EN(8, 32, s.sample_name, &Font12, COL_GRAY, COL_BG);
+}
+
+static void draw_leds(const GamepiUiState &s) {
+  clear_zone(kRect[W_LEDS]);
+  for (uint8_t i = 0; i < 8; i++) {
+    uint16_t x = (uint16_t)(10 + i * 28);  // 8 x 24px + 4px gap = 220 wide
+    UWORD col = COL_DARK;
+    if (s.leds[i] >= 128) {
+      col = COL_ORANGE;
+    } else if (s.leds[i] >= 8) {
+      col = COL_ORANGE_DIM;
+    }
+    Paint_DrawRectangle(x, 62, (uint16_t)(x + 23), 85, col, DOT_PIXEL_1X1,
+                        DRAW_FILL_FULL);
+  }
+}
+
+static void draw_modename(const GamepiUiState &s) {
+  clear_zone(kRect[W_MODENAME]);
+  Paint_DrawString_EN(8, 116, kModeA[s.mode & 7], &Font16, COL_PINK, COL_BG);
+}
+
+static void draw_bar(const Rect &zone, uint16_t bar_y, uint16_t val, UWORD col,
+                     char ab) {
+  clear_zone(zone);
+  // frame + fill: 224 px wide, 14 px tall
+  Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), COL_DARK,
+                      DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  uint16_t w = (uint16_t)((uint32_t)val * 224u / 4095u);
+  if (w > 0) {
+    Paint_DrawRectangle(8, bar_y, (uint16_t)(8 + w), (uint16_t)(bar_y + 13),
+                        col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  }
+  char buf[12];
+  snprintf(buf, sizeof(buf), "%c %u%%", ab, pct(val));
+  Paint_DrawString_EN(8, (uint16_t)(bar_y + 16), buf, &Font12, COL_GRAY,
+                      COL_BG);
+}
+
+static void draw_dots(const GamepiUiState &s) {
+  clear_zone(kRect[W_DOTS]);
+  // 8 dots, radius 4, 14 px pitch, centered: start x = 67
+  for (uint8_t i = 0; i < 8; i++) {
+    UWORD col = (i == (s.mode & 7)) ? COL_PINK : COL_DARK;
+    Paint_DrawCircle((uint16_t)(71 + i * 14), 218, 4, col, DOT_PIXEL_1X1,
+                     DRAW_FILL_FULL);
+  }
+}
+
 static void draw_widget(uint8_t i, const GamepiUiState &s) {
-  (void)i;
-  (void)s;
+  switch (i) {
+    case W_TOP:
+      draw_top(s);
+      break;
+    case W_NAME:
+      draw_name(s);
+      break;
+    case W_LEDS:
+      draw_leds(s);
+      break;
+    case W_MODENAME:
+      draw_modename(s);
+      break;
+    case W_BARA:
+      draw_bar(kRect[W_BARA], 140, s.knob_a, COL_PINK, 'A');
+      break;
+    case W_BARB:
+      draw_bar(kRect[W_BARB], 172, s.knob_b, COL_CYAN, 'B');
+      break;
+    case W_DOTS:
+      draw_dots(s);
+      break;
+    default:
+      break;
+  }
 }
 
 void gamepi_ui_init() {
@@ -100,9 +197,53 @@ void gamepi_ui_init() {
 }
 
 void gamepi_ui_tick(const GamepiUiState &s) {
-  // diffing vs. last drawn state: filled in a later task
-  // overlay TTL handling: filled in a later task
-  (void)s;
+  // Mark widgets whose backing data changed since last draw.
+  if (!have_drawn) {
+    for (uint8_t i = 0; i < W_COUNT; i++) dirty[i] = true;
+  } else {
+    if (s.bpm != drawn.bpm || s.clock_src != drawn.clock_src ||
+        s.sample_idx != drawn.sample_idx ||
+        s.sample_count != drawn.sample_count) {
+      dirty[W_TOP] = true;
+    }
+    if (strcmp(s.sample_name, drawn.sample_name) != 0) dirty[W_NAME] = true;
+    if (memcmp(s.leds, drawn.leds, sizeof(s.leds)) != 0) dirty[W_LEDS] = true;
+    if (s.mode != drawn.mode) {
+      dirty[W_MODENAME] = true;
+      dirty[W_DOTS] = true;
+    }
+    if (s.knob_a != drawn.knob_a) dirty[W_BARA] = true;
+    if (s.knob_b != drawn.knob_b) dirty[W_BARB] = true;
+  }
+  drawn = s;
+  have_drawn = true;
+
+  // Overlay TTL handling arrives in a later task; without overlay, just flush
+  // at most ONE dirty widget per tick to bound SPI blocking time.
+  if (overlay_on) {
+    if (overlay_ttl > 0) {
+      overlay_ttl--;
+    } else {
+      overlay_on = false;
+      Paint_ClearWindows(kOverlay.x, kOverlay.y,
+                         (uint16_t)(kOverlay.x + kOverlay.w),
+                         (uint16_t)(kOverlay.y + kOverlay.h), COL_BG);
+      flush(kOverlay);
+      dirty[W_LEDS] = true;      // zones the overlay covered
+      dirty[W_MODENAME] = true;
+      dirty[W_BARA] = true;
+    }
+    if (overlay_on) return;  // never repaint background under the overlay
+  }
+
+  for (uint8_t i = 0; i < W_COUNT; i++) {
+    if (dirty[i]) {
+      draw_widget(i, s);
+      flush(kRect[i]);
+      dirty[i] = false;
+      break;
+    }
+  }
 }
 
 void gamepi_ui_overlay_mode(uint8_t mode) { (void)mode; }  // later task

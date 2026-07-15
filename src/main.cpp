@@ -1778,6 +1778,34 @@ int main(void) {
       }
 #endif
 
+#if PIKO_GAMEPI13
+      {
+        GamepiUiState uis;
+        uis.bpm = bpm_set;
+        uis.clock_src =
+            clock_input_ittybittymidi ? 2 : ((is_syncing && do_sync_play) ? 1 : 0);
+        uint16_t ui_scount = (uint16_t)piko_audio_sample_count();
+        uis.sample_count = ui_scount;
+        uis.sample_idx = ui_scount ? (uint16_t)(sample_set % ui_scount) : 0;
+        if (ui_scount > 0) {
+          const char *nm = piko_audio_sample(uis.sample_idx).name;
+          size_t n = 0;
+          while (n < sizeof(uis.sample_name) - 1 && n < 48 && nm[n] != '\0') {
+            uis.sample_name[n] = nm[n];
+            n++;
+          }
+          uis.sample_name[n] = '\0';
+        } else {
+          snprintf(uis.sample_name, sizeof(uis.sample_name), "(sin samples)");
+        }
+        for (uint8_t j = 0; j < 8; j++) uis.leds[j] = ledarray.Get(j);
+        uis.mode = gamepi_selector;
+        uis.knob_a = input_knob[1].Value();
+        uis.knob_b = input_knob[2].Value();
+        gamepi_ui_tick(uis);
+      }
+#endif
+
       // adc reading
       if (!btn_retrig) {
         for (uint8_t i = 0; i < NUM_KNOBS; i++) {
