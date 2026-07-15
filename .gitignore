@@ -47,3 +47,5 @@ web/.vite/
 
 # macOS
 .DS_Store
+
+build-gamepi/

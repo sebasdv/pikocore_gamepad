@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.18)
 
+option(PIKO_GAMEPI13 "Build for Waveshare RP2350-PiZero + GamePi13" OFF)
+if(PIKO_GAMEPI13)
+	list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/boards)
+	set(PICO_BOARD waveshare_rp2350_pizero CACHE STRING "Board type")
+endif()
+
 if(NOT PICO_SDK_PATH)
 	if(DEFINED ENV{PICO_SDK_PATH})
 		set(PICO_SDK_PATH "$ENV{PICO_SDK_PATH}")
@@ -56,6 +62,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 include(target_compile_definitions.cmake)
+
+if(PIKO_GAMEPI13)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13=1)
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 	PIKO_FIRMWARE_RESERVE=524288u

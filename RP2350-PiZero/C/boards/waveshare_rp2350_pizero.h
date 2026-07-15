@@ -14,7 +14,7 @@
 #ifndef _BOARDS_WAVESHARE_RP2350_PIZERO
 #define _BOARDS_WAVESHARE_RP2350_PIZERO
 
-pico_board_cmake_set(PICO_PLATFORM, rp2350)
+// pico_cmake_set PICO_PLATFORM=rp2350
 
 // For board detection
 #define WAVESHARE_RP2350_PIZERO
