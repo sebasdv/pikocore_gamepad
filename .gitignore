@@ -49,3 +49,4 @@ web/.vite/
 .DS_Store
 
 build-gamepi/
+.superpowers/
