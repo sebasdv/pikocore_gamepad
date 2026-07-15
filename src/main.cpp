@@ -47,12 +47,23 @@
 #define DISTORTION_MAX 30
 #define VOLUME_REDUCE_MAX 30
 #define HEAD_SHIFT 10  // crossfade time in samples (2^HEAD_SHIFT)
+#if PIKO_GAMEPI13
+#include "hw_gamepi13.h"
+#define AUDIO_PIN GAMEPI_AUDIO_PIN
+#define LED_PIN GAMEPI_LED_PIN
+#define CLOCK_PIN GAMEPI_CLOCK_PIN
+#define TRIGO_PIN GAMEPI_TRIGO_PIN
+// GamePi13 has no WS2812 strip; GP23 (original strip pin) is the L button.
+#undef WS2812_ENABLED
+#define WS2812_ENABLED 0
+#else
 #define AUDIO_PIN 20   // audio out
 #ifdef PICO_DEFAULT_LED_PIN
 #define LED_PIN PICO_DEFAULT_LED_PIN
 #endif
 #define CLOCK_PIN 22  // clock in pin
 #define TRIGO_PIN 21  // trigger out pin
+#endif
 #define MAIN_LOOP_HZ 4
 #define MAIN_LOOP_DELAY 50
 
@@ -1387,15 +1398,25 @@ int main(void) {
   gpio_init(CLOCK_PIN);
   gpio_set_dir(CLOCK_PIN, GPIO_IN);
   gpio_pull_down(CLOCK_PIN);
+#if !PIKO_GAMEPI13
+  // Pico power-save pin; on the GamePi13, GP23 is the L button.
   gpio_init(23);
   gpio_pull_up(23);
   gpio_set_dir(23, GPIO_OUT);
   gpio_put(23, 0);
+#endif
 
   // initialize buttons
+#if PIKO_GAMEPI13
+  const uint8_t gamepi_button_pins[NUM_BUTTONS] = GAMEPI_BUTTON_PINS;
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+    input_button[i].Init(gamepi_button_pins[i], 10);
+  }
+#else
   for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
     input_button[i].Init(i + 4, 10);  // GPIO 4 through 11 are buttons
   }
+#endif
 
   // initialize knobs
   adc_init();
