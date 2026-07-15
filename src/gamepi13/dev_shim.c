@@ -35,7 +35,11 @@ void gamepi_lcd_dev_init(void) {
   gpio_put(GAMEPI_LCD_CS_PIN, 1);
   gpio_put(GAMEPI_LCD_DC_PIN, 0);
 
-  spi_init(GAMEPI_SPI, 31250 * 1000);  // 31.25 MHz; bajar a 15625*1000 si hay artefactos
+  // Confirmado en hardware 2026-07-15: 31.25 MHz producia artefactos visuales
+  // (integridad de senal insuficiente en el cableado real vs. el limite
+  // teorico del ST7789 de ~62 MHz). Bajado a 15.625 MHz por el fallback ya
+  // documentado en el spec de diseno.
+  spi_init(GAMEPI_SPI, 15625 * 1000);
   gpio_set_function(GAMEPI_LCD_CLK_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GAMEPI_LCD_MOSI_PIN, GPIO_FUNC_SPI);
 
