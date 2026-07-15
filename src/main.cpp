@@ -24,6 +24,7 @@
 #include "doth/easing.h"
 #include "doth/filter.h"
 #include "doth/knob.h"
+#include "doth/virtualknob.h"
 #include "doth/led.h"
 #include "doth/ledarray.h"
 #include "doth/midi_out.h"
@@ -110,7 +111,15 @@ const uint8_t *flash_target_contents =
 
 // inputs
 Button input_button[NUM_BUTTONS];
+#if PIKO_GAMEPI13
+VirtualKnob input_knob[NUM_KNOBS];
+Button btn_select, btn_start, btn_l, btn_r;
+uint8_t gamepi_selector = 0;
+uint16_t gamepi_repeat_l = 0;
+uint16_t gamepi_repeat_r = 0;
+#else
 Knob input_knob[NUM_KNOBS];
+#endif
 
 // outputs
 LEDArray ledarray;
@@ -1419,10 +1428,20 @@ int main(void) {
 #endif
 
   // initialize knobs
+#if PIKO_GAMEPI13
+  for (uint8_t i = 0; i < NUM_KNOBS; i++) {
+    input_knob[i].Init(i, 50);
+  }
+  btn_select.Init(GAMEPI_BTN_SELECT, 10);
+  btn_start.Init(GAMEPI_BTN_START, 10);
+  btn_l.Init(GAMEPI_BTN_L, 10);
+  btn_r.Init(GAMEPI_BTN_R, 10);
+#else
   adc_init();
   for (uint8_t i = 0; i < NUM_KNOBS; i++) {
     input_knob[i].Init(i, 50);
   }
+#endif
 
   // initialize midi out
   midiout = MidiOut_malloc(0, true);
@@ -1708,6 +1727,42 @@ int main(void) {
         }
 #endif
       }
+
+#if PIKO_GAMEPI13
+      // GamePi13: Select cycles the selector; L/R adjust Function A
+      // (or Function B while Start is held), with hold-to-repeat.
+      btn_select.Read();
+      btn_start.Read();
+      btn_l.Read();
+      btn_r.Read();
+      if (btn_select.ChangedHigh(true) && btn_select.On()) {
+        gamepi_selector = (gamepi_selector + 1) % 8;
+        input_knob[0].SetBucket(gamepi_selector, 8);
+      }
+      {
+        const uint8_t active_knob = btn_start.On() ? 2 : 1;
+        if (btn_l.On()) {
+          if (gamepi_repeat_l == 0) {
+            input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
+            gamepi_repeat_l = GAMEPI_REPEAT_TICKS;
+          } else {
+            gamepi_repeat_l--;
+          }
+        } else {
+          gamepi_repeat_l = 0;
+        }
+        if (btn_r.On()) {
+          if (gamepi_repeat_r == 0) {
+            input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
+            gamepi_repeat_r = GAMEPI_REPEAT_TICKS;
+          } else {
+            gamepi_repeat_r--;
+          }
+        } else {
+          gamepi_repeat_r = 0;
+        }
+      }
+#endif
 
       // adc reading
       if (!btn_retrig) {
