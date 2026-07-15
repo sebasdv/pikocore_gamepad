@@ -65,6 +65,21 @@ include(target_compile_definitions.cmake)
 
 if(PIKO_GAMEPI13)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13=1)
+	target_sources(${PROJECT_NAME} PRIVATE
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/LCD_1in3.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/GUI_Paint.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/font12.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/font16.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/font20.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/font24.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/dev_shim.c
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/ui.cpp
+	)
+	target_include_directories(${PROJECT_NAME} PRIVATE
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd
+	)
+	target_link_libraries(${PROJECT_NAME} hardware_spi)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE

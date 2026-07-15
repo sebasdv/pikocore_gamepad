@@ -57,6 +57,7 @@
 // GamePi13 has no WS2812 strip; GP23 (original strip pin) is the L button.
 #undef WS2812_ENABLED
 #define WS2812_ENABLED 0
+#include "gamepi13/ui.h"
 #else
 #define AUDIO_PIN 20   // audio out
 #ifdef PICO_DEFAULT_LED_PIN
@@ -1448,6 +1449,7 @@ int main(void) {
   btn_start.Init(GAMEPI_BTN_START, 10);
   btn_l.Init(GAMEPI_BTN_L, 10);
   btn_r.Init(GAMEPI_BTN_R, 10);
+  gamepi_ui_init();
 #else
   adc_init();
   for (uint8_t i = 0; i < NUM_KNOBS; i++) {
