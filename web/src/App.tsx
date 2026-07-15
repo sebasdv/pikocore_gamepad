@@ -202,16 +202,29 @@ export function App() {
       setDevice(info);
       setConnected(true);
       setStatus({ text: 'Downloading', kind: 'idle' });
-      const bank = await readBankWithProgress();
-      if (bank) {
-        const parsed = parseBankBlob(bank);
-        setSamples(parsed.samples);
-        setBankDirty(false);
-        setStatus({ text: `Loaded ${parsed.samples.length} samples from device`, kind: 'good' });
-      } else {
+      try {
+        const bank = await readBankWithProgress();
+        if (bank) {
+          const parsed = parseBankBlob(bank);
+          setSamples(parsed.samples);
+          setBankDirty(false);
+          setStatus({ text: `Loaded ${parsed.samples.length} samples from device`, kind: 'good' });
+        } else {
+          setSamples([]);
+          setBankDirty(false);
+          setStatus({ text: 'Connected: device bank is empty', kind: 'good' });
+        }
+      } catch (bankError) {
+        // The USB/serial link itself is fine here — only the stored bank
+        // failed to read or parse. Stay connected so the user can still
+        // Erase a corrupt bank instead of being silently disconnected with
+        // no way to recover from the UI.
         setSamples([]);
         setBankDirty(false);
-        setStatus({ text: 'Connected: device bank is empty', kind: 'good' });
+        setStatus({
+          text: `Connected, but device bank is unreadable: ${errorMessage(bankError)}. Use Erase to reset it.`,
+          kind: 'warn',
+        });
       }
       setProgress(0);
       setDownloadDetail(null);
