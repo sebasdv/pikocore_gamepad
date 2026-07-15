@@ -35,11 +35,12 @@ void gamepi_lcd_dev_init(void) {
   gpio_put(GAMEPI_LCD_CS_PIN, 1);
   gpio_put(GAMEPI_LCD_DC_PIN, 0);
 
-  // Confirmado en hardware 2026-07-15: 31.25 MHz producia artefactos visuales
-  // (integridad de senal insuficiente en el cableado real vs. el limite
-  // teorico del ST7789 de ~62 MHz). Bajado a 15.625 MHz por el fallback ya
-  // documentado en el spec de diseno.
-  spi_init(GAMEPI_SPI, 15625 * 1000);
+  // Confirmado en hardware 2026-07-15: 31.25 MHz y 15.625 MHz seguian con
+  // lineas verticales persistentes en pantalla (presentes incluso en
+  // widgets de ancho completo, en reposo -- no es especifico del overlay).
+  // Bajado al valor exacto que usa Gamepi13-RP2040-Demo/C/lib/Config/
+  // DEV_Config.c para este mismo panel/cableado, validado por Waveshare.
+  spi_init(GAMEPI_SPI, 10000 * 1000);
   gpio_set_function(GAMEPI_LCD_CLK_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GAMEPI_LCD_MOSI_PIN, GPIO_FUNC_SPI);
 
