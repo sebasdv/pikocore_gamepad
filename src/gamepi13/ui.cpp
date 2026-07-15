@@ -20,8 +20,11 @@ extern "C" {
 #define COL_GRAY 0x632C      // #666666
 #define COL_DARK 0x18C3      // #1a1a1a
 
-// Rotation is validated on hardware (plan Task 8); adjust here if mirrored.
-#define GAMEPI_LCD_ROTATE ROTATE_0
+// Confirmed on hardware 2026-07-15: ROTATE_0 displayed 90 CW from correct
+// reading orientation. ROTATE_270 (== 90 CCW) fixes it; matches the
+// orientation the Waveshare demo itself uses for this exact panel/enclosure
+// (Gamepi13-RP2040-Demo/C/examples/LCD_1in3_test.c: Paint_SetRotate(ROTATE_270)).
+#define GAMEPI_LCD_ROTATE ROTATE_270
 
 static UBYTE fb[LCD_1IN3_WIDTH * LCD_1IN3_HEIGHT * 2];  // 115 200 B static
 
