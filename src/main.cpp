@@ -1406,7 +1406,19 @@ int main(void) {
   gpio_set_dir(LED_PIN, GPIO_OUT);
   gpio_init(CLOCK_PIN);
   gpio_set_dir(CLOCK_PIN, GPIO_IN);
+#if PIKO_GAMEPI13
+  // GP22 has no external clock-jack circuit on the GamePi13 board (unlike
+  // pikocore's original PCB, where the jack's own analog frontend normalizes
+  // the idle/unplugged state to a defined level). A bare internal pull-down
+  // here leaves the pin idle LOW, which the "1 - gpio_get()" inversion below
+  // reads as a permanent false clock pulse, latching audio into permanent
+  // silence shortly after boot (do_sync_play never toggles true again).
+  // Pull up instead so idle reads HIGH -> inverted 0, matching the polarity
+  // the edge-detection logic expects when no external clock is connected.
+  gpio_pull_up(CLOCK_PIN);
+#else
   gpio_pull_down(CLOCK_PIN);
+#endif
 #if !PIKO_GAMEPI13
   // Pico power-save pin; on the GamePi13, GP23 is the L button.
   gpio_init(23);
