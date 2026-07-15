@@ -1752,12 +1752,15 @@ int main(void) {
       if (btn_select.ChangedHigh(true) && btn_select.On()) {
         gamepi_selector = (gamepi_selector + 1) % 8;
         input_knob[0].SetBucket(gamepi_selector, 8);
+        gamepi_ui_overlay_mode(gamepi_selector);
       }
       {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
         if (btn_l.On()) {
           if (gamepi_repeat_l == 0) {
             input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
+            gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
+                                    input_knob[active_knob].Value());
             gamepi_repeat_l = GAMEPI_REPEAT_TICKS;
           } else {
             gamepi_repeat_l--;
@@ -1768,6 +1771,8 @@ int main(void) {
         if (btn_r.On()) {
           if (gamepi_repeat_r == 0) {
             input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
+            gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
+                                    input_knob[active_knob].Value());
             gamepi_repeat_r = GAMEPI_REPEAT_TICKS;
           } else {
             gamepi_repeat_r--;

@@ -246,10 +246,59 @@ void gamepi_ui_tick(const GamepiUiState &s) {
   }
 }
 
-void gamepi_ui_overlay_mode(uint8_t mode) { (void)mode; }  // later task
+// Draw the overlay panel into fb and flush it. Called from the same 250 Hz
+// context as gamepi_ui_tick (all core0) — no concurrency to worry about.
+static void overlay_show_panel() {
+  overlay_on = true;
+  overlay_ttl = OVERLAY_TTL_TICKS;
+  Paint_ClearWindows(kOverlay.x, kOverlay.y,
+                     (uint16_t)(kOverlay.x + kOverlay.w),
+                     (uint16_t)(kOverlay.y + kOverlay.h), COL_DARK);
+  Paint_DrawRectangle(kOverlay.x, kOverlay.y,
+                      (uint16_t)(kOverlay.x + kOverlay.w - 1),
+                      (uint16_t)(kOverlay.y + kOverlay.h - 1), COL_PINK,
+                      DOT_PIXEL_2X2, DRAW_FILL_EMPTY);
+}
 
-void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {  // later task
-  (void)mode;
-  (void)is_b;
-  (void)val;
+static uint16_t centered_x(const char *txt, uint16_t glyph_w) {
+  uint16_t w = (uint16_t)(strlen(txt) * glyph_w);
+  return (uint16_t)(kOverlay.x + (kOverlay.w > w ? (kOverlay.w - w) / 2 : 0));
+}
+
+void gamepi_ui_overlay_mode(uint8_t mode) {
+  mode &= 7;
+  overlay_show_panel();
+  char title[12];
+  snprintf(title, sizeof(title), "MODO %u", (unsigned)(mode + 1));
+  Paint_DrawString_EN(centered_x(title, 11), (uint16_t)(kOverlay.y + 12),
+                      title, &Font16, COL_GRAY, COL_DARK);
+  Paint_DrawString_EN(centered_x(kModeA[mode], 14), (uint16_t)(kOverlay.y + 40),
+                      kModeA[mode], &Font20, COL_PINK, COL_DARK);
+  Paint_DrawString_EN(centered_x(kModeB[mode], 11), (uint16_t)(kOverlay.y + 74),
+                      kModeB[mode], &Font16, COL_CYAN, COL_DARK);
+  flush(kOverlay);
+}
+
+void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
+  mode &= 7;
+  overlay_show_panel();
+  const char *name = is_b ? kModeB[mode] : kModeA[mode];
+  UWORD col = is_b ? COL_CYAN : COL_PINK;
+  Paint_DrawString_EN(centered_x(name, 11), (uint16_t)(kOverlay.y + 10), name,
+                      &Font16, col, COL_DARK);
+  char v[8];
+  snprintf(v, sizeof(v), "%u%%", (unsigned)pct(val));
+  Paint_DrawString_EN(centered_x(v, 17), (uint16_t)(kOverlay.y + 38), v,
+                      &Font24, COL_WHITE, COL_DARK);
+  // progress bar: 170 px wide, centered
+  uint16_t bx = (uint16_t)(kOverlay.x + (kOverlay.w - 170) / 2);
+  uint16_t by = (uint16_t)(kOverlay.y + 86);
+  Paint_DrawRectangle(bx, by, (uint16_t)(bx + 170), (uint16_t)(by + 10),
+                      COL_BG, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  uint16_t w = (uint16_t)((uint32_t)val * 170u / 4095u);
+  if (w > 0) {
+    Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10), col,
+                        DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  }
+  flush(kOverlay);
 }
