@@ -60,7 +60,23 @@ contra flancos de subida en cualquiera de sus 4 botones ([`src/main.cpp:1693-173
 |---|---|
 | Down + Left + X + B | Alterna **clock lock** — congela `select_beat` sincronizado al contador de compás en vez de avanzar libremente |
 | Up + Down + B + A | **Reset de FX** — pone en cero filtro, distorsión y las 4 probabilidades (jump/retrig/gate/dirección) |
-| Up + Right + Y + A | Alterna **mute / start-stop** de todo el motor |
+| Up + Right + Y + A | Alterna **mute / start-stop** de todo el motor (heredado del pikocore original; ver también el botón Start abajo, que hace lo mismo de forma más directa en GamePi13) |
+
+### El botón Start tiene doble rol
+
+El pikocore original no tiene un botón de start/stop dedicado — ni el combo de arriba
+ni ningún otro; el hardware de fábrica solo trae 8 botones + 3 potenciómetros y ese
+combo de 4 botones es la única forma que existía. En el GamePi13 agregamos un uso más
+directo aprovechando que el botón físico dice "Start":
+
+- **Toque simple** (presionar y soltar sin tocar L/R mientras está presionado) →
+  alterna mute/start-stop — el mismo efecto que el combo Up+Right+Y+A, en un solo botón.
+- **Mantenido + L/R** → sigue funcionando igual que siempre, edita Function B en vez de A.
+
+Un flag (`gamepi_start_used_as_modifier`, [`src/main.cpp`](src/main.cpp)) distingue
+ambos casos: se resetea al presionar Start y se marca en cuanto L/R lo usan como
+modificador, así soltar Start después de haberlo usado para Function B no dispara el
+toggle por accidente.
 
 ## 3. El selector de modo y los 8 modos
 

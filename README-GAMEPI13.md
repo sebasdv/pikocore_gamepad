@@ -19,9 +19,10 @@ Cargar muestras con la web app (`cd web && npm run dev`).
 | Up Down Left Right Y X B A | botones musicales 1–8 de pikocore |
 | Select | cicla el modo de parámetro 0–7 (equivale al knob selector) |
 | L / R | baja / sube el parámetro activo (Function A); mantener repite |
-| Start + L/R | ajusta Function B |
+| Start (toque simple) | mute / start-stop |
+| Start (mantenido) + L/R | ajusta Function B |
 | Up+Down+B+A | reset de FX |
-| Up+Right+Y+A | mute / start-stop |
+| Up+Right+Y+A | mute / start-stop (alternativa heredada del combo original) |
 | Down+Left+X+B | lock de clock |
 
 Modos: 0 sample/break · 1 filtro/stretch · 2 gate/prob-gate ·
