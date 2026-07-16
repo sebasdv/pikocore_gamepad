@@ -6,6 +6,7 @@
 #include "pico/time.h"
 
 #include "../hw_gamepi13.h"
+#include "../PikoAudioBank.h"
 
 extern "C" {
 #include "lcd/GUI_Paint.h"
@@ -40,22 +41,26 @@ struct Rect {
 enum {
   W_TOP = 0,   // BPM + clock src | "NN/MM"
   W_NAME,      // sample name
-  W_LEDS,      // 8 virtual LEDs
   W_MODENAME,  // mode name
   W_BARA,      // bar A + label
   W_BARB,      // bar B + label
   W_DOTS,      // 8 mode dots
+  // Waveform + playhead + slice highlights (ex "8 virtual LEDs" strip).
+  // Deliberately LAST: gamepi_ui_tick() flushes ONE dirty widget per slot,
+  // lowest index first, and this zone dirties often (moving playhead) --
+  // lowest priority keeps it from starving every other widget.
+  W_WAVE,
   W_COUNT
 };
 
 static const Rect kRect[W_COUNT] = {
     {0, 0, 240, 28},    // W_TOP
     {0, 28, 240, 24},   // W_NAME
-    {0, 52, 240, 44},   // W_LEDS
     {0, 112, 240, 24},  // W_MODENAME
     {0, 136, 240, 32},  // W_BARA
     {0, 168, 240, 32},  // W_BARB
     {0, 208, 240, 20},  // W_DOTS
+    {0, 52, 240, 44},   // W_WAVE
 };
 
 static bool dirty[W_COUNT];
@@ -179,22 +184,75 @@ static void draw_name(const GamepiUiState &s) {
   Paint_DrawString_EN(8, 32, buf, &Font12, COL_GRAY, COL_BG);
 }
 
-static void draw_leds(const GamepiUiState &s) {
-  clear_zone(kRect[W_LEDS]);
-  for (uint8_t i = 0; i < 8; i++) {
-    uint16_t x = (uint16_t)(10 + i * 28);  // 8 x 24px + 4px gap = 220 wide
-    UWORD col = COL_DARK;
-    if (s.retrig_leds_mask & (uint8_t)(1u << i)) {
-      // Solid, ignores amplitude on purpose -- this is a state indicator
-      // (stutter active), not another brightness gradation.
-      col = COL_CYAN;
-    } else if (s.leds[i] >= 128) {
-      col = COL_ORANGE;
-    } else if (s.leds[i] >= 8) {
-      col = COL_ORANGE_DIM;
+// ---- waveform cache (W_WAVE) ----
+// 240 columns of min/max over the PLAYING sample (s.wave_sample_idx), 8-bit
+// unsigned PCM (128 = center). 480 bytes of RAM; recomputed synchronously on
+// sample change -- ~7.7k XIP reads = ~1-4 ms once, and the audio ISR preempts
+// this loop, so playback never notices. Full cost study in the design spec
+// (docs/superpowers/specs/2026-07-16-waveform-playhead-design.md).
+static uint8_t wave_min[240];
+static uint8_t wave_max[240];
+static uint16_t wave_cached_sample = 0xffff;
+static bool wave_cache_valid = false;
+static uint64_t wave_playhead_mark_us = 0;
+
+static void wave_recompute(uint16_t sample_idx) {
+  const uint32_t len = piko_raw_len(sample_idx);
+  if (piko_audio_sample_count() == 0 || len <= 1) {
+    for (uint16_t c = 0; c < 240; c++) {
+      wave_min[c] = 128;
+      wave_max[c] = 128;
     }
-    Paint_DrawRectangle(x, 62, (uint16_t)(x + 23), 85, col, DOT_PIXEL_1X1,
-                        DRAW_FILL_FULL);
+    return;
+  }
+  for (uint32_t c = 0; c < 240; c++) {
+    const uint32_t start = (uint32_t)(((uint64_t)len * c) / 240u);
+    uint32_t end = (uint32_t)(((uint64_t)len * (c + 1)) / 240u);
+    if (end <= start) end = start + 1;
+    // Up to ~32 evenly spaced probes per column: plenty for a 240px lo-fi
+    // outline, and caps the whole recompute at ~7.7k flash reads.
+    uint32_t step = (end - start) / 32u;
+    if (step == 0) step = 1;
+    uint8_t mn = 255;
+    uint8_t mx = 0;
+    for (uint32_t f = start; f < end; f += step) {
+      const uint8_t v = piko_raw_val(sample_idx, f);
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    wave_min[c] = mn;
+    wave_max[c] = mx;
+  }
+}
+
+static void draw_wave(const GamepiUiState &s) {
+  clear_zone(kRect[W_WAVE]);
+  constexpr uint16_t kTop = 54;  // 40px band inside the 52..96 zone
+  constexpr uint16_t kBot = 93;
+  // Slice separators first (subtle, behind the waveform): the 8 music
+  // buttons ARE the 8 slices of the loop, 30 columns each.
+  for (uint8_t b = 1; b < 8; b++) {
+    const uint16_t x = (uint16_t)(b * 30);
+    Paint_DrawLine(x, kTop, x, kBot, COL_DARK, DOT_PIXEL_1X1,
+                   LINE_STYLE_SOLID);
+  }
+  for (uint16_t c = 0; c < 240; c++) {
+    const uint8_t slice = (uint8_t)(c / 30);
+    UWORD col = COL_ORANGE_DIM;  // background waveform
+    if (s.retrig_leds_mask & (uint8_t)(1u << slice)) {
+      col = COL_CYAN;  // stutter indicator wins, same as the old LED strip
+    } else if (s.leds[slice] >= 8) {
+      col = COL_ORANGE;  // slice currently lit (inherits the LED semantics)
+    }
+    const uint16_t y0 =
+        (uint16_t)(kBot - ((uint16_t)wave_max[c] * (kBot - kTop)) / 255u);
+    const uint16_t y1 =
+        (uint16_t)(kBot - ((uint16_t)wave_min[c] * (kBot - kTop)) / 255u);
+    Paint_DrawLine(c, y0, c, y1, col, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+  }
+  if (s.wave_playhead_col < 240) {
+    Paint_DrawLine(s.wave_playhead_col, kTop, s.wave_playhead_col, kBot,
+                   COL_WHITE, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
   }
 }
 
@@ -244,8 +302,8 @@ static void draw_widget(uint8_t i, const GamepiUiState &s) {
     case W_NAME:
       draw_name(s);
       break;
-    case W_LEDS:
-      draw_leds(s);
+    case W_WAVE:
+      draw_wave(s);
       break;
     case W_MODENAME:
       draw_modename(s);
@@ -282,6 +340,20 @@ void gamepi_ui_init() {
 }
 
 void gamepi_ui_tick(const GamepiUiState &s) {
+  // Waveform cache upkeep: invalidate while the bank is being rewritten
+  // (covers SD/USB reloads even when the new sample keeps the same index
+  // and length), recompute synchronously once it settles or the playing
+  // sample changes. Blocking ~1-4 ms worst case, once per change -- the
+  // audio ISR preempts this loop, so playback never notices.
+  if (piko_audio_bank_mutating()) {
+    wave_cache_valid = false;
+  } else if (!wave_cache_valid || s.wave_sample_idx != wave_cached_sample) {
+    wave_recompute(s.wave_sample_idx);
+    wave_cached_sample = s.wave_sample_idx;
+    wave_cache_valid = true;
+    dirty[W_WAVE] = true;
+  }
+
   // Mark widgets whose backing data changed since last draw.
   if (!have_drawn) {
     for (uint8_t i = 0; i < W_COUNT; i++) dirty[i] = true;
@@ -294,7 +366,15 @@ void gamepi_ui_tick(const GamepiUiState &s) {
     if (strcmp(s.sample_name, drawn.sample_name) != 0) dirty[W_NAME] = true;
     if (memcmp(s.leds, drawn.leds, sizeof(s.leds)) != 0 ||
         s.retrig_leds_mask != drawn.retrig_leds_mask) {
-      dirty[W_LEDS] = true;
+      dirty[W_WAVE] = true;
+    }
+    if (s.wave_playhead_col != drawn.wave_playhead_col &&
+        time_us_64() - wave_playhead_mark_us >= 100000) {
+      // Playhead motion alone redraws at most ~10 Hz; without this the wave
+      // zone would dirty every tick and, even at lowest priority, consume a
+      // flush slot every time nothing else changed.
+      wave_playhead_mark_us = time_us_64();
+      dirty[W_WAVE] = true;
     }
     if (s.mode != drawn.mode) {
       dirty[W_MODENAME] = true;
@@ -322,7 +402,7 @@ void gamepi_ui_tick(const GamepiUiState &s) {
                        (uint16_t)(kOverlay.x + kOverlay.w),
                        (uint16_t)(kOverlay.y + kOverlay.h), COL_BG);
     flush(kOverlay);
-    dirty[W_LEDS] = true;      // zones the overlay covered
+    dirty[W_WAVE] = true;      // zones the overlay covered
     dirty[W_MODENAME] = true;
     dirty[W_BARA] = true;
     return;  // used this call's flush slot on the restore
