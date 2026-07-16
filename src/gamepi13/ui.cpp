@@ -227,7 +227,7 @@ static void wave_recompute(uint16_t sample_idx) {
 
 static void draw_wave(const GamepiUiState &s) {
   clear_zone(kRect[W_WAVE]);
-  constexpr uint16_t kTop = 54;  // 40px band inside the 52..96 zone
+  constexpr uint16_t kTop = 54;  // 39px band inside the 52..96 zone
   constexpr uint16_t kBot = 93;
   // Slice separators first (subtle, behind the waveform): the 8 music
   // buttons ARE the 8 slices of the loop, 30 columns each.
@@ -242,7 +242,11 @@ static void draw_wave(const GamepiUiState &s) {
     if (s.retrig_leds_mask & (uint8_t)(1u << slice)) {
       col = COL_CYAN;  // stutter indicator wins, same as the old LED strip
     } else if (s.leds[slice] >= 8) {
-      col = COL_ORANGE;  // slice currently lit (inherits the LED semantics)
+      // Collapsed from the old LED strip's 3-tier brightness (off/dim/bright)
+      // to 2 tiers here: the dim waveform IS the new "off" state, so this
+      // "lit" threshold (>= 8) reuses the old bright color at a lower bar
+      // than before, not the same threshold as the old >=128 bright tier.
+      col = COL_ORANGE;
     }
     const uint16_t y0 =
         (uint16_t)(kBot - ((uint16_t)wave_max[c] * (kBot - kTop)) / 255u);
