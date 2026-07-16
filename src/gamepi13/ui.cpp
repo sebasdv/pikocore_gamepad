@@ -176,7 +176,11 @@ static void draw_leds(const GamepiUiState &s) {
 
 static void draw_modename(const GamepiUiState &s) {
   clear_zone(kRect[W_MODENAME]);
-  Paint_DrawString_EN(8, 116, kModeA[s.mode & 7], &Font16, COL_PINK, COL_BG);
+  // Mode 8 (Browse SD) has no slot in the 8-entry kModeA table -- naively
+  // masking with & 7 would alias it onto mode 0 ("SAMPLE"), which read as a
+  // real bug during hardware testing (looked like the wrong mode was active).
+  const char *name = (s.mode == 8) ? "SD" : kModeA[s.mode & 7];
+  Paint_DrawString_EN(8, 116, name, &Font16, COL_PINK, COL_BG);
 }
 
 static void draw_bar(const Rect &zone, uint16_t bar_y, uint16_t val, UWORD col,
@@ -199,8 +203,10 @@ static void draw_bar(const Rect &zone, uint16_t bar_y, uint16_t val, UWORD col,
 static void draw_dots(const GamepiUiState &s) {
   clear_zone(kRect[W_DOTS]);
   // 8 dots, radius 4, 14 px pitch, centered: start x = 67
+  // Mode 8 (Browse SD) has no dot of its own -- leave all 8 dark rather than
+  // falsely lighting dot 0 via an & 7 alias (same bug as draw_modename above).
   for (uint8_t i = 0; i < 8; i++) {
-    UWORD col = (i == (s.mode & 7)) ? COL_PINK : COL_DARK;
+    UWORD col = (s.mode != 8 && i == s.mode) ? COL_PINK : COL_DARK;
     Paint_DrawCircle((uint16_t)(71 + i * 14), 218, 4, col, DOT_PIXEL_1X1,
                      DRAW_FILL_FULL);
   }
