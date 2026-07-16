@@ -184,7 +184,11 @@ static void draw_leds(const GamepiUiState &s) {
   for (uint8_t i = 0; i < 8; i++) {
     uint16_t x = (uint16_t)(10 + i * 28);  // 8 x 24px + 4px gap = 220 wide
     UWORD col = COL_DARK;
-    if (s.leds[i] >= 128) {
+    if (s.retrig_leds_mask & (uint8_t)(1u << i)) {
+      // Solid, ignores amplitude on purpose -- this is a state indicator
+      // (stutter active), not another brightness gradation.
+      col = COL_CYAN;
+    } else if (s.leds[i] >= 128) {
       col = COL_ORANGE;
     } else if (s.leds[i] >= 8) {
       col = COL_ORANGE_DIM;
@@ -288,7 +292,10 @@ void gamepi_ui_tick(const GamepiUiState &s) {
       dirty[W_TOP] = true;
     }
     if (strcmp(s.sample_name, drawn.sample_name) != 0) dirty[W_NAME] = true;
-    if (memcmp(s.leds, drawn.leds, sizeof(s.leds)) != 0) dirty[W_LEDS] = true;
+    if (memcmp(s.leds, drawn.leds, sizeof(s.leds)) != 0 ||
+        s.retrig_leds_mask != drawn.retrig_leds_mask) {
+      dirty[W_LEDS] = true;
+    }
     if (s.mode != drawn.mode) {
       dirty[W_MODENAME] = true;
       dirty[W_DOTS] = true;
