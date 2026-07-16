@@ -635,6 +635,65 @@ git commit -m "feat: montaje/listado/carga de bancos desde SD en core1 + RPC asy
 
 ---
 
+### Task 3.5: Enganchar `gamepi_spi1_mutex` en el driver SD (cierra la ventana de contención real)
+
+**Agregada post-hoc**, tras detectar que las Tareas 2 y 3 (ya commiteadas) dejaron el mutex de `spi1` protegiendo solo el lado del LCD. El spec original (`docs/superpowers/specs/2026-07-16-gamepi13-microsd-design.md`, sección "Mutex de `spi1`") pedía enganchar también el lado de la SD "implementando los hooks de bajo nivel que la librería expone (`sd_spi_acquire`/`sd_spi_release`, o el punto equivalente en `sd_driver/SPI/my_spi.c`)" — ese enganche nunca se transcribió a una tarea concreta durante el self-review del plan original. Sin esto, `sd_mount()`/`sd_list_files()`/`sd_load_bank()` en core1 pueden ejecutar transacciones SPI reales sobre `spi1` al mismo tiempo que `flush()` del LCD en core0, con el mutex existente sin efecto real (cada lado usa un mutex distinto: la SD usa el suyo propio, interno a la librería, que no sabe nada de `gamepi_spi1_mutex`).
+
+**Files:**
+- Modify: `RP2350-PiZero/C/03-MicroSD/src/sd_driver/SPI/my_spi.h` (único cuello de botella: toda transacción SD pasa por `spi_lock`/`spi_unlock`, llamadas desde `sd_spi_acquire`/`sd_spi_release`)
+
+- [ ] **Step 1: Enganchar el mutex compartido en `spi_lock`/`spi_unlock`**
+
+Buscar:
+```c
+static inline void spi_lock(spi_t *spi_p) {
+    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    mutex_enter_blocking(&spi_p->mutex);
+}
+static inline void spi_unlock(spi_t *spi_p) {
+    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    mutex_exit(&spi_p->mutex);
+}
+```
+
+Reemplazar por:
+```c
+// pikocore/GamePi13: this SPI peripheral (spi1) is physically shared with
+// the GamePi13's LCD, driven by a separate driver on core0
+// (src/gamepi13/dev_shim.c / ui.cpp). Real hardware bus contention, not
+// just software tidiness -- verified against the RP2350's IO_BANK0 FUNCSEL
+// registers (SD pins GP30/31/40 only route to spi1, same peripheral as the
+// LCD's GP10/11). Defined and initialized once in dev_shim.c; every spi1
+// client, on either core, must hold it around any transaction.
+extern mutex_t gamepi_spi1_mutex;
+
+static inline void spi_lock(spi_t *spi_p) {
+    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    mutex_enter_blocking(&spi_p->mutex);
+    mutex_enter_blocking(&gamepi_spi1_mutex);
+}
+static inline void spi_unlock(spi_t *spi_p) {
+    mutex_exit(&gamepi_spi1_mutex);
+    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    mutex_exit(&spi_p->mutex);
+}
+```
+
+No hay riesgo de deadlock: el lado LCD (`dev_shim.c`/`ui.cpp`) nunca toca `spi_p->mutex` (es privado de la librería SD), así que solo este archivo llega a tomar ambos mutexes a la vez, siempre en el mismo orden (`spi_p->mutex` primero, `gamepi_spi1_mutex` después) y los libera en orden inverso.
+
+- [ ] **Step 2: Build de ambas variantes**
+
+Expected: `MAKE_OK` ×2. `build/` no cambia — este archivo vendorizado solo se compila cuando `PIKO_GAMEPI13` está ON (Task 1 lo agrega al build vía `add_subdirectory` dentro del `if(PIKO_GAMEPI13)`), así que no hace falta ningún `#if` adicional en este archivo.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add RP2350-PiZero/C/03-MicroSD/src/sd_driver/SPI/my_spi.h
+git commit -m "fix: enganchar mutex compartido de spi1 en el driver SD (cierra ventana de contencion con el LCD)"
+```
+
+---
+
 ### Task 4: Renderizado del modo Browse SD en el LCD
 
 **Files:**
