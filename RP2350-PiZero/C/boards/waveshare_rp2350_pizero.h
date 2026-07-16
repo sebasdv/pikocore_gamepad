@@ -53,8 +53,16 @@
 
 #define PICO_BOOT_STAGE2_CHOOSE_W25Q080 1
 
+// CLKDIV 2 (Waveshare's original value) puts the QSPI flash clock at
+// sys_clk/2 = 124 MHz under pikocore's 248 MHz overclock -- beyond what this
+// board's 16 MB flash reads reliably. Symptom observed on hardware: the same
+// bank header read twice returned different bytes (boot-time rescan saw
+// zeroed fields while a later stream of the same address returned the real,
+// valid header), making uploaded samples "disappear" across power cycles.
+// CLKDIV 4 = 62 MHz, comfortably in spec; XIP audio streaming needs ~24 kB/s
+// so the bandwidth cost is irrelevant.
 #ifndef PICO_FLASH_SPI_CLKDIV
-#define PICO_FLASH_SPI_CLKDIV 2
+#define PICO_FLASH_SPI_CLKDIV 4
 #endif
 
 // pico_cmake_set_default PICO_FLASH_SIZE_BYTES = (16 * 1024 * 1024)
