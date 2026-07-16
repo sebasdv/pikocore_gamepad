@@ -1881,31 +1881,31 @@ int main(void) {
             }
             break;
           case GAMEPI_SD_BROWSE: {
+            // L cycles the list (one direction, wraps -- reaches every file
+            // eventually). R is dedicated purely to hold-to-confirm: it used
+            // to also tap-navigate forward, but rapid taps could leave the
+            // button reading "on" across what looked like separate presses
+            // (debounce/bounce), letting the hold timer accumulate real
+            // elapsed time across several taps and cross the 1s threshold
+            // without ever being held once -- an unintended load. Splitting
+            // navigate (L only) from confirm (R only) removes that failure
+            // mode entirely.
             const uint32_t count = gamepi_sd_file_count();
             bool moved = false;
             if (btn_l.ChangedHigh(true) && btn_l.On() && count > 0) {
               gamepi_sd_index = (gamepi_sd_index + count - 1) % count;
               moved = true;
             }
-            if (btn_r.ChangedHigh(true) && btn_r.On() && count > 0) {
-              gamepi_sd_index = (gamepi_sd_index + 1) % count;
-              moved = true;
-            }
             if (moved) {
-              // Same tick's rising edge already navigated; don't also let it
-              // seed the confirm hold below (that starts from the NEXT tick
-              // if R is still held).
               gamepi_sd_hold_start_us = 0;
               const bool is_active = gamepi_active_bank_name[0] != '\0' &&
                   strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
               gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
                                   gamepi_sd_index, count, is_active);
             }
-            if (btn_r.On() && !moved) {
+            if (btn_r.On()) {
               const uint64_t now_us = time_us_64();
               if (gamepi_sd_hold_start_us == 0) {
-                // Held past the tap/navigate edge without triggering a new
-                // navigation step: start the confirm hold.
                 gamepi_sd_hold_start_us = now_us;
               } else {
                 const uint64_t held_us = now_us - gamepi_sd_hold_start_us;
@@ -1923,7 +1923,7 @@ int main(void) {
                   gamepi_sd_state = GAMEPI_SD_LOADING;
                 }
               }
-            } else if (!btn_r.On()) {
+            } else {
               gamepi_sd_hold_start_us = 0;
             }
             break;
