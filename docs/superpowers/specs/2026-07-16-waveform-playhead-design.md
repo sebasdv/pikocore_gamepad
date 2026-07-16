@@ -61,18 +61,24 @@ slices del loop, así que una sola zona puede mostrar waveform + slice activo + 
 - Recalculo **bloqueante** al detectar cambio de sample: ~32 subsamples equiespaciados por
   columna, min/max sobre `piko_raw_val()`. 1-4 ms una sola vez; sin async.
 - Guard: si `piko_audio_bank_mutating()` es verdadero, se pospone el recálculo al próximo
-  tick (mismo patrón que el rescan de arranque).
+  tick (mismo patrón que el rescan de arranque) **y se invalida el caché** — así una
+  recarga de banco (SD/USB) siempre fuerza redecimación al terminar, incluso si el sample
+  nuevo tiene el mismo índice y el mismo largo que el anterior.
 - Sin samples (`raw_len == 1` o `sample_count == 0`): línea central plana, sin playhead.
 
 ### Datos nuevos en `GamepiUiState` (`ui.h`)
 
 - `uint8_t wave_playhead_col;` — columna 0-239 del playhead (calculada en `main.cpp` desde
   `phase_sample`/`raw_len`; 255 = sin playhead).
-- Ningún otro campo nuevo: el resaltado del slice activo se deriva de `leds[8]` (cada
-  slice-región hereda la amplitud de su LED, exactamente la misma lógica
-  brillante/tenue/apagado de hoy aplicada a la región en vez de al rectángulo), y el
-  retrigger de `retrig_leds_mask`. `sample_idx`/`sample_count` ya existen para detectar
-  el cambio de sample que dispara el recálculo del caché.
+- `uint16_t wave_sample_idx;` — el sample **que está sonando** (`sample` en `main.cpp`),
+  que con el FX de túnel (`probability_tunnel`) puede diferir por compás del sample
+  *seleccionado* (`sample_set`, lo que hoy viaja como `sample_idx` para el nombre en
+  pantalla). El playhead se calcula contra el que suena, así que la waveform cachea y
+  muestra ese — efecto secundario deseable: con túnel activo se VE la waveform saltar de
+  sample en sample.
+- El resaltado del slice activo se deriva de `leds[8]` (cada slice-región hereda la
+  amplitud de su LED aplicada a la región en vez de al rectángulo), y el retrigger de
+  `retrig_leds_mask` — sin campos nuevos para eso.
 
 ### Anti-inanición
 
