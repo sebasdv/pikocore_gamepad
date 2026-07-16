@@ -2079,6 +2079,20 @@ int main(void) {
             uis.retrig_leds_mask |= (uint8_t)(1u << button_on2);
           }
         }
+        {
+          // Playing sample (`sample`, ISR-owned; may differ from sample_set
+          // while the tunnel FX hops) + playhead column against ITS length,
+          // so the cursor always matches what's audible.
+          const uint16_t playing = sample;
+          uis.wave_sample_idx = playing;
+          const uint32_t wave_len = raw_len(playing);
+          if (ui_scount > 0 && wave_len > 1) {
+            const uint32_t ph = phase_sample[phase_head] % wave_len;
+            uis.wave_playhead_col = (uint8_t)(((uint64_t)ph * 240u) / wave_len);
+          } else {
+            uis.wave_playhead_col = 255;  // no playhead
+          }
+        }
         uis.mode = gamepi_selector;
         strncpy(uis.active_bank_name, gamepi_active_bank_name,
                sizeof(uis.active_bank_name) - 1);

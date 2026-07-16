@@ -14,6 +14,14 @@ struct GamepiUiState {
   // retrigger/stutter (btn_retrig) -- drawn cyan instead of the normal
   // amplitude-based orange, to distinguish stutter from a plain jump.
   uint8_t retrig_leds_mask;
+  // Waveform zone (W_WAVE): identity of the PLAYING sample and the playhead.
+  // wave_sample_idx follows main.cpp's `sample` (the ISR's playing sample --
+  // can differ per-beat from sample_idx/sample_set while the tunnel FX hops
+  // between samples); the waveform caches and shows THIS one so the playhead
+  // always matches what's audible. wave_playhead_col is 0-239, or 255 for
+  // "no playhead" (empty bank).
+  uint16_t wave_sample_idx;
+  uint8_t wave_playhead_col;
   uint8_t mode;          // selector 0-7
   uint16_t knob_a;       // 0-4095
   uint16_t knob_b;       // 0-4095
