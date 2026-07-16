@@ -156,7 +156,19 @@ static void draw_top(const GamepiUiState &s) {
 
 static void draw_name(const GamepiUiState &s) {
   clear_zone(kRect[W_NAME]);
-  Paint_DrawString_EN(8, 32, s.sample_name, &Font12, COL_GRAY, COL_BG);
+  char buf[48];
+  if (s.active_bank_name[0] != '\0') {
+    snprintf(buf, sizeof(buf), "%s | %s", s.sample_name, s.active_bank_name);
+  } else {
+    snprintf(buf, sizeof(buf), "%s", s.sample_name);
+  }
+  // Defensive hard truncation: at Font12's ~7px/char, this zone's 240px
+  // width holds ~32 visible characters from x=8 before running off the
+  // physical screen -- the combined sample+bank string can exceed that even
+  // though each field is individually truncated to fit on its own (22 and
+  // 24 chars respectively). Paint_DrawString_EN does not clip for us.
+  if (strlen(buf) > 32) buf[32] = '\0';
+  Paint_DrawString_EN(8, 32, buf, &Font12, COL_GRAY, COL_BG);
 }
 
 static void draw_leds(const GamepiUiState &s) {
@@ -390,15 +402,17 @@ void gamepi_ui_sd_listing() {
   flush(kOverlay);
 }
 
-void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count) {
+void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
+                         bool is_active) {
   if (!flush_allowed()) return;
   char pos[12];
   snprintf(pos, sizeof(pos), "%lu/%lu", (unsigned long)(index + 1),
            (unsigned long)count);
   sd_panel_title(pos, COL_GRAY);
-  draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_PINK);
-  draw_truncated("Mantener R para cargar", (uint16_t)(kOverlay.y + 86),
-                 COL_GRAY);
+  draw_truncated(filename, (uint16_t)(kOverlay.y + 50),
+                is_active ? COL_GREEN : COL_PINK);
+  draw_truncated(is_active ? "Cargado - Mantener R" : "Mantener R para cargar",
+                (uint16_t)(kOverlay.y + 86), COL_GRAY);
   flush(kOverlay);
 }
 

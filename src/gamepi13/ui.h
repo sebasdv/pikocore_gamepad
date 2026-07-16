@@ -8,6 +8,7 @@ struct GamepiUiState {
   uint16_t sample_idx;   // 0-based
   uint16_t sample_count;
   char sample_name[22];  // truncated, always NUL-terminated
+  char active_bank_name[24];  // "" if no SD bank loaded this session; truncated, NUL-terminated
   uint8_t leds[8];       // target brightness 0-255 (from LEDArray)
   uint8_t mode;          // selector 0-7
   uint16_t knob_a;       // 0-4095
@@ -23,7 +24,7 @@ void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val);  // L/R adj
 // llamarlas SOLO desde el lazo de botones de main.cpp, nunca desde
 // gamepi_ui_tick() -- evitan competir con el dashboard normal por pantalla.
 void gamepi_ui_sd_listing();
-void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count);
+void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count, bool is_active);
 void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent);
 void gamepi_ui_sd_loading(const char *filename);
 void gamepi_ui_sd_result(bool ok, const char *filename);

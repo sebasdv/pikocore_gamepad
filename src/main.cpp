@@ -1,6 +1,7 @@
 // c++ include
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <cmath>
 
@@ -134,6 +135,7 @@ GamepiSdState gamepi_sd_state = GAMEPI_SD_IDLE;
 uint32_t gamepi_sd_index = 0;
 uint16_t gamepi_sd_result_ticks = 0;
 #define GAMEPI_SD_RESULT_TICKS 100  // brief pause before returning to browse
+char gamepi_active_bank_name[24] = "";  // "" until a bank is loaded from SD this session
 #else
 Knob input_knob[NUM_KNOBS];
 #endif
@@ -1861,8 +1863,10 @@ int main(void) {
               } else {
                 gamepi_sd_index = 0;
                 gamepi_sd_state = GAMEPI_SD_BROWSE;
+                const bool is_active = gamepi_active_bank_name[0] != '\0' &&
+                    strcmp(gamepi_sd_file_name(0), gamepi_active_bank_name) == 0;
                 gamepi_ui_sd_browse(gamepi_sd_file_name(0), 0,
-                                    gamepi_sd_file_count());
+                                    gamepi_sd_file_count(), is_active);
               }
             }
             break;
@@ -1882,8 +1886,10 @@ int main(void) {
               // seed the confirm countdown below (that starts from the NEXT
               // tick if R is still held).
               gamepi_repeat_r = 0;
+              const bool is_active = gamepi_active_bank_name[0] != '\0' &&
+                  strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
               gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
-                                  gamepi_sd_index, count);
+                                  gamepi_sd_index, count, is_active);
             }
             if (btn_r.On() && !moved) {
               if (gamepi_repeat_r == 0) {
@@ -1912,6 +1918,19 @@ int main(void) {
           }
           case GAMEPI_SD_LOADING:
             if (gamepi_sd_load_done) {
+              if (gamepi_sd_load_ok) {
+                // Safe to read gamepi_sd_file_name() here: core1 already
+                // guaranteed (via its dmb-then-gamepi_sd_load_done protocol)
+                // that sd_file_names[] is fully settled by the time this
+                // flag is observed true, and it won't be touched again until
+                // the next sd_list_files() call. Copy it into a core0-owned
+                // buffer so it survives past that point (and past any future
+                // re-listing), for the dashboard/browse-list indicator.
+                const char *loaded_name = gamepi_sd_file_name(gamepi_sd_load_index);
+                strncpy(gamepi_active_bank_name, loaded_name,
+                       sizeof(gamepi_active_bank_name) - 1);
+                gamepi_active_bank_name[sizeof(gamepi_active_bank_name) - 1] = '\0';
+              }
               gamepi_ui_sd_result(gamepi_sd_load_ok,
                                   gamepi_sd_file_name(gamepi_sd_load_index));
               gamepi_sd_result_ticks = GAMEPI_SD_RESULT_TICKS;
@@ -1923,8 +1942,10 @@ int main(void) {
               gamepi_sd_result_ticks--;
             } else {
               gamepi_sd_state = GAMEPI_SD_BROWSE;
+              const bool is_active = gamepi_active_bank_name[0] != '\0' &&
+                  strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
               gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
-                                  gamepi_sd_index, gamepi_sd_file_count());
+                                  gamepi_sd_index, gamepi_sd_file_count(), is_active);
             }
             break;
         }
@@ -1974,6 +1995,9 @@ int main(void) {
         }
         for (uint8_t j = 0; j < 8; j++) uis.leds[j] = ledarray.Get(j);
         uis.mode = gamepi_selector;
+        strncpy(uis.active_bank_name, gamepi_active_bank_name,
+               sizeof(uis.active_bank_name) - 1);
+        uis.active_bank_name[sizeof(uis.active_bank_name) - 1] = '\0';
         uis.knob_a = input_knob[1].Value();
         uis.knob_b = input_knob[2].Value();
         gamepi_ui_tick(uis);
