@@ -194,6 +194,15 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   Confirmado que ni el propio ejemplo de referencia de la librería para esta placa usa
   Card Detect (`use_card_detect = false` en su `hw_config.c`), así que no es una
   configuración nuestra incompleta — es una limitación real del socket.
+- **RESUELTO — indicador visual de qué botón(es) están generando el retrigger actual.**
+  Los 2 LEDs virtuales correspondientes a `button_on`/`button_on2` se pintan en cian
+  sólido (en vez del naranja normal por amplitud) mientras `btn_retrig` esté activo por
+  la combinación de 2 botones (`src/gamepi13/ui.cpp`, `draw_leds()`;
+  `src/main.cpp`, campo `retrig_leds_mask` de `GamepiUiState`). Nota de alcance: solo
+  cubre el retrigger disparado por combo de 2 botones — el retrigger que a veces se
+  dispara por probabilidad (`probability_retrig`, sin un segundo botón presionado) no
+  tiene un botón "segundo" que resaltar, así que en ese caso la máscara puede quedar en 0
+  o con un solo LED aunque el audio esté igual haciendo stutter.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
@@ -227,8 +236,5 @@ quedaron abiertas o se volvieron obvias durante las pruebas:
   de una ventana de 2 subdivisiones — se podría, por ejemplo, usar Start+segundo-botón
   para fijar una subdivisión EXACTA en vez de aleatoria, dando más control predecible en
   vivo.
-- **Indicador visual de qué botón(es) están generando el retrigger actual**: ahora mismo
-  el LCD no distingue "estoy en jump simple" de "estoy en retrigger stutter" — se podría
-  usar el bloque de iconos de estado (pendiente, ver README) para esto.
 - **IMU (ICM20948, I2C GP2/3)** como modulador de FX — mencionado en el plan original,
   nunca implementado; podría mapear inclinación/movimiento a algún parámetro en vivo.
