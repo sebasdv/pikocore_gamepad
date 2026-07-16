@@ -411,8 +411,12 @@ void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
   sd_panel_title(pos, COL_GRAY);
   draw_truncated(filename, (uint16_t)(kOverlay.y + 50),
                 is_active ? COL_GREEN : COL_PINK);
-  draw_truncated(is_active ? "Cargado - Mantener R" : "Mantener R para cargar",
-                (uint16_t)(kOverlay.y + 86), COL_GRAY);
+  // Two lines: L/R's navigation role was previously left implicit (only the
+  // hold-to-load hint was shown), which read as "L does nothing" during
+  // hardware testing.
+  draw_truncated("L/R: navegar", (uint16_t)(kOverlay.y + 72), COL_GRAY);
+  draw_truncated(is_active ? "Cargado (banco activo)" : "Mantener R: cargar",
+                (uint16_t)(kOverlay.y + 88), COL_GRAY);
   flush(kOverlay);
 }
 
