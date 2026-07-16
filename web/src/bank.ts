@@ -101,12 +101,24 @@ export function parseBankBlob(blob: Uint8Array): ParsedBank {
   const audioBytes = view.getUint32(20, true);
 
   if (magic !== BANK_MAGIC || version !== BANK_VERSION || headerSize !== BANK_HEADER_SIZE) {
-    throw new Error('Unsupported pikocore bank');
+    throw new Error(
+      `Unsupported pikocore bank (magic=0x${magic.toString(16)}, version=${version}, headerSize=${headerSize})`,
+    );
   }
   if (blob.length < BANK_HEADER_SIZE) throw new Error('Bank blob is too small');
-  if (sampleRate !== BANK_SAMPLE_RATE) throw new Error('Unsupported sample rate');
-  if (sampleCount > BANK_MAX_SAMPLES) throw new Error('Too many samples in bank');
-  if (BANK_HEADER_SIZE + audioBytes > blob.length) throw new Error('Bank audio is truncated');
+  if (sampleRate !== BANK_SAMPLE_RATE) throw new Error(`Unsupported sample rate (${sampleRate})`);
+  if (sampleCount > BANK_MAX_SAMPLES) throw new Error(`Too many samples in bank (${sampleCount})`);
+  if (BANK_HEADER_SIZE + audioBytes > blob.length) {
+    // Diagnostic detail matters here: the device announces the transfer
+    // length from its RAM-cached view of the bank, while audioBytes comes
+    // from the header bytes physically stored in flash. These can only
+    // disagree if the two views diverged -- exactly the failure being
+    // chased on hardware -- so surface all three numbers.
+    throw new Error(
+      `Bank audio is truncated (header claims ${audioBytes} audio bytes, ` +
+        `device sent ${blob.length - BANK_HEADER_SIZE}; samples=${sampleCount})`,
+    );
+  }
 
   const samples: BankSample[] = [];
   for (let index = 0; index < sampleCount; index++) {
