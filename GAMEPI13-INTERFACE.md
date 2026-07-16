@@ -134,6 +134,16 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
 - El throttle de refresco de LCD (~25Hz) que se agregó para resolver la degradación de
   audio funciona por tiempo real (`time_us_64()`), no por ticks — así que no hereda este
   problema, pero es la única parte de la Fase 2 que no lo hereda.
+- **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
+  flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
+  devuelven datos corruptos de forma determinista (el header del banco de audio se leía
+  con campos en cero, haciendo "desaparecer" las muestras en cada arranque — aunque
+  nunca dejaron de estar físicamente en flash). Milisegundos después, la misma dirección
+  se lee bien. La cura: un reintento de rescan en el lazo de control
+  ([`src/main.cpp`](src/main.cpp), busca `gamepi_next_rescan_us`) que sana el banco en el
+  primer pase — confirmado en hardware: el dispositivo arranca y suena solo,
+  inmediatamente. En el camino se descartaron (y quedaron como mejoras igualmente
+  válidas) la sincronización multicore de escrituras a flash y el divisor QSPI a 4.
 
 ## 6. Ideas para mejoras futuras
 
