@@ -5,6 +5,8 @@
 
 #include "pico/time.h"
 
+#include "../hw_gamepi13.h"
+
 extern "C" {
 #include "lcd/GUI_Paint.h"
 #include "lcd/LCD_1in3.h"
@@ -76,7 +78,7 @@ static const char *kModeA[8] = {"SAMPLE",     "FILTRO",     "GATE",
                                 "GUARDAR",    "VOLUMEN"};
 static const char *kModeB[8] = {"BREAK FX",    "STRETCH",      "PROB GATE",
                                 "PROB RETRIG", "PROB REVERSA", "SEC PLAY",
-                                "CARGAR",      "-"};
+                                "CARGAR",      "TEMPO"};
 
 // Caps how often the LCD is allowed to do a blocking SPI flush, independent
 // of how often gamepi_ui_tick()/gamepi_ui_overlay_*() get called. Confirmed
@@ -384,6 +386,35 @@ void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
   if (w > 0) {
     Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10), col,
                         DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  }
+  if (flush_allowed()) flush(kOverlay);
+}
+
+// Tempo shows the real BPM integer, not a raw-knob percentage -- unlike
+// every other Function A/B parameter, bpm_set is adjusted directly (see
+// main.cpp's is_tempo branch) rather than derived from input_knob[]'s 0-4095
+// range, so a "%" readout wouldn't mean anything here.
+void gamepi_ui_overlay_tempo(uint16_t bpm) {
+  overlay_show_panel();
+  Paint_DrawString_EN(centered_x("TEMPO", 11), (uint16_t)(kOverlay.y + 10),
+                      "TEMPO", &Font16, COL_CYAN, COL_DARK);
+  char v[12];
+  snprintf(v, sizeof(v), "%u BPM", (unsigned)bpm);
+  Paint_DrawString_EN(centered_x(v, 17), (uint16_t)(kOverlay.y + 38), v,
+                      &Font24, COL_WHITE, COL_DARK);
+  uint16_t bx = (uint16_t)(kOverlay.x + (kOverlay.w - 170) / 2);
+  uint16_t by = (uint16_t)(kOverlay.y + 86);
+  Paint_DrawRectangle(bx, by, (uint16_t)(bx + 170), (uint16_t)(by + 10),
+                      COL_BG, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  const uint16_t clamped =
+      bpm < GAMEPI_TEMPO_MIN_BPM ? GAMEPI_TEMPO_MIN_BPM
+      : bpm > GAMEPI_TEMPO_MAX_BPM ? GAMEPI_TEMPO_MAX_BPM : bpm;
+  const uint16_t w = (uint16_t)((uint32_t)(clamped - GAMEPI_TEMPO_MIN_BPM) *
+                                170u /
+                                (GAMEPI_TEMPO_MAX_BPM - GAMEPI_TEMPO_MIN_BPM));
+  if (w > 0) {
+    Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10),
+                        COL_CYAN, DOT_PIXEL_1X1, DRAW_FILL_FULL);
   }
   if (flush_allowed()) flush(kOverlay);
 }

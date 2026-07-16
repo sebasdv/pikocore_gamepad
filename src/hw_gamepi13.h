@@ -30,6 +30,19 @@
 // millisecond instead of the intended ~100 ms.
 #define GAMEPI_REPEAT_US 100000  // repeat every 100 ms while L/R is held
 
+// Tempo (mode 7 / Volumen, Function B) direct bpm_set adjustment. BPM's
+// practical range (20-360) is much narrower than the generic 0-4095 knobs
+// GAMEPI_KNOB_STEP was tuned for, so it gets its own tap/hold-1s/hold-3s
+// acceleration instead of the flat step-per-repeat every other parameter
+// uses.
+#define GAMEPI_TEMPO_MIN_BPM 20
+#define GAMEPI_TEMPO_MAX_BPM 360  // matches param_set_bpm()'s own upper guard
+#define GAMEPI_TEMPO_STEP_FINE 1   // tap (held < 1 s): +/-1 BPM per repeat
+#define GAMEPI_TEMPO_STEP_MED 5    // held 1-3 s: +/-5 BPM per repeat
+#define GAMEPI_TEMPO_STEP_FAST 20  // held > 3 s: +/-20 BPM per repeat
+#define GAMEPI_TEMPO_TIER2_US 1000000ull  // 1 s
+#define GAMEPI_TEMPO_TIER3_US 3000000ull  // 3 s
+
 // LCD ST7789 1.3" 240x240 on SPI1 (Fase 2)
 // Pins verified against Gamepi13-RP2040-Demo/C/lib/Config/DEV_Config.c:162-171.
 #define GAMEPI_LCD_CS_PIN 8

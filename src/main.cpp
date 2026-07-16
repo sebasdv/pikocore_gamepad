@@ -124,6 +124,13 @@ uint8_t gamepi_selector = 0;
 // anymore.
 uint64_t gamepi_next_repeat_l_us = 0;
 uint64_t gamepi_next_repeat_r_us = 0;
+// Hold-start timestamps for the tempo (mode 7 Function B) direct bpm_set
+// adjustment -- 0 means "not currently holding this button for tempo".
+// Separate from gamepi_next_repeat_*_us (which only gates "when to apply the
+// next step", not "how long has this hold lasted", needed here to pick the
+// 1/5/20 BPM tier).
+uint64_t gamepi_tempo_hold_l_us = 0;
+uint64_t gamepi_tempo_hold_r_us = 0;
 bool gamepi_start_used_as_modifier = false;
 
 // Modo 8 (Browse SD) state machine.
@@ -1837,27 +1844,69 @@ int main(void) {
       if (gamepi_selector < 8) {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
         const uint64_t now_repeat_us = time_us_64();
+        // Tempo (mode 7 / Volumen, Function B) gets a dedicated direct
+        // bpm_set adjustment instead of the generic raw-knob Adjust() path:
+        // BPM has a much wider practical range (20-360) than the 0-4095
+        // knobs the generic path was designed for, so a flat GAMEPI_KNOB_STEP
+        // translated into huge BPM swings per repeat. This mirrors a
+        // tap/hold-1s/hold-3s acceleration (1/5/20 BPM per repeat) instead.
+        const bool is_tempo = (gamepi_selector == 7 && active_knob == 2);
         if (btn_l.On()) {
+          if (is_tempo && gamepi_tempo_hold_l_us == 0) {
+            gamepi_tempo_hold_l_us = now_repeat_us;
+          }
           if (now_repeat_us >= gamepi_next_repeat_l_us) {
-            input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
-            if (active_knob == 2) gamepi_start_used_as_modifier = true;
-            gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
-                                    input_knob[active_knob].Value());
+            if (is_tempo) {
+              const uint64_t held_us = now_repeat_us - gamepi_tempo_hold_l_us;
+              const uint16_t step =
+                  held_us >= GAMEPI_TEMPO_TIER3_US ? GAMEPI_TEMPO_STEP_FAST
+                  : held_us >= GAMEPI_TEMPO_TIER2_US ? GAMEPI_TEMPO_STEP_MED
+                                                     : GAMEPI_TEMPO_STEP_FINE;
+              uint16_t new_bpm = bpm_set > (uint16_t)(GAMEPI_TEMPO_MIN_BPM + step)
+                                      ? (uint16_t)(bpm_set - step)
+                                      : GAMEPI_TEMPO_MIN_BPM;
+              param_set_bpm(new_bpm, bpm_set, beat_thresh, audio_clk_thresh);
+              gamepi_start_used_as_modifier = true;
+              gamepi_ui_overlay_tempo(bpm_set);
+            } else {
+              input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
+              if (active_knob == 2) gamepi_start_used_as_modifier = true;
+              gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
+                                      input_knob[active_knob].Value());
+            }
             gamepi_next_repeat_l_us = now_repeat_us + GAMEPI_REPEAT_US;
           }
         } else {
           gamepi_next_repeat_l_us = 0;
+          gamepi_tempo_hold_l_us = 0;
         }
         if (btn_r.On()) {
+          if (is_tempo && gamepi_tempo_hold_r_us == 0) {
+            gamepi_tempo_hold_r_us = now_repeat_us;
+          }
           if (now_repeat_us >= gamepi_next_repeat_r_us) {
-            input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
-            if (active_knob == 2) gamepi_start_used_as_modifier = true;
-            gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
-                                    input_knob[active_knob].Value());
+            if (is_tempo) {
+              const uint64_t held_us = now_repeat_us - gamepi_tempo_hold_r_us;
+              const uint16_t step =
+                  held_us >= GAMEPI_TEMPO_TIER3_US ? GAMEPI_TEMPO_STEP_FAST
+                  : held_us >= GAMEPI_TEMPO_TIER2_US ? GAMEPI_TEMPO_STEP_MED
+                                                     : GAMEPI_TEMPO_STEP_FINE;
+              uint16_t new_bpm = (uint16_t)(bpm_set + step);
+              if (new_bpm > GAMEPI_TEMPO_MAX_BPM) new_bpm = GAMEPI_TEMPO_MAX_BPM;
+              param_set_bpm(new_bpm, bpm_set, beat_thresh, audio_clk_thresh);
+              gamepi_start_used_as_modifier = true;
+              gamepi_ui_overlay_tempo(bpm_set);
+            } else {
+              input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
+              if (active_knob == 2) gamepi_start_used_as_modifier = true;
+              gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
+                                      input_knob[active_knob].Value());
+            }
             gamepi_next_repeat_r_us = now_repeat_us + GAMEPI_REPEAT_US;
           }
         } else {
           gamepi_next_repeat_r_us = 0;
+          gamepi_tempo_hold_r_us = 0;
         }
       }
 

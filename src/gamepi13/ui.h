@@ -19,6 +19,7 @@ void gamepi_ui_init();                      // LCD init + splash (blocking ~1 s,
 void gamepi_ui_tick(const GamepiUiState &s);  // call once per 250 Hz control tick
 void gamepi_ui_overlay_mode(uint8_t mode);  // Select pressed
 void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val);  // L/R adjust
+void gamepi_ui_overlay_tempo(uint16_t bpm);  // tempo adjust (mode 7 Function B): real BPM, not %
 
 // Browse-SD mode (modo 8 del selector). Todas reusan el panel del overlay;
 // llamarlas SOLO desde el lazo de botones de main.cpp, nunca desde
