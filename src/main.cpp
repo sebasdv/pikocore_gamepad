@@ -1811,6 +1811,27 @@ int main(void) {
 #endif
 
 #if PIKO_GAMEPI13
+      // Boot-time bank rescan retry. Confirmed on this board: the very first
+      // rescan at boot deterministically reads a phantom empty header, while
+      // later reads of the same flash address return the real bank (see
+      // PikoAudioBank.cpp / commit history). Until the underlying early-XIP
+      // read issue is understood, retry once per second while the bank looks
+      // empty; on success rebind sample timing so playback starts. The LCD's
+      // top-right sample counter doubles as the diagnostic: it flips from
+      // "--/--" to "NN/MM" the moment a rescan finally reads the real header.
+      if (piko_audio_sample_count() == 0 && !piko_audio_bank_mutating()) {
+        static uint64_t gamepi_next_rescan_us = 0;
+        const uint64_t now_us = time_us_64();
+        if (now_us >= gamepi_next_rescan_us) {
+          gamepi_next_rescan_us = now_us + 1000000ull;
+          piko_audio_bank_set_mutating(true);
+          piko_audio_bank_rescan();
+          piko_audio_bank_set_mutating(false);
+          if (piko_audio_sample_count() > 0) {
+            refresh_sample_timing(0);
+          }
+        }
+      }
       {
         GamepiUiState uis;
         uis.bpm = bpm_set;
