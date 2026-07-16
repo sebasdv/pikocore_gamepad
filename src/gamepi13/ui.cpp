@@ -103,6 +103,7 @@ static bool flush_allowed() {
 // ROTATE_270 was turned on. DisplayWindows takes exclusive ends and assumes
 // full-frame stride (patched off-by-one in Task 1).
 static void flush(const Rect &r) {
+  mutex_enter_blocking(&gamepi_spi1_mutex);
 #if GAMEPI_LCD_ROTATE == ROTATE_270
   const uint16_t mx0 = r.y;
   const uint16_t mx1 = (uint16_t)(r.y + r.h);
@@ -125,6 +126,7 @@ static void flush(const Rect &r) {
   LCD_1IN3_DisplayWindows(r.x, r.y, (uint16_t)(r.x + r.w),
                           (uint16_t)(r.y + r.h), (UWORD *)fb);
 #endif
+  mutex_exit(&gamepi_spi1_mutex);
 }
 
 static uint8_t pct(uint16_t v) { return (uint8_t)((uint32_t)v * 100u / 4095u); }

@@ -6,6 +6,7 @@
 
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
+#include "pico/sync.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,6 +31,14 @@ void DEV_Delay_us(UDOUBLE xus);
 // pikocore-specific (called from ui.cpp, not from vendored code):
 void gamepi_lcd_dev_init(void);
 void gamepi_lcd_backlight(uint8_t percent);  // 0-100
+
+// Shared spi1 mutex: the onboard microSD socket (GP30/31/40) and this LCD
+// (GP10/11) are both wired to the spi1 peripheral -- verified against the
+// RP2350's IO_BANK0 FUNCSEL registers, no spi0 alternative exists for the SD
+// pins. Both clients must hold this around any spi1 transaction. Defined in
+// dev_shim.c, initialized once in main() before either client runs.
+extern mutex_t gamepi_spi1_mutex;
+void gamepi_spi1_mutex_init(void);
 
 #ifdef __cplusplus
 }

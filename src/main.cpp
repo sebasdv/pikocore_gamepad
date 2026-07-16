@@ -58,6 +58,7 @@
 #undef WS2812_ENABLED
 #define WS2812_ENABLED 0
 #include "gamepi13/ui.h"
+#include "gamepi13/lcd/DEV_Config.h"  // gamepi_spi1_mutex_init()
 #else
 #define AUDIO_PIN 20   // audio out
 #ifdef PICO_DEFAULT_LED_PIN
@@ -1385,6 +1386,9 @@ int main(void) {
   // erasing/programming without pausing the other core is a documented
   // pico-sdk hazard that can corrupt the write. Must be called here, before
   // core1 launches and can ever call multicore_lockout_start_blocking().
+#if PIKO_GAMEPI13
+  gamepi_spi1_mutex_init();
+#endif
   multicore_lockout_victim_init();
   multicore_launch_core1(piko_sample_manager_core);
 

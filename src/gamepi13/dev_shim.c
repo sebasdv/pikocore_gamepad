@@ -12,6 +12,10 @@ int EPD_DC_PIN = GAMEPI_LCD_DC_PIN;
 int EPD_CS_PIN = GAMEPI_LCD_CS_PIN;
 int EPD_BL_PIN = GAMEPI_LCD_BL_PIN;
 
+mutex_t gamepi_spi1_mutex;
+
+void gamepi_spi1_mutex_init(void) { mutex_init(&gamepi_spi1_mutex); }
+
 void DEV_Digital_Write(UWORD Pin, UBYTE Value) { gpio_put(Pin, Value); }
 UBYTE DEV_Digital_Read(UWORD Pin) { return gpio_get(Pin); }
 
@@ -40,9 +44,11 @@ void gamepi_lcd_dev_init(void) {
   // widgets de ancho completo, en reposo -- no es especifico del overlay).
   // Bajado al valor exacto que usa Gamepi13-RP2040-Demo/C/lib/Config/
   // DEV_Config.c para este mismo panel/cableado, validado por Waveshare.
+  mutex_enter_blocking(&gamepi_spi1_mutex);
   spi_init(GAMEPI_SPI, 10000 * 1000);
   gpio_set_function(GAMEPI_LCD_CLK_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GAMEPI_LCD_MOSI_PIN, GPIO_FUNC_SPI);
+  mutex_exit(&gamepi_spi1_mutex);
 
   // Backlight PWM (slice de GP7 = 3; no colisiona con el audio en GP18 = slice 1)
   gpio_set_function(GAMEPI_LCD_BL_PIN, GPIO_FUNC_PWM);
