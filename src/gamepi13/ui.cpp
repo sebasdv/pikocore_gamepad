@@ -70,11 +70,40 @@ static const char *kModeB[8] = {"BREAK FX",    "STRETCH",      "PROB GATE",
                                 "PROB RETRIG", "PROB REVERSA", "SEC PLAY",
                                 "CARGAR",      "-"};
 
-// Flush one rect of the framebuffer to the panel. DisplayWindows takes
-// exclusive ends and assumes full-frame stride (patched off-by-one in Task 1).
+// Flush one rect of the framebuffer to the panel. LCD_1IN3_DisplayWindows()
+// addresses raw panel/memory space, but our widget rects are in LOGICAL
+// (pre-rotation) drawing space -- the same space Paint_SetPixel() maps
+// through GAMEPI_LCD_ROTATE before writing into fb (see its Paint.Rotate
+// switch in GUI_Paint.c). Convert the logical rect to the matching
+// memory-space rect for the active rotation before flushing, or the panel
+// window opens over the wrong bytes: with ROTATE_0 this was a no-op (logical
+// == memory), which is why it stayed hidden until rotation was enabled --
+// confirmed on hardware as garbled/overlapping widget content once
+// ROTATE_270 was turned on. DisplayWindows takes exclusive ends and assumes
+// full-frame stride (patched off-by-one in Task 1).
 static void flush(const Rect &r) {
+#if GAMEPI_LCD_ROTATE == ROTATE_270
+  const uint16_t mx0 = r.y;
+  const uint16_t mx1 = (uint16_t)(r.y + r.h);
+  const uint16_t my0 = (uint16_t)(LCD_1IN3_WIDTH - (r.x + r.w));
+  const uint16_t my1 = (uint16_t)(LCD_1IN3_WIDTH - r.x);
+  LCD_1IN3_DisplayWindows(mx0, my0, mx1, my1, (UWORD *)fb);
+#elif GAMEPI_LCD_ROTATE == ROTATE_90
+  const uint16_t mx0 = (uint16_t)(LCD_1IN3_HEIGHT - (r.y + r.h));
+  const uint16_t mx1 = (uint16_t)(LCD_1IN3_HEIGHT - r.y);
+  const uint16_t my0 = r.x;
+  const uint16_t my1 = (uint16_t)(r.x + r.w);
+  LCD_1IN3_DisplayWindows(mx0, my0, mx1, my1, (UWORD *)fb);
+#elif GAMEPI_LCD_ROTATE == ROTATE_180
+  const uint16_t mx0 = (uint16_t)(LCD_1IN3_WIDTH - (r.x + r.w));
+  const uint16_t mx1 = (uint16_t)(LCD_1IN3_WIDTH - r.x);
+  const uint16_t my0 = (uint16_t)(LCD_1IN3_HEIGHT - (r.y + r.h));
+  const uint16_t my1 = (uint16_t)(LCD_1IN3_HEIGHT - r.y);
+  LCD_1IN3_DisplayWindows(mx0, my0, mx1, my1, (UWORD *)fb);
+#else
   LCD_1IN3_DisplayWindows(r.x, r.y, (uint16_t)(r.x + r.w),
                           (uint16_t)(r.y + r.h), (UWORD *)fb);
+#endif
 }
 
 static uint8_t pct(uint16_t v) { return (uint8_t)((uint32_t)v * 100u / 4095u); }
