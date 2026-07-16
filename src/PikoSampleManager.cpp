@@ -10,6 +10,12 @@
 #include "pico/stdlib.h"
 #include "tusb.h"
 
+#if PIKO_GAMEPI13
+#include "ff.h"
+#include "hw_config.h"
+#include "sd_card.h"
+#endif
+
 void do_stop_everything();
 void do_start_everything();
 bool piko_clock_input_ittybittymidi();
@@ -382,7 +388,157 @@ void handle_clock_input_mode() {
   flush_serial();
 }
 
+#if PIKO_GAMEPI13
+constexpr uint32_t kMaxSdFiles = 32;
+constexpr uint32_t kSdFilenameLen = 64;
+
+char sd_file_names[kMaxSdFiles][kSdFilenameLen];
+uint32_t sd_file_count_internal = 0;
+FATFS sd_fatfs;
+bool sd_mounted = false;
+
+bool sd_mount() {
+  if (sd_mounted) return true;
+  const FRESULT fr = f_mount(&sd_fatfs, sd_get_drive_prefix(sd_get_by_num(0)), 1);
+  sd_mounted = (fr == FR_OK);
+  return sd_mounted;
+}
+
+void sd_unmount() {
+  if (!sd_mounted) return;
+  f_unmount(sd_get_drive_prefix(sd_get_by_num(0)));
+  sd_mounted = false;
+}
+
+// Case-insensitive ".pikobank" suffix check without pulling in strings.h.
+bool has_pikobank_extension(const char *name) {
+  static const char kExt[] = ".pikobank";
+  const uint32_t ext_len = sizeof(kExt) - 1;
+  const uint32_t len = strlen(name);
+  if (len <= ext_len) return false;
+  const char *suffix = name + (len - ext_len);
+  for (uint32_t i = 0; i < ext_len; ++i) {
+    char a = suffix[i];
+    const char b = kExt[i];
+    if (a >= 'A' && a <= 'Z') a = static_cast<char>(a + 32);
+    if (a != b) return false;
+  }
+  return true;
+}
+
+void sd_list_files() {
+  sd_file_count_internal = 0;
+  if (!sd_mount()) return;
+  DIR dir;
+  if (f_opendir(&dir, sd_get_drive_prefix(sd_get_by_num(0))) != FR_OK) return;
+  FILINFO fno;
+  while (sd_file_count_internal < kMaxSdFiles &&
+         f_readdir(&dir, &fno) == FR_OK && fno.fname[0] != 0) {
+    if (fno.fattrib & AM_DIR) continue;
+    if (!has_pikobank_extension(fno.fname)) continue;
+    strncpy(sd_file_names[sd_file_count_internal], fno.fname, kSdFilenameLen - 1);
+    sd_file_names[sd_file_count_internal][kSdFilenameLen - 1] = '\0';
+    sd_file_count_internal++;
+  }
+  f_closedir(&dir);
+}
+
+// Mirrors handle_write()'s validate+erase+program sequence, sourcing bytes
+// from an SD file instead of the USB serial link. Reuses the same
+// header_staging/page_buf staging buffers and the same safe_flash_* helpers
+// (multicore-lockout protected, see Fase 2) -- no new flash-writing logic.
+bool sd_load_bank(uint32_t index) {
+  if (index >= sd_file_count_internal) return false;
+  if (!sd_mount()) return false;
+
+  FIL fil;
+  if (f_open(&fil, sd_file_names[index], FA_READ) != FR_OK) return false;
+
+  const uint32_t total_len = static_cast<uint32_t>(f_size(&fil));
+  if (total_len < PIKO_BANK_HEADER_SIZE ||
+      total_len > PIKO_BANK_HEADER_SIZE + piko_audio_capacity_bytes()) {
+    f_close(&fil);
+    return false;
+  }
+
+  UINT br = 0;
+  if (f_read(&fil, header_staging, PIKO_BANK_HEADER_SIZE, &br) != FR_OK ||
+      br != PIKO_BANK_HEADER_SIZE) {
+    f_close(&fil);
+    return false;
+  }
+
+  const PikoBankHeader *header =
+      reinterpret_cast<const PikoBankHeader *>(header_staging);
+  if (!validate_header(*header, total_len)) {
+    f_close(&fil);
+    return false;
+  }
+
+  piko_audio_bank_set_mutating(true);
+
+  safe_flash_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
+
+  uint32_t bytes_written = PIKO_BANK_HEADER_SIZE;
+  uint32_t audio_flash_off = PIKO_AUDIO_FLASH_OFFSET + PIKO_BANK_HEADER_SIZE;
+  uint32_t next_erase = audio_flash_off;
+  bool ok = true;
+
+  while (bytes_written < total_len) {
+    const uint32_t remaining = total_len - bytes_written;
+    const uint32_t page_fill =
+        remaining < kFlashPageSize ? remaining : kFlashPageSize;
+    memset(page_buf, 0xff, sizeof(page_buf));
+    if (f_read(&fil, page_buf, page_fill, &br) != FR_OK || br != page_fill) {
+      ok = false;
+      break;
+    }
+    const uint32_t page_off =
+        audio_flash_off + (bytes_written - PIKO_BANK_HEADER_SIZE);
+    if (page_off >= next_erase) {
+      safe_flash_erase(next_erase, kFlashSectorSize);
+      next_erase += kFlashSectorSize;
+    }
+    safe_flash_program(page_off, page_buf, sizeof(page_buf));
+    bytes_written += page_fill;
+  }
+
+  if (ok) {
+    memset(page_buf, 0xff, sizeof(page_buf));
+    for (uint32_t offset = 0; offset < PIKO_BANK_HEADER_SIZE;
+         offset += kFlashPageSize) {
+      memcpy(page_buf, header_staging + offset, kFlashPageSize);
+      safe_flash_program(PIKO_AUDIO_FLASH_OFFSET + offset, page_buf,
+                         sizeof(page_buf));
+    }
+    piko_audio_bank_rescan();
+  }
+
+  piko_audio_bank_set_mutating(false);
+  f_close(&fil);
+  return ok;
+}
+#endif  // PIKO_GAMEPI13
+
 }  // namespace
+
+#if PIKO_GAMEPI13
+volatile bool gamepi_sd_list_requested = false;
+volatile bool gamepi_sd_list_done = false;
+volatile bool gamepi_sd_load_requested = false;
+volatile uint32_t gamepi_sd_load_index = 0;
+volatile bool gamepi_sd_load_done = false;
+volatile bool gamepi_sd_load_ok = false;
+volatile bool gamepi_sd_unmount_requested = false;
+
+uint32_t gamepi_sd_file_count() { return sd_file_count_internal; }
+
+const char *gamepi_sd_file_name(uint32_t index) {
+  static const char kEmpty[] = "";
+  if (index >= sd_file_count_internal) return kEmpty;
+  return sd_file_names[index];
+}
+#endif
 
 void piko_sample_manager_set_ready() {
   __asm volatile("dmb" ::: "memory");
@@ -392,6 +548,31 @@ void piko_sample_manager_set_ready() {
 void piko_sample_manager_core() {
   while (true) {
     service_usb();
+
+#if PIKO_GAMEPI13
+    // Checked BEFORE the serial_connected() early-continue below: SD
+    // browsing must work with no USB/PC attached at all, which is the whole
+    // point of this feature. If this moved below the USB check, standalone
+    // use would silently never service these requests.
+    if (gamepi_sd_list_requested) {
+      gamepi_sd_list_requested = false;
+      sd_list_files();
+      __asm volatile("dmb" ::: "memory");
+      gamepi_sd_list_done = true;
+    }
+    if (gamepi_sd_load_requested) {
+      gamepi_sd_load_requested = false;
+      const bool ok = sd_load_bank(gamepi_sd_load_index);
+      gamepi_sd_load_ok = ok;
+      __asm volatile("dmb" ::: "memory");
+      gamepi_sd_load_done = true;
+    }
+    if (gamepi_sd_unmount_requested) {
+      gamepi_sd_unmount_requested = false;
+      sd_unmount();
+    }
+#endif
+
     if (!serial_connected()) {
       sleep_ms(1);
       continue;
