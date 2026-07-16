@@ -17,17 +17,18 @@ Cargar muestras con la web app (`cd web && npm run dev`).
 | Control | Función |
 |---|---|
 | Up Down Left Right Y X B A | botones musicales 1–8 de pikocore |
-| Select | cicla el modo de parámetro 0–7 (equivale al knob selector) |
+| Select | cicla el modo de parámetro 0–7, y un 9no modo (Browse SD) |
 | L / R | baja / sube el parámetro activo (Function A); mantener repite |
 | Start (toque simple) | mute / start-stop |
-| Start (mantenido) + L/R | ajusta Function B |
+| Start (mantenido) + L/R | ajusta Function B (en modo Volumen, Function B es TEMPO) |
 | Up+Down+B+A | reset de FX |
 | Up+Right+Y+A | mute / start-stop (alternativa heredada del combo original) |
 | Down+Left+X+B | lock de clock |
 
 Modos: 0 sample/break · 1 filtro/stretch · 2 gate/prob-gate ·
 3 prob-jump/prob-retrig · 4 prob-tunnel/prob-reversa ·
-5 secuenciador rec/play · 6 save/load · 7 volumen
+5 secuenciador rec/play · 6 save/load · 7 volumen/tempo · 8 Browse SD (ver
+sección [microSD](#microsd) abajo)
 
 ## pantalla
 
@@ -43,6 +44,24 @@ trigger out GP12 · LCD: SPI1 (CLK GP10, MOSI GP11, CS GP8, DC GP25,
 RST GP27, backlight GP7) · resto: ver `src/hw_gamepi13.h`.
 
 Pendiente (Fase 2.1): waveform con playhead, iconos de estado (mute/seq/lock).
+
+## microSD
+
+Poné archivos `.pikobank` en la raíz de una microSD FAT32 y montala en el
+socket integrado del RP2350-PiZero (compartido eléctricamente con el LCD por
+SPI1 — protegido por un mutex, ver [GAMEPI13-INTERFACE.md](GAMEPI13-INTERFACE.md)).
+Los `.pikobank` se generan con la web app (`cd web && npm run dev`): el botón
+"Download bank" arma el banco actual y lo descarga como archivo, listo para
+copiar a la tarjeta.
+
+En el instrumento, Select hasta el 9no modo (Browse SD):
+
+- **L** cicla la lista de archivos (una sola dirección; llega a todos igual).
+- **Mantener R** ~1 s carga el archivo resaltado — soltar antes cancela sin
+  tocar flash. El que ya está sonando aparece resaltado en verde.
+- La tarjeta se lee/monta al entrar al modo y se desmonta al salir (Select de
+  nuevo). No hay detección de inserción/extracción en caliente: si sacás o
+  ponés la tarjeta, hace falta reiniciar el dispositivo.
 
 ## más detalle
 
