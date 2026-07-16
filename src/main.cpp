@@ -1802,12 +1802,24 @@ int main(void) {
       if (btn_select.ChangedHigh(true) && btn_select.On()) {
         const uint8_t was = gamepi_selector;
         gamepi_selector = (gamepi_selector + 1) % 9;
+        if (was == 8) {
+          // Leaving Browse SD: unmount, don't leave the card open, and close
+          // whatever SD screen was on-screen -- it's a persistent overlay
+          // (see gamepi_ui_sd_close()'s comment), so it won't time out on
+          // its own. Done BEFORE the entering-mode-0 overlay below (the only
+          // mode reachable from here, since Select only increments) so that
+          // overlay's real ~1s deadline isn't immediately clobbered by this
+          // call's "expire right now" semantics.
+          gamepi_sd_unmount_requested = true;
+          gamepi_sd_state = GAMEPI_SD_IDLE;
+          gamepi_ui_sd_close();
+        }
         if (gamepi_selector < 8) {
           input_knob[0].SetBucket(gamepi_selector, 8);
           gamepi_ui_overlay_mode(gamepi_selector);
-        }
-        if (gamepi_selector == 8) {
-          // Entering Browse SD: kick off the async directory listing.
+        } else {
+          // gamepi_selector == 8: entering Browse SD, kick off the async
+          // directory listing.
           gamepi_sd_state = GAMEPI_SD_LISTING;
           gamepi_sd_index = 0;
           gamepi_sd_hold_start_us = 0;
@@ -1815,14 +1827,6 @@ int main(void) {
           __asm volatile("dmb" ::: "memory");
           gamepi_sd_list_requested = true;
           gamepi_ui_sd_listing();
-        } else if (was == 8) {
-          // Leaving Browse SD: unmount, don't leave the card open, and close
-          // whatever SD screen was on-screen -- it's a persistent overlay
-          // (see gamepi_ui_sd_close()'s comment), so it won't time out on
-          // its own.
-          gamepi_sd_unmount_requested = true;
-          gamepi_sd_state = GAMEPI_SD_IDLE;
-          gamepi_ui_sd_close();
         }
       }
       // Consolidated into ONE Changed(true) call: it consumes the button's
@@ -1973,6 +1977,17 @@ int main(void) {
                 }
               }
             } else {
+              if (gamepi_sd_hold_start_us != 0) {
+                // Was mid-hold (showing the confirm-progress overlay) and
+                // got released before reaching the threshold -- restore the
+                // browse screen. SD overlays are persistent now (no
+                // auto-expiry), so without this the "Cargando... XX%"
+                // screen would stay frozen on-screen indefinitely.
+                const bool is_active = gamepi_active_bank_name[0] != '\0' &&
+                    strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
+                gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
+                                    gamepi_sd_index, count, is_active);
+              }
               gamepi_sd_hold_start_us = 0;
             }
             break;
