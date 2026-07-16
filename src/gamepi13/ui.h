@@ -10,6 +10,10 @@ struct GamepiUiState {
   char sample_name[22];  // truncated, always NUL-terminated
   char active_bank_name[24];  // "" if no SD bank loaded this session; truncated, NUL-terminated
   uint8_t leds[8];       // target brightness 0-255 (from LEDArray)
+  // Bit i set = LED i is one of the two buttons currently driving an active
+  // retrigger/stutter (btn_retrig) -- drawn cyan instead of the normal
+  // amplitude-based orange, to distinguish stutter from a plain jump.
+  uint8_t retrig_leds_mask;
   uint8_t mode;          // selector 0-7
   uint16_t knob_a;       // 0-4095
   uint16_t knob_b;       // 0-4095

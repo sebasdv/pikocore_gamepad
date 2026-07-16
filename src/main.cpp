@@ -2070,6 +2070,15 @@ int main(void) {
           snprintf(uis.sample_name, sizeof(uis.sample_name), "(sin samples)");
         }
         for (uint8_t j = 0; j < 8; j++) uis.leds[j] = ledarray.Get(j);
+        uis.retrig_leds_mask = 0;
+        if (btn_retrig) {
+          if (button_on < NUM_BUTTONS) {
+            uis.retrig_leds_mask |= (uint8_t)(1u << button_on);
+          }
+          if (button_on2 < NUM_BUTTONS) {
+            uis.retrig_leds_mask |= (uint8_t)(1u << button_on2);
+          }
+        }
         uis.mode = gamepi_selector;
         strncpy(uis.active_bank_name, gamepi_active_bank_name,
                sizeof(uis.active_bank_name) - 1);
