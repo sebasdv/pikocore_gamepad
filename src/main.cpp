@@ -58,6 +58,7 @@
 #undef WS2812_ENABLED
 #define WS2812_ENABLED 0
 #include "gamepi13/ui.h"
+#include "PikoSampleManager.h"
 #include "gamepi13/lcd/DEV_Config.h"  // gamepi_spi1_mutex_init()
 #else
 #define AUDIO_PIN 20   // audio out
@@ -120,6 +121,19 @@ uint8_t gamepi_selector = 0;
 uint16_t gamepi_repeat_l = 0;
 uint16_t gamepi_repeat_r = 0;
 bool gamepi_start_used_as_modifier = false;
+
+// Modo 8 (Browse SD) state machine.
+enum GamepiSdState {
+  GAMEPI_SD_IDLE,      // not in mode 8, or entered but nothing requested yet
+  GAMEPI_SD_LISTING,   // waiting for gamepi_sd_list_done
+  GAMEPI_SD_BROWSE,    // list ready, user navigating with L/R
+  GAMEPI_SD_LOADING,   // waiting for gamepi_sd_load_done
+  GAMEPI_SD_RESULT,    // showing success/fail briefly
+};
+GamepiSdState gamepi_sd_state = GAMEPI_SD_IDLE;
+uint32_t gamepi_sd_index = 0;
+uint16_t gamepi_sd_result_ticks = 0;
+#define GAMEPI_SD_RESULT_TICKS 100  // brief pause before returning to browse
 #else
 Knob input_knob[NUM_KNOBS];
 #endif
@@ -1763,9 +1777,31 @@ int main(void) {
       btn_l.Read();
       btn_r.Read();
       if (btn_select.ChangedHigh(true) && btn_select.On()) {
-        gamepi_selector = (gamepi_selector + 1) % 8;
-        input_knob[0].SetBucket(gamepi_selector, 8);
-        gamepi_ui_overlay_mode(gamepi_selector);
+        const uint8_t was = gamepi_selector;
+        gamepi_selector = (gamepi_selector + 1) % 9;
+        if (gamepi_selector < 8) {
+          input_knob[0].SetBucket(gamepi_selector, 8);
+          gamepi_ui_overlay_mode(gamepi_selector);
+        }
+        if (gamepi_selector == 8) {
+          // Entering Browse SD: kick off the async directory listing.
+          // Reset the repeat counters too -- Step 4 gates Function A/B's L/R
+          // block out of this mode, so whatever gamepi_repeat_r held from
+          // before Select was pressed would otherwise leak into the
+          // hold-to-confirm countdown's own use of the same variable.
+          gamepi_sd_state = GAMEPI_SD_LISTING;
+          gamepi_sd_index = 0;
+          gamepi_repeat_l = 0;
+          gamepi_repeat_r = 0;
+          gamepi_sd_list_done = false;
+          __asm volatile("dmb" ::: "memory");
+          gamepi_sd_list_requested = true;
+          gamepi_ui_sd_listing();
+        } else if (was == 8) {
+          // Leaving Browse SD: unmount, don't leave the card open.
+          gamepi_sd_unmount_requested = true;
+          gamepi_sd_state = GAMEPI_SD_IDLE;
+        }
       }
       // Consolidated into ONE Changed(true) call: it consumes the button's
       // internal "changed" flag on ANY transition (see doth/button.h --
@@ -1783,7 +1819,7 @@ int main(void) {
           }
         }
       }
-      {
+      if (gamepi_selector < 8) {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
         if (btn_l.On()) {
           if (gamepi_repeat_l == 0) {
@@ -1810,6 +1846,87 @@ int main(void) {
           }
         } else {
           gamepi_repeat_r = 0;
+        }
+      }
+
+      if (gamepi_selector == 8) {
+        switch (gamepi_sd_state) {
+          case GAMEPI_SD_IDLE:
+            break;
+          case GAMEPI_SD_LISTING:
+            if (gamepi_sd_list_done) {
+              if (gamepi_sd_file_count() == 0) {
+                gamepi_ui_sd_error("Sin tarjeta o sin archivos");
+                gamepi_sd_state = GAMEPI_SD_IDLE;
+              } else {
+                gamepi_sd_index = 0;
+                gamepi_sd_state = GAMEPI_SD_BROWSE;
+                gamepi_ui_sd_browse(gamepi_sd_file_name(0), 0,
+                                    gamepi_sd_file_count());
+              }
+            }
+            break;
+          case GAMEPI_SD_BROWSE: {
+            const uint32_t count = gamepi_sd_file_count();
+            bool moved = false;
+            if (btn_l.ChangedHigh(true) && btn_l.On() && count > 0) {
+              gamepi_sd_index = (gamepi_sd_index + count - 1) % count;
+              moved = true;
+            }
+            if (btn_r.ChangedHigh(true) && btn_r.On() && count > 0) {
+              gamepi_sd_index = (gamepi_sd_index + 1) % count;
+              moved = true;
+            }
+            if (moved) {
+              // Same tick's rising edge already navigated; don't also let it
+              // seed the confirm countdown below (that starts from the NEXT
+              // tick if R is still held).
+              gamepi_repeat_r = 0;
+              gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
+                                  gamepi_sd_index, count);
+            }
+            if (btn_r.On() && !moved) {
+              if (gamepi_repeat_r == 0) {
+                // Held past the repeat threshold without triggering a new
+                // navigation step: start the confirm countdown.
+                gamepi_repeat_r = 1;  // reuse as a hold-progress counter now
+              } else if (gamepi_repeat_r < GAMEPI_REPEAT_TICKS * 10) {
+                gamepi_repeat_r++;
+                const uint8_t pct = (uint8_t)(
+                    (gamepi_repeat_r * 100u) / (GAMEPI_REPEAT_TICKS * 10u));
+                gamepi_ui_sd_confirm_progress(
+                    gamepi_sd_file_name(gamepi_sd_index), pct);
+                if (gamepi_repeat_r >= GAMEPI_REPEAT_TICKS * 10) {
+                  gamepi_ui_sd_loading(gamepi_sd_file_name(gamepi_sd_index));
+                  gamepi_sd_load_index = gamepi_sd_index;
+                  gamepi_sd_load_done = false;
+                  __asm volatile("dmb" ::: "memory");
+                  gamepi_sd_load_requested = true;
+                  gamepi_sd_state = GAMEPI_SD_LOADING;
+                }
+              }
+            } else if (!btn_r.On()) {
+              gamepi_repeat_r = 0;
+            }
+            break;
+          }
+          case GAMEPI_SD_LOADING:
+            if (gamepi_sd_load_done) {
+              gamepi_ui_sd_result(gamepi_sd_load_ok,
+                                  gamepi_sd_file_name(gamepi_sd_load_index));
+              gamepi_sd_result_ticks = GAMEPI_SD_RESULT_TICKS;
+              gamepi_sd_state = GAMEPI_SD_RESULT;
+            }
+            break;
+          case GAMEPI_SD_RESULT:
+            if (gamepi_sd_result_ticks > 0) {
+              gamepi_sd_result_ticks--;
+            } else {
+              gamepi_sd_state = GAMEPI_SD_BROWSE;
+              gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
+                                  gamepi_sd_index, gamepi_sd_file_count());
+            }
+            break;
         }
       }
 #endif
