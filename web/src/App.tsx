@@ -478,6 +478,20 @@ export function App() {
     }
   }
 
+  function downloadBankFile() {
+    if (samples.length === 0) return;
+    const bankBytes = buildBankBlob(samples, device?.capacityBytes ?? 0);
+    const blob = new Blob([bankBytes as BlobPart], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bank.pikobank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   async function uploadBank() {
     if (!connected || incompatibleDevice) {
       setStatus({ text: 'Connect to a pikocore before uploading', kind: 'warn' });
@@ -783,6 +797,14 @@ export function App() {
           >
             <Upload size={18} />
             Upload
+          </button>
+          <button
+            onClick={downloadBankFile}
+            disabled={samples.length === 0}
+            title="Download the current bank as a .pikobank file to copy to an SD card"
+          >
+            <Download size={18} />
+            Download bank
           </button>
           <button
             data-tour="read"
