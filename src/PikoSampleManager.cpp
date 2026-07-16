@@ -202,6 +202,18 @@ void safe_flash_program(uint32_t offset, const uint8_t* data, size_t size) {
 }
 
 void handle_info() {
+  // Refresh the RAM view of the bank from flash before reporting. The
+  // boot-time rescan has been observed (RP2350-PiZero) caching a wrong,
+  // zeroed view of a header that reads back fine later in the same boot;
+  // 'I' runs on every loader connect, so this both self-heals that state
+  // and doubles as a diagnostic (if info disagrees with a subsequent 'R'
+  // stream, reads are still diverging). Guarded so it can't race an
+  // in-flight write on this same core.
+  if (!piko_audio_bank_mutating()) {
+    piko_audio_bank_set_mutating(true);
+    piko_audio_bank_rescan();
+    piko_audio_bank_set_mutating(false);
+  }
   char info[256];
   uint32_t used = 0;
   int n = snprintf(info + used, sizeof(info) - used,

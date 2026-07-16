@@ -77,10 +77,25 @@ uint32_t clamp_sample_index(uint32_t sample_index) {
 }  // namespace
 
 void piko_audio_bank_init() {
+#if PIKO_GAMEPI13
+  // Do NOT probe the chip with flash_do_cmd() here. Observed on the
+  // RP2350-PiZero: the boot-time rescan that runs right after
+  // detect_flash_total_bytes() deterministically read the bank header with
+  // zeroed fields, while the exact same header streamed correctly over USB
+  // later in the same boot (loader diagnostic: "header claims 135529 audio
+  // bytes, device sent 0") -- i.e. XIP reads immediately after flash_do_cmd's
+  // exit-XIP/re-enter-XIP round trip are untrustworthy on this platform,
+  // and heal only after a later erase/program cycle re-establishes XIP.
+  // The board's flash size is known at compile time (16 MB, fixed in
+  // RP2350-PiZero/C/boards/waveshare_rp2350_pizero.h), so runtime detection
+  // buys nothing here anyway.
+  flash_total_bytes = PIKO_COMPILED_FLASH_TOTAL_BYTES;
+#else
   const uint32_t detected_flash_total_bytes = detect_flash_total_bytes();
   flash_total_bytes = detected_flash_total_bytes < PIKO_COMPILED_FLASH_TOTAL_BYTES
                           ? detected_flash_total_bytes
                           : PIKO_COMPILED_FLASH_TOTAL_BYTES;
+#endif
   audio_capacity_bytes = capacity_from_flash_size(flash_total_bytes);
   piko_audio_bank_rescan();
 }
