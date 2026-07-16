@@ -359,3 +359,80 @@ void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
   }
   if (flush_allowed()) flush(kOverlay);
 }
+
+static void sd_panel_title(const char *title, UWORD color) {
+  overlay_show_panel();
+  Paint_DrawString_EN(centered_x(title, 11), (uint16_t)(kOverlay.y + 12),
+                      title, &Font16, color, COL_DARK);
+}
+
+// Truncate long filenames to what the overlay's 200px width can show at
+// Font12 (7px/char) with some margin: ~26 chars.
+static void draw_truncated(const char *text, uint16_t y, UWORD color) {
+  char buf[27];
+  size_t len = strlen(text);
+  if (len > sizeof(buf) - 1) len = sizeof(buf) - 1;
+  memcpy(buf, text, len);
+  buf[len] = '\0';
+  Paint_DrawString_EN(centered_x(buf, 7), y, buf, &Font12, color, COL_DARK);
+}
+
+void gamepi_ui_sd_listing() {
+  if (!flush_allowed()) return;
+  sd_panel_title("SD", COL_GRAY);
+  draw_truncated("Leyendo tarjeta...", (uint16_t)(kOverlay.y + 50), COL_WHITE);
+  flush(kOverlay);
+}
+
+void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count) {
+  if (!flush_allowed()) return;
+  char pos[12];
+  snprintf(pos, sizeof(pos), "%lu/%lu", (unsigned long)(index + 1),
+           (unsigned long)count);
+  sd_panel_title(pos, COL_GRAY);
+  draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_PINK);
+  draw_truncated("Mantener R para cargar", (uint16_t)(kOverlay.y + 86),
+                 COL_GRAY);
+  flush(kOverlay);
+}
+
+void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent) {
+  if (!flush_allowed()) return;
+  sd_panel_title("Cargando...", COL_CYAN);
+  draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_WHITE);
+  uint16_t bx = (uint16_t)(kOverlay.x + (kOverlay.w - 170) / 2);
+  uint16_t by = (uint16_t)(kOverlay.y + 86);
+  Paint_DrawRectangle(bx, by, (uint16_t)(bx + 170), (uint16_t)(by + 10),
+                      COL_BG, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  uint16_t w = (uint16_t)((uint32_t)percent * 170u / 100u);
+  if (w > 0) {
+    Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10),
+                        COL_CYAN, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  }
+  flush(kOverlay);
+}
+
+void gamepi_ui_sd_loading(const char *filename) {
+  // Flushed once, unthrottled: this is the LAST LCD write before core0 stops
+  // touching spi1 for the duration of the actual SD-read+flash-write (see
+  // main.cpp's mode-8 handler) -- deliberately bypasses flush_allowed() so
+  // the message is guaranteed on screen before that quiet window starts.
+  sd_panel_title("Cargando...", COL_CYAN);
+  draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_WHITE);
+  flush(kOverlay);
+}
+
+void gamepi_ui_sd_result(bool ok, const char *filename) {
+  if (!flush_allowed()) return;
+  sd_panel_title(ok ? "Listo" : "Error", ok ? COL_GREEN : COL_PINK);
+  draw_truncated(ok ? filename : "No se pudo cargar",
+                 (uint16_t)(kOverlay.y + 50), COL_WHITE);
+  flush(kOverlay);
+}
+
+void gamepi_ui_sd_error(const char *message) {
+  if (!flush_allowed()) return;
+  sd_panel_title("SD", COL_GRAY);
+  draw_truncated(message, (uint16_t)(kOverlay.y + 50), COL_PINK);
+  flush(kOverlay);
+}

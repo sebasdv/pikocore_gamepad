@@ -18,3 +18,13 @@ void gamepi_ui_init();                      // LCD init + splash (blocking ~1 s,
 void gamepi_ui_tick(const GamepiUiState &s);  // call once per 250 Hz control tick
 void gamepi_ui_overlay_mode(uint8_t mode);  // Select pressed
 void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val);  // L/R adjust
+
+// Browse-SD mode (modo 8 del selector). Todas reusan el panel del overlay;
+// llamarlas SOLO desde el lazo de botones de main.cpp, nunca desde
+// gamepi_ui_tick() -- evitan competir con el dashboard normal por pantalla.
+void gamepi_ui_sd_listing();
+void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count);
+void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent);
+void gamepi_ui_sd_loading(const char *filename);
+void gamepi_ui_sd_result(bool ok, const char *filename);
+void gamepi_ui_sd_error(const char *message);
