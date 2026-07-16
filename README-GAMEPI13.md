@@ -42,3 +42,9 @@ trigger out GP12 · LCD: SPI1 (CLK GP10, MOSI GP11, CS GP8, DC GP25,
 RST GP27, backlight GP7) · resto: ver `src/hw_gamepi13.h`.
 
 Pendiente (Fase 2.1): waveform con playhead, iconos de estado (mute/seq/lock).
+
+## más detalle
+
+Ver [GAMEPI13-INTERFACE.md](GAMEPI13-INTERFACE.md) para el detalle de qué hace cada
+botón individual, cómo funciona el retrigger, la tabla completa de modos, y notas de
+diseño/mejoras futuras.
