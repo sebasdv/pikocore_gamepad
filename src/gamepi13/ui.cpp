@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "pico/time.h"
+
 extern "C" {
 #include "lcd/GUI_Paint.h"
 #include "lcd/LCD_1in3.h"
@@ -69,6 +71,25 @@ static const char *kModeA[8] = {"SAMPLE",     "FILTRO",     "GATE",
 static const char *kModeB[8] = {"BREAK FX",    "STRETCH",      "PROB GATE",
                                 "PROB RETRIG", "PROB REVERSA", "SEC PLAY",
                                 "CARGAR",      "-"};
+
+// Caps how often the LCD is allowed to do a blocking SPI flush, independent
+// of how often gamepi_ui_tick()/gamepi_ui_overlay_*() get called. Confirmed
+// on hardware: with unthrottled flushing (a widget flush on every call where
+// something is dirty, and the "250 Hz" main-loop tick actually running far
+// faster than that comment implies -- ~988 kHz per the audio PWM wrap
+// config), sustained SPI traffic while holding L/R for the overlay visibly
+// degraded audio quality. Flushing is a "nice to have" (dashboard/overlay
+// are non-vital per design), so it's safe to drop frames here; audio never
+// waits on this.
+#define MIN_FLUSH_INTERVAL_US 40000  // ~25 Hz max LCD flush rate
+static uint64_t last_flush_us = 0;
+
+static bool flush_allowed() {
+  const uint64_t now = time_us_64();
+  if (now - last_flush_us < MIN_FLUSH_INTERVAL_US) return false;
+  last_flush_us = now;
+  return true;
+}
 
 // Flush one rect of the framebuffer to the panel. LCD_1IN3_DisplayWindows()
 // addresses raw panel/memory space, but our widget rects are in LOGICAL
@@ -250,24 +271,26 @@ void gamepi_ui_tick(const GamepiUiState &s) {
   drawn = s;
   have_drawn = true;
 
-  // Overlay TTL handling arrives in a later task; without overlay, just flush
-  // at most ONE dirty widget per tick to bound SPI blocking time.
+  // Flush at most ONE dirty widget per allowed flush window (see
+  // flush_allowed()) to bound total SPI blocking time.
   if (overlay_on) {
     if (overlay_ttl > 0) {
       overlay_ttl--;
-    } else {
-      overlay_on = false;
-      Paint_ClearWindows(kOverlay.x, kOverlay.y,
-                         (uint16_t)(kOverlay.x + kOverlay.w),
-                         (uint16_t)(kOverlay.y + kOverlay.h), COL_BG);
-      flush(kOverlay);
-      dirty[W_LEDS] = true;      // zones the overlay covered
-      dirty[W_MODENAME] = true;
-      dirty[W_BARA] = true;
+      return;  // still showing; nothing else to draw this call
     }
-    if (overlay_on) return;  // never repaint background under the overlay
+    if (!flush_allowed()) return;  // wait for a flush slot before restoring
+    overlay_on = false;
+    Paint_ClearWindows(kOverlay.x, kOverlay.y,
+                       (uint16_t)(kOverlay.x + kOverlay.w),
+                       (uint16_t)(kOverlay.y + kOverlay.h), COL_BG);
+    flush(kOverlay);
+    dirty[W_LEDS] = true;      // zones the overlay covered
+    dirty[W_MODENAME] = true;
+    dirty[W_BARA] = true;
+    return;  // used this call's flush slot on the restore
   }
 
+  if (!flush_allowed()) return;
   for (uint8_t i = 0; i < W_COUNT; i++) {
     if (dirty[i]) {
       draw_widget(i, s);
@@ -308,7 +331,7 @@ void gamepi_ui_overlay_mode(uint8_t mode) {
                       kModeA[mode], &Font20, COL_PINK, COL_DARK);
   Paint_DrawString_EN(centered_x(kModeB[mode], 11), (uint16_t)(kOverlay.y + 74),
                       kModeB[mode], &Font16, COL_CYAN, COL_DARK);
-  flush(kOverlay);
+  if (flush_allowed()) flush(kOverlay);
 }
 
 void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
@@ -332,5 +355,5 @@ void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
     Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10), col,
                         DOT_PIXEL_1X1, DRAW_FILL_FULL);
   }
-  flush(kOverlay);
+  if (flush_allowed()) flush(kOverlay);
 }
