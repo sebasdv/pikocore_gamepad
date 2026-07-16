@@ -68,10 +68,11 @@ slices del loop, así que una sola zona puede mostrar waveform + slice activo + 
 
 - `uint8_t wave_playhead_col;` — columna 0-239 del playhead (calculada en `main.cpp` desde
   `phase_sample`/`raw_len`; 255 = sin playhead).
-- Se reusan campos existentes: `sample_idx` (para detectar cambio de sample),
-  `sample_count`, `leds[8]` (amplitud por slice), `retrig_leds_mask`, y se agrega
-  `uint16_t wave_beat;` si hace falta `select_beat` explícito — a decidir en el plan si
-  `leds[]` ya codifica suficiente el slice activo.
+- Ningún otro campo nuevo: el resaltado del slice activo se deriva de `leds[8]` (cada
+  slice-región hereda la amplitud de su LED, exactamente la misma lógica
+  brillante/tenue/apagado de hoy aplicada a la región en vez de al rectángulo), y el
+  retrigger de `retrig_leds_mask`. `sample_idx`/`sample_count` ya existen para detectar
+  el cambio de sample que dispara el recálculo del caché.
 
 ### Anti-inanición
 
