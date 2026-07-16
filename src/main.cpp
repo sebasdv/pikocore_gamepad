@@ -118,6 +118,7 @@ Button btn_select, btn_start, btn_l, btn_r;
 uint8_t gamepi_selector = 0;
 uint16_t gamepi_repeat_l = 0;
 uint16_t gamepi_repeat_r = 0;
+bool gamepi_start_used_as_modifier = false;
 #else
 Knob input_knob[NUM_KNOBS];
 #endif
@@ -1754,11 +1755,15 @@ int main(void) {
         input_knob[0].SetBucket(gamepi_selector, 8);
         gamepi_ui_overlay_mode(gamepi_selector);
       }
+      if (btn_start.ChangedHigh(true) && btn_start.On()) {
+        gamepi_start_used_as_modifier = false;
+      }
       {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
         if (btn_l.On()) {
           if (gamepi_repeat_l == 0) {
             input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
+            if (active_knob == 2) gamepi_start_used_as_modifier = true;
             gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
                                     input_knob[active_knob].Value());
             gamepi_repeat_l = GAMEPI_REPEAT_TICKS;
@@ -1771,6 +1776,7 @@ int main(void) {
         if (btn_r.On()) {
           if (gamepi_repeat_r == 0) {
             input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
+            if (active_knob == 2) gamepi_start_used_as_modifier = true;
             gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
                                     input_knob[active_knob].Value());
             gamepi_repeat_r = GAMEPI_REPEAT_TICKS;
@@ -1779,6 +1785,17 @@ int main(void) {
           }
         } else {
           gamepi_repeat_r = 0;
+        }
+      }
+      // Start tapped alone (never used as a Function-B modifier while
+      // held) toggles start/stop -- same action as the Up+Right+Y+A combo,
+      // but on the button whose label already says "Start".
+      if (btn_start.Changed(true) && btn_start.Falling() &&
+          !gamepi_start_used_as_modifier) {
+        if (do_mute) {
+          do_start_everything();
+        } else {
+          do_stop_everything();
         }
       }
 #endif
