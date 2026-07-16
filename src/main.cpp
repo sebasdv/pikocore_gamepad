@@ -1755,8 +1755,21 @@ int main(void) {
         input_knob[0].SetBucket(gamepi_selector, 8);
         gamepi_ui_overlay_mode(gamepi_selector);
       }
-      if (btn_start.ChangedHigh(true) && btn_start.On()) {
-        gamepi_start_used_as_modifier = false;
+      // Consolidated into ONE Changed(true) call: it consumes the button's
+      // internal "changed" flag on ANY transition (see doth/button.h --
+      // "can only be read once"), so checking Rising() and Falling() via
+      // two SEPARATE Changed(true) calls in the same iteration silently
+      // drops the second one, whichever it is.
+      if (btn_start.Changed(true)) {
+        if (btn_start.Rising()) {
+          gamepi_start_used_as_modifier = false;
+        } else if (btn_start.Falling() && !gamepi_start_used_as_modifier) {
+          if (do_mute) {
+            do_start_everything();
+          } else {
+            do_stop_everything();
+          }
+        }
       }
       {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
@@ -1785,17 +1798,6 @@ int main(void) {
           }
         } else {
           gamepi_repeat_r = 0;
-        }
-      }
-      // Start tapped alone (never used as a Function-B modifier while
-      // held) toggles start/stop -- same action as the Up+Right+Y+A combo,
-      // but on the button whose label already says "Start".
-      if (btn_start.Changed(true) && btn_start.Falling() &&
-          !gamepi_start_used_as_modifier) {
-        if (do_mute) {
-          do_start_everything();
-        } else {
-          do_stop_everything();
         }
       }
 #endif
