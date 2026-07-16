@@ -29,3 +29,4 @@ void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent);
 void gamepi_ui_sd_loading(const char *filename);
 void gamepi_ui_sd_result(bool ok, const char *filename);
 void gamepi_ui_sd_error(const char *message);
+void gamepi_ui_sd_close();  // call when leaving mode 8; closes any open SD screen immediately

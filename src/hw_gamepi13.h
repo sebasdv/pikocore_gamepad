@@ -23,7 +23,12 @@
 #define GAMEPI_BTN_R 4        // increase active knob
 
 #define GAMEPI_KNOB_STEP 164    // ~4% of 4095 per repeat (full sweep ~2.5 s held)
-#define GAMEPI_REPEAT_TICKS 25  // repeat every 100 ms at the 250 Hz input scan
+// Real elapsed time via time_us_64(), not loop-iteration ticks -- the old
+// GAMEPI_REPEAT_TICKS=25 assumed a 250 Hz input scan, but the actual rate
+// (measured from the ~988 kHz audio PWM IRQ this loop is gated on) is
+// ~61.7 kHz, ~247x faster, so the tick-counted delay fired in well under a
+// millisecond instead of the intended ~100 ms.
+#define GAMEPI_REPEAT_US 100000  // repeat every 100 ms while L/R is held
 
 // LCD ST7789 1.3" 240x240 on SPI1 (Fase 2)
 // Pins verified against Gamepi13-RP2040-Demo/C/lib/Config/DEV_Config.c:162-171.

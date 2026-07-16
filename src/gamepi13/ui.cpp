@@ -62,8 +62,14 @@ static bool have_drawn = false;
 
 static const Rect kOverlay = {20, 64, 200, 112};
 static bool overlay_on = false;
-static uint16_t overlay_ttl = 0;
-#define OVERLAY_TTL_TICKS 250  // ~1 s at 250 Hz
+static bool overlay_persistent = false;  // true: SD-mode screens, no auto-expiry
+static uint64_t overlay_deadline_us = 0;
+// Real elapsed time via time_us_64(), NOT loop-iteration ticks -- ticks
+// turned out to run the button/UI block at ~61.7 kHz in practice (measured
+// from the ~988 kHz audio PWM IRQ this loop is gated on, divided by the
+// "% 16 == 0" gate in main.cpp), not the "250 Hz" a tick-counted TTL
+// assumed, so OVERLAY_TTL_TICKS=250 expired in ~4 ms instead of ~1 s.
+#define OVERLAY_TTL_US 1000000  // ~1 s
 
 static const char *kModeA[8] = {"SAMPLE",     "FILTRO",     "GATE",
                                 "PROB SALTO", "PROB TUNEL", "SEC GRABAR",
@@ -294,8 +300,11 @@ void gamepi_ui_tick(const GamepiUiState &s) {
   // Flush at most ONE dirty widget per allowed flush window (see
   // flush_allowed()) to bound total SPI blocking time.
   if (overlay_on) {
-    if (overlay_ttl > 0) {
-      overlay_ttl--;
+    // Persistent overlays (SD-mode screens) never expire on a timer -- they
+    // stay up until gamepi_ui_sd_close() is called explicitly (main.cpp,
+    // when leaving mode 8). Everything else (mode/param flash) times out
+    // after OVERLAY_TTL_US of real elapsed time.
+    if (overlay_persistent || time_us_64() < overlay_deadline_us) {
       return;  // still showing; nothing else to draw this call
     }
     if (!flush_allowed()) return;  // wait for a flush slot before restoring
@@ -323,9 +332,10 @@ void gamepi_ui_tick(const GamepiUiState &s) {
 
 // Draw the overlay panel into fb and flush it. Called from the same 250 Hz
 // context as gamepi_ui_tick (all core0) — no concurrency to worry about.
-static void overlay_show_panel() {
+static void overlay_show_panel(bool persistent = false) {
   overlay_on = true;
-  overlay_ttl = OVERLAY_TTL_TICKS;
+  overlay_persistent = persistent;
+  overlay_deadline_us = time_us_64() + OVERLAY_TTL_US;
   Paint_ClearWindows(kOverlay.x, kOverlay.y,
                      (uint16_t)(kOverlay.x + kOverlay.w),
                      (uint16_t)(kOverlay.y + kOverlay.h), COL_DARK);
@@ -379,7 +389,7 @@ void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
 }
 
 static void sd_panel_title(const char *title, UWORD color) {
-  overlay_show_panel();
+  overlay_show_panel(true);  // persistent: SD screens don't auto-expire
   Paint_DrawString_EN(centered_x(title, 11), (uint16_t)(kOverlay.y + 12),
                       title, &Font16, color, COL_DARK);
 }
@@ -393,6 +403,15 @@ static void draw_truncated(const char *text, uint16_t y, UWORD color) {
   memcpy(buf, text, len);
   buf[len] = '\0';
   Paint_DrawString_EN(centered_x(buf, 7), y, buf, &Font12, color, COL_DARK);
+}
+
+void gamepi_ui_sd_close() {
+  // Called when leaving mode 8: expire the persistent SD overlay immediately
+  // so gamepi_ui_tick()'s normal (non-persistent) path reverts to the
+  // regular dashboard on its next call, reusing that existing revert logic
+  // instead of duplicating it here.
+  overlay_persistent = false;
+  overlay_deadline_us = time_us_64();
 }
 
 void gamepi_ui_sd_listing() {

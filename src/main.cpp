@@ -119,8 +119,11 @@ Button input_button[NUM_BUTTONS];
 VirtualKnob input_knob[NUM_KNOBS];
 Button btn_select, btn_start, btn_l, btn_r;
 uint8_t gamepi_selector = 0;
-uint16_t gamepi_repeat_l = 0;
-uint16_t gamepi_repeat_r = 0;
+// Real-elapsed-time gating for L/R auto-repeat (Function A/B). See
+// GAMEPI_REPEAT_US's comment in hw_gamepi13.h for why this isn't tick-based
+// anymore.
+uint64_t gamepi_next_repeat_l_us = 0;
+uint64_t gamepi_next_repeat_r_us = 0;
 bool gamepi_start_used_as_modifier = false;
 
 // Modo 8 (Browse SD) state machine.
@@ -133,8 +136,19 @@ enum GamepiSdState {
 };
 GamepiSdState gamepi_sd_state = GAMEPI_SD_IDLE;
 uint32_t gamepi_sd_index = 0;
-uint16_t gamepi_sd_result_ticks = 0;
-#define GAMEPI_SD_RESULT_TICKS 100  // brief pause before returning to browse
+// 0 = not currently holding R to confirm a load; otherwise the time_us_64()
+// timestamp when the hold began. Dedicated to mode 8 -- no longer shares
+// storage with gamepi_next_repeat_r_us (Function A/B's own repeat timer),
+// which was a deliberate but fragile Phase-3 shortcut relying on the two
+// use sites never running in the same tick.
+uint64_t gamepi_sd_hold_start_us = 0;
+#define GAMEPI_SD_HOLD_CONFIRM_US 1000000  // ~1 s real hold to confirm a load
+uint64_t gamepi_sd_result_deadline_us = 0;
+// Deliberately longer than the old (mis-timed) "brief pause" intent -- 1.5 s
+// is long enough to actually read "Listo: <filename>" or "Error", which the
+// original ~0.4 s nominal intent (itself under a broken time base) wasn't
+// really designed to guarantee either.
+#define GAMEPI_SD_RESULT_US 1500000  // ~1.5 s
 char gamepi_active_bank_name[24] = "";  // "" until a bank is loaded from SD this session
 #else
 Knob input_knob[NUM_KNOBS];
@@ -1787,22 +1801,21 @@ int main(void) {
         }
         if (gamepi_selector == 8) {
           // Entering Browse SD: kick off the async directory listing.
-          // Reset the repeat counters too -- Step 4 gates Function A/B's L/R
-          // block out of this mode, so whatever gamepi_repeat_r held from
-          // before Select was pressed would otherwise leak into the
-          // hold-to-confirm countdown's own use of the same variable.
           gamepi_sd_state = GAMEPI_SD_LISTING;
           gamepi_sd_index = 0;
-          gamepi_repeat_l = 0;
-          gamepi_repeat_r = 0;
+          gamepi_sd_hold_start_us = 0;
           gamepi_sd_list_done = false;
           __asm volatile("dmb" ::: "memory");
           gamepi_sd_list_requested = true;
           gamepi_ui_sd_listing();
         } else if (was == 8) {
-          // Leaving Browse SD: unmount, don't leave the card open.
+          // Leaving Browse SD: unmount, don't leave the card open, and close
+          // whatever SD screen was on-screen -- it's a persistent overlay
+          // (see gamepi_ui_sd_close()'s comment), so it won't time out on
+          // its own.
           gamepi_sd_unmount_requested = true;
           gamepi_sd_state = GAMEPI_SD_IDLE;
+          gamepi_ui_sd_close();
         }
       }
       // Consolidated into ONE Changed(true) call: it consumes the button's
@@ -1823,31 +1836,28 @@ int main(void) {
       }
       if (gamepi_selector < 8) {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
+        const uint64_t now_repeat_us = time_us_64();
         if (btn_l.On()) {
-          if (gamepi_repeat_l == 0) {
+          if (now_repeat_us >= gamepi_next_repeat_l_us) {
             input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
             if (active_knob == 2) gamepi_start_used_as_modifier = true;
             gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
                                     input_knob[active_knob].Value());
-            gamepi_repeat_l = GAMEPI_REPEAT_TICKS;
-          } else {
-            gamepi_repeat_l--;
+            gamepi_next_repeat_l_us = now_repeat_us + GAMEPI_REPEAT_US;
           }
         } else {
-          gamepi_repeat_l = 0;
+          gamepi_next_repeat_l_us = 0;
         }
         if (btn_r.On()) {
-          if (gamepi_repeat_r == 0) {
+          if (now_repeat_us >= gamepi_next_repeat_r_us) {
             input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
             if (active_knob == 2) gamepi_start_used_as_modifier = true;
             gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
                                     input_knob[active_knob].Value());
-            gamepi_repeat_r = GAMEPI_REPEAT_TICKS;
-          } else {
-            gamepi_repeat_r--;
+            gamepi_next_repeat_r_us = now_repeat_us + GAMEPI_REPEAT_US;
           }
         } else {
-          gamepi_repeat_r = 0;
+          gamepi_next_repeat_r_us = 0;
         }
       }
 
@@ -1883,26 +1893,28 @@ int main(void) {
             }
             if (moved) {
               // Same tick's rising edge already navigated; don't also let it
-              // seed the confirm countdown below (that starts from the NEXT
-              // tick if R is still held).
-              gamepi_repeat_r = 0;
+              // seed the confirm hold below (that starts from the NEXT tick
+              // if R is still held).
+              gamepi_sd_hold_start_us = 0;
               const bool is_active = gamepi_active_bank_name[0] != '\0' &&
                   strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
               gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
                                   gamepi_sd_index, count, is_active);
             }
             if (btn_r.On() && !moved) {
-              if (gamepi_repeat_r == 0) {
-                // Held past the repeat threshold without triggering a new
-                // navigation step: start the confirm countdown.
-                gamepi_repeat_r = 1;  // reuse as a hold-progress counter now
-              } else if (gamepi_repeat_r < GAMEPI_REPEAT_TICKS * 10) {
-                gamepi_repeat_r++;
-                const uint8_t pct = (uint8_t)(
-                    (gamepi_repeat_r * 100u) / (GAMEPI_REPEAT_TICKS * 10u));
-                gamepi_ui_sd_confirm_progress(
-                    gamepi_sd_file_name(gamepi_sd_index), pct);
-                if (gamepi_repeat_r >= GAMEPI_REPEAT_TICKS * 10) {
+              const uint64_t now_us = time_us_64();
+              if (gamepi_sd_hold_start_us == 0) {
+                // Held past the tap/navigate edge without triggering a new
+                // navigation step: start the confirm hold.
+                gamepi_sd_hold_start_us = now_us;
+              } else {
+                const uint64_t held_us = now_us - gamepi_sd_hold_start_us;
+                if (held_us < GAMEPI_SD_HOLD_CONFIRM_US) {
+                  const uint8_t pct = (uint8_t)(
+                      (held_us * 100u) / GAMEPI_SD_HOLD_CONFIRM_US);
+                  gamepi_ui_sd_confirm_progress(
+                      gamepi_sd_file_name(gamepi_sd_index), pct);
+                } else {
                   gamepi_ui_sd_loading(gamepi_sd_file_name(gamepi_sd_index));
                   gamepi_sd_load_index = gamepi_sd_index;
                   gamepi_sd_load_done = false;
@@ -1912,7 +1924,7 @@ int main(void) {
                 }
               }
             } else if (!btn_r.On()) {
-              gamepi_repeat_r = 0;
+              gamepi_sd_hold_start_us = 0;
             }
             break;
           }
@@ -1933,13 +1945,13 @@ int main(void) {
               }
               gamepi_ui_sd_result(gamepi_sd_load_ok,
                                   gamepi_sd_file_name(gamepi_sd_load_index));
-              gamepi_sd_result_ticks = GAMEPI_SD_RESULT_TICKS;
+              gamepi_sd_result_deadline_us = time_us_64() + GAMEPI_SD_RESULT_US;
               gamepi_sd_state = GAMEPI_SD_RESULT;
             }
             break;
           case GAMEPI_SD_RESULT:
-            if (gamepi_sd_result_ticks > 0) {
-              gamepi_sd_result_ticks--;
+            if (time_us_64() < gamepi_sd_result_deadline_us) {
+              // still showing "Listo"/"Error"
             } else {
               gamepi_sd_state = GAMEPI_SD_BROWSE;
               const bool is_active = gamepi_active_bank_name[0] != '\0' &&
