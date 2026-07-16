@@ -80,6 +80,19 @@ if(PIKO_GAMEPI13)
 		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd
 	)
 	target_link_libraries(${PROJECT_NAME} hardware_spi)
+
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src
+		${CMAKE_CURRENT_BINARY_DIR}/no-OS-FatFS)
+	target_sources(${PROJECT_NAME} PRIVATE
+		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/sd_hw_config.c
+	)
+	target_include_directories(${PROJECT_NAME} PRIVATE
+		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/include
+		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/include
+		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/sd_driver
+		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/ff15/source
+	)
+	target_link_libraries(${PROJECT_NAME} no-OS-FatFS-SD-SDIO-SPI-RPi-Pico pico_sync)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
