@@ -1378,6 +1378,14 @@ int main(void) {
   ledarray.Init();
 
   service_usb_startup(1500);
+  // Register core0 as the multicore_lockout "victim" so PikoSampleManager
+  // (running on core1) can safely pause it during flash_range_erase/program
+  // calls -- both cores otherwise fetch instructions from the same flash
+  // over XIP continuously (the audio PWM ISR alone runs ~988kHz), and
+  // erasing/programming without pausing the other core is a documented
+  // pico-sdk hazard that can corrupt the write. Must be called here, before
+  // core1 launches and can ever call multicore_lockout_start_blocking().
+  multicore_lockout_victim_init();
   multicore_launch_core1(piko_sample_manager_core);
 
   // initialize clocking and PWM interrupts

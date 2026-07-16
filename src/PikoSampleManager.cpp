@@ -6,6 +6,7 @@
 #include "PikoAudioBank.h"
 #include "hardware/flash.h"
 #include "pico/bootrom.h"
+#include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "tusb.h"
 
@@ -183,6 +184,23 @@ bool validate_header(const PikoBankHeader& header, uint32_t total_len) {
   return true;
 }
 
+// core0 runs the main loop and the audio PWM ISR continuously from flash
+// (XIP) -- flash_range_erase/program from core1 without pausing core0 first
+// is a documented pico-sdk hazard (both cores contend for the same physical
+// flash chip) that can corrupt the write. multicore_lockout_victim_init()
+// is called once on core0 in src/main.cpp before core1 launches.
+void safe_flash_erase(uint32_t offset, size_t size) {
+  multicore_lockout_start_blocking();
+  flash_range_erase(offset, size);
+  multicore_lockout_end_blocking();
+}
+
+void safe_flash_program(uint32_t offset, const uint8_t* data, size_t size) {
+  multicore_lockout_start_blocking();
+  flash_range_program(offset, data, size);
+  multicore_lockout_end_blocking();
+}
+
 void handle_info() {
   char info[256];
   uint32_t used = 0;
@@ -243,7 +261,7 @@ void handle_read() {
 
 void erase_bank_header() {
   piko_audio_bank_set_mutating(true);
-  flash_range_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
+  safe_flash_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
   piko_audio_bank_rescan();
   piko_audio_bank_set_mutating(false);
 }
@@ -297,7 +315,7 @@ void handle_write() {
 
   piko_audio_bank_set_mutating(true);
 
-  flash_range_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
+  safe_flash_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
 
   uint32_t bytes_written = PIKO_BANK_HEADER_SIZE;
   uint32_t audio_flash_off = PIKO_AUDIO_FLASH_OFFSET + PIKO_BANK_HEADER_SIZE;
@@ -317,17 +335,17 @@ void handle_write() {
 
     const uint32_t page_off = audio_flash_off + (bytes_written - PIKO_BANK_HEADER_SIZE);
     if (page_off >= next_erase) {
-      flash_range_erase(next_erase, kFlashSectorSize);
+      safe_flash_erase(next_erase, kFlashSectorSize);
       next_erase += kFlashSectorSize;
     }
-    flash_range_program(page_off, page_buf, sizeof(page_buf));
+    safe_flash_program(page_off, page_buf, sizeof(page_buf));
     bytes_written += page_fill;
   }
 
   memset(page_buf, 0xff, sizeof(page_buf));
   for (uint32_t offset = 0; offset < PIKO_BANK_HEADER_SIZE; offset += kFlashPageSize) {
     memcpy(page_buf, header_staging + offset, kFlashPageSize);
-    flash_range_program(PIKO_AUDIO_FLASH_OFFSET + offset, page_buf, sizeof(page_buf));
+    safe_flash_program(PIKO_AUDIO_FLASH_OFFSET + offset, page_buf, sizeof(page_buf));
   }
 
   piko_audio_bank_rescan();
