@@ -86,11 +86,22 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length);
 bool my_spi_init(spi_t *spi_p);
 
 
+// pikocore/GamePi13: this SPI peripheral (spi1) is physically shared with
+// the GamePi13's LCD, driven by a separate driver on core0
+// (src/gamepi13/dev_shim.c / ui.cpp). Real hardware bus contention, not
+// just software tidiness -- verified against the RP2350's IO_BANK0 FUNCSEL
+// registers (SD pins GP30/31/40 only route to spi1, same peripheral as the
+// LCD's GP10/11). Defined and initialized once in dev_shim.c; every spi1
+// client, on either core, must hold it around any transaction.
+extern mutex_t gamepi_spi1_mutex;
+
 static inline void spi_lock(spi_t *spi_p) {
     myASSERT(mutex_is_initialized(&spi_p->mutex));
     mutex_enter_blocking(&spi_p->mutex);
+    mutex_enter_blocking(&gamepi_spi1_mutex);
 }
 static inline void spi_unlock(spi_t *spi_p) {
+    mutex_exit(&gamepi_spi1_mutex);
     myASSERT(mutex_is_initialized(&spi_p->mutex));
     mutex_exit(&spi_p->mutex);
 }
