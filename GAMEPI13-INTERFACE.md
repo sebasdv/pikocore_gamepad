@@ -139,11 +139,26 @@ Detalles de la mecánica de botones (`src/main.cpp`, `GamepiSdState`):
 ## 4. Qué muestra el LCD
 
 **Dashboard** (siempre visible): BPM + fuente de clock (INT/EXT/MIDI), número y nombre
-del sample activo (+ nombre del banco `.pikobank` cargado desde SD, si alguno), barra de
-8 LEDs virtuales (reemplaza los LED físicos del pikocore original — se prende con el
-beat), nombre del modo activo con barras A/B, y una fila de 8 puntos indicando qué modo
-está seleccionado (el modo 8 no ilumina ninguno de los 8 puntos, ya que no tiene uno
-propio; el nombre del modo pasa a decir "SD").
+del sample activo (+ nombre del banco `.pikobank` cargado desde SD, si alguno), **zona de
+waveform** (reemplaza la antigua barra de 8 LEDs virtuales — ver detalle abajo), nombre
+del modo activo con barras A/B, y una fila de 8 puntos indicando qué modo está
+seleccionado (el modo 8 no ilumina ninguno de los 8 puntos, ya que no tiene uno propio;
+el nombre del modo pasa a decir "SD").
+
+**Zona de waveform** (`src/gamepi13/ui.cpp`, `draw_wave()`): muestra la forma de onda del
+sample que está **sonando** (`sample` en `main.cpp` — con el FX de túnel activo, puede
+diferir del sample *seleccionado* por compás; la waveform sigue al que suena, así que con
+túnel activo se VE saltar de sample en sample). 7 líneas tenues dividen la franja en 8
+slices (los 8 botones musicales son, literalmente, esos 8 slices). El slice que está
+sonando se ilumina en naranja (hereda la amplitud que antes prendía el LED físico
+equivalente); un retrigger activo tiñe de cian los 2 slices involucrados (ver sección 6).
+Una línea blanca vertical (el **playhead**) recorre la franja al ritmo de la reproducción.
+El caché de 240 columnas (min/max, 480 bytes) se recalcula de forma bloqueante (~1-4 ms)
+cada vez que cambia el sample que suena o cuando el banco termina de mutar (carga
+SD/USB) — la ISR de audio preempta este cálculo, así que el audio nunca lo nota. Esta
+zona tiene la prioridad de redibujo más baja del dashboard (para no competir con el resto
+de widgets por los slots de flush) y el movimiento del playhead está throttleado a ~25 Hz,
+alineado con el límite global de refresco.
 
 **Overlay temporal**: al presionar Select aparece el nombre del modo nuevo (Function A y
 B); al presionar L/R aparece el parámetro activo con su valor en grande y una barra de
@@ -203,6 +218,14 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   dispara por probabilidad (`probability_retrig`, sin un segundo botón presionado) no
   tiene un botón "segundo" que resaltar, así que en ese caso la máscara puede quedar en 0
   o con un solo LED aunque el audio esté igual haciendo stutter.
+- **RESUELTO — waveform con playhead en el dashboard.** Estaba en el spec original como
+  "Fase 2.1" (fuera de alcance) y se había reclasificado como "riesgo alto" — un estudio
+  posterior (`docs/superpowers/specs/2026-07-16-waveform-playhead-design.md`) mostró que
+  la decimación por XIP es barata (~1-4 ms una vez por cambio de sample, la ISR de audio
+  preempta el cálculo) y que el DMA era innecesario. Implementado fusionado con la
+  antigua barra de LEDs (sección 4). Único hallazgo real en hardware: el throttle inicial
+  del playhead (100 ms) generaba una demora perceptible entre el audio y el cursor —
+  bajado a 40 ms (alineado con el flush global de 25 Hz) para resolverlo.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
@@ -228,10 +251,6 @@ quedaron abiertas o se volvieron obvias durante las pruebas:
   la Fase 3 (nombre combinado en el dashboard + resaltado verde en la lista), pero podría
   sobrevivir a un reinicio (hoy es solo de sesión, se pierde al apagar) si se guardara el
   nombre del archivo en flash junto al resto de `save_data`.
-- **Waveform con playhead en el dashboard** (ya estaba en el spec original como "Fase 2.1",
-  fuera de alcance): mostrar la forma de onda del sample activo con un cursor de
-  reproducción — requiere decimar el audio desde flash, candidato a render por DMA en vez
-  de SPI bloqueante.
 - **Exponer el retrigger de forma menos aleatoria**: hoy el segundo botón sortea DENTRO
   de una ventana de 2 subdivisiones — se podría, por ejemplo, usar Start+segundo-botón
   para fijar una subdivisión EXACTA en vez de aleatoria, dando más control predecible en

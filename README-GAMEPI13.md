@@ -32,10 +32,11 @@ sección [microSD](#microsd) abajo)
 
 ## pantalla
 
-Dashboard 240×240: BPM + fuente de clock, sample (número y nombre), barra de
-8 LEDs virtuales (reemplaza los LED físicos del pikocore original), modo del
-selector con barras A/B, y puntos de modo. Al presionar Select o L/R aparece
-un overlay grande con el modo/parámetro que se desvanece ~1 s después.
+Dashboard 240×240: BPM + fuente de clock, sample (número y nombre), waveform
+del sample sonando con playhead y los 8 slices resaltados (reemplaza la
+barra de LEDs física del pikocore original), modo del selector con barras
+A/B, y puntos de modo. Al presionar Select o L/R aparece un overlay grande
+con el modo/parámetro que se desvanece ~1 s después.
 
 ## pines
 
@@ -43,7 +44,7 @@ Audio GP18 (parlante/jack del HAT) · LED de beat GP28 · clock in GP22 ·
 trigger out GP12 · LCD: SPI1 (CLK GP10, MOSI GP11, CS GP8, DC GP25,
 RST GP27, backlight GP7) · resto: ver `src/hw_gamepi13.h`.
 
-Pendiente (Fase 2.1): waveform con playhead, iconos de estado (mute/seq/lock).
+Pendiente (Fase 2.1): iconos de estado (mute/seq/lock).
 
 ## microSD
 
