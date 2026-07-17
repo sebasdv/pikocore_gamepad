@@ -1866,6 +1866,19 @@ int main(void) {
           }
         }
       }
+      if (btn_start.On() && btn_retrig) {
+        // Continuously (not just the single tick the retrigger's exact-
+        // subdivision branch fires in pwm_interrupt_handler) mark Start as
+        // "used as a modifier" for as long as a retrigger is active and
+        // Start is held -- covers every press ordering (Start before,
+        // during, or after the 2-button combo). btn_retrig stays true for
+        // the whole effect, not just its first tick, so this reliably wins
+        // against Rising()'s reset above regardless of exact timing.
+        // Without this, releasing Start shortly after -- but not in the
+        // exact same tick as -- the retrigger start could still fall
+        // through to the mute/start-stop toggle above.
+        gamepi_start_used_as_modifier = true;
+      }
       if (gamepi_selector < 8) {
         const uint8_t active_knob = btn_start.On() ? 2 : 1;
         const uint64_t now_repeat_us = time_us_64();
