@@ -373,10 +373,14 @@ void gamepi_ui_tick(const GamepiUiState &s) {
       dirty[W_WAVE] = true;
     }
     if (s.wave_playhead_col != drawn.wave_playhead_col &&
-        time_us_64() - wave_playhead_mark_us >= 100000) {
-      // Playhead motion alone redraws at most ~10 Hz; without this the wave
-      // zone would dirty every tick and, even at lowest priority, consume a
-      // flush slot every time nothing else changed.
+        time_us_64() - wave_playhead_mark_us >= 40000) {
+      // Playhead motion alone redraws at most ~25 Hz -- matches
+      // flush_allowed()'s own global throttle, so this floor no longer adds
+      // extra lag on top of it (was 100ms/~10Hz; measured on hardware as a
+      // perceptible playhead-vs-audio delay, tightened here). Still bounded:
+      // without this the wave zone would dirty every tick and, even at
+      // lowest priority, consume a flush slot every time nothing else
+      // changed.
       wave_playhead_mark_us = time_us_64();
       dirty[W_WAVE] = true;
     }
