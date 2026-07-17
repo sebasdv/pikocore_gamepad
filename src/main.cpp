@@ -773,31 +773,52 @@ void pwm_interrupt_handler() {
         if (button_on2 >= NUM_BUTTONS) {
           retrig_sel = randint(2, 16);
         } else {
-          switch (button_on2) {
-            case 0:
-              retrig_sel = randint(0, 2);
-              break;
-            case 1:
-              retrig_sel = randint(2, 4);
-              break;
-            case 2:
-              retrig_sel = randint(4, 6);
-              break;
-            case 3:
-              retrig_sel = randint(6, 8);
-              break;
-            case 4:
-              retrig_sel = randint(8, 10);
-              break;
-            case 5:
-              retrig_sel = randint(10, 12);
-              break;
-            case 6:
-              retrig_sel = randint(12, 14);
-              break;
-            case 7:
-              retrig_sel = randint(14, 16);
-              break;
+          bool exact_retrig = false;
+#if PIKO_GAMEPI13
+          // Holding Start at the exact instant a 2-button retrigger fires
+          // fixes the subdivision instead of sorting it, for predictable
+          // live control. Reuses the button-held-as-modifier flag so
+          // releasing Start afterward doesn't also trigger the mute/
+          // start-stop toggle (same pattern the Function A/B L/R block
+          // already uses).
+          if (btn_start.On()) {
+            exact_retrig = true;
+            gamepi_start_used_as_modifier = true;
+          }
+#endif
+          if (exact_retrig) {
+            // Midpoint of the same window sorted below, per button_on2 --
+            // keeps the existing "button 0 = slowest, button 7 = fastest"
+            // feel, just removes the randomness.
+            static const uint8_t kExactRetrigSel[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+            retrig_sel = kExactRetrigSel[button_on2];
+          } else {
+            switch (button_on2) {
+              case 0:
+                retrig_sel = randint(0, 2);
+                break;
+              case 1:
+                retrig_sel = randint(2, 4);
+                break;
+              case 2:
+                retrig_sel = randint(4, 6);
+                break;
+              case 3:
+                retrig_sel = randint(6, 8);
+                break;
+              case 4:
+                retrig_sel = randint(8, 10);
+                break;
+              case 5:
+                retrig_sel = randint(10, 12);
+                break;
+              case 6:
+                retrig_sel = randint(12, 14);
+                break;
+              case 7:
+                retrig_sel = randint(14, 16);
+                break;
+            }
           }
         }
         retrig_max = randint(3, 16);
