@@ -132,6 +132,10 @@ uint64_t gamepi_next_repeat_r_us = 0;
 uint64_t gamepi_tempo_hold_l_us = 0;
 uint64_t gamepi_tempo_hold_r_us = 0;
 bool gamepi_start_used_as_modifier = false;
+// Mirrors gamepi_start_used_as_modifier: Select's own tap-vs-hold-modifier
+// distinction (see the Select handler in main()) for the new "hold Select +
+// musical button = jump directly to that mode" gesture.
+bool gamepi_select_used_as_modifier = false;
 
 // Modo 8 (Browse SD) state machine.
 enum GamepiSdState {
