@@ -1872,10 +1872,22 @@ int main(void) {
       if (btn_select.On() && !gamepi_select_used_as_modifier) {
         // Hold Select + a musical button to jump directly to that button's
         // mode (0-7) instead of cycling one step at a time. Mirrors Start's
-        // tap-vs-hold-modifier split above -- a plain Select tap (Falling()
-        // with the modifier flag still false) still cycles as before.
+        // own tap-vs-hold-modifier split (see btn_start.Changed(true)
+        // further below) -- a plain Select tap (Falling() with the modifier
+        // flag still false, handled above) still cycles as before.
         for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
           if (button_rising[i]) {
+            const uint8_t was = gamepi_selector;
+            if (was == 8) {
+              // Leaving Browse SD via a direct jump -- same cleanup the
+              // Falling()-cycling path above does, so every way out of
+              // mode 8 reliably unmounts the card. A direct jump can only
+              // ever land on i < 8, so there's no matching "entering
+              // Browse SD" branch needed here.
+              gamepi_sd_unmount_requested = true;
+              gamepi_sd_state = GAMEPI_SD_IDLE;
+              gamepi_ui_sd_close();
+            }
             gamepi_selector = i;
             gamepi_select_used_as_modifier = true;
             input_knob[0].SetBucket(gamepi_selector, 8);
