@@ -106,6 +106,30 @@ L/R (Function A) y qué controla Start+L/R (Function B); el índice 8 es un modo
 [`src/main.cpp`](src/main.cpp) (buscar `gamepi_selector < 8` para Function A/B, y el
 `switch (gamepi_sd_state)` para el modo 8):
 
+### Select también tiene doble rol
+
+Igual que Start (sección 2): un **toque simple** de Select (presionar y soltar sin
+combinar con otro botón) cicla +1 como siempre. **Mantener Select y presionar un botón
+musical** salta directo a ese modo, sin tener que cicular uno por uno:
+
+| Botón musical | Modo directo |
+|---|---|
+| Up | 0 |
+| Down | 1 |
+| Left | 2 |
+| Right | 3 |
+| Y | 4 |
+| X | 5 |
+| B | 6 |
+| A | 7 |
+
+El modo 8 (Browse SD) no tiene un botón musical propio (son 9 modos para 8 botones) —
+sigue siendo alcanzable solo ciclando. Un flag (`gamepi_select_used_as_modifier`,
+[`src/main.cpp`](src/main.cpp)) distingue ambos casos, mismo patrón que
+`gamepi_start_used_as_modifier`. Mientras Select está sostenido, el motor de audio
+tampoco reacciona al botón musical usado para saltar (ni jump ni retrigger) — ver
+sección 5 para un bug real que esto mismo destapó durante las pruebas.
+
 | Modo | Function A (L/R) | Function B (Start+L/R) |
 |---|---|---|
 | 0 | Selección de sample | Intensidad del "break" FX |
@@ -246,6 +270,24 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   antigua barra de LEDs (sección 4). Único hallazgo real en hardware: el throttle inicial
   del playhead (100 ms) generaba una demora perceptible entre el audio y el cursor —
   bajado a 40 ms (alineado con el flush global de 25 Hz) para resolverlo.
+- **RESUELTO — Select + botón musical para saltar directo de modo.** Ver sección 3 para
+  el uso. Durante el diseño se encontró una fragilidad latente ya existente: los 3 combos
+  de 4 botones (clock lock, reset FX, mute/start-stop heredado) compartían índices entre
+  sí (1 y 6 entre clock-lock/reset-fx; 0 y 7 entre reset-fx/mute-start-stop) y cada uno
+  consumía `ChangedHigh(true)` de forma independiente — el mismo patrón de bug ya
+  encontrado para Start, pero en código heredado del pikocore original, nunca antes con
+  una cuarta consumidora sobre los mismos 8 índices. Se corrigió consolidando la lectura
+  de flancos de los 8 botones musicales en un array por tick, leído por los 3 combos y
+  por el gesto nuevo.
+  **Bug real encontrado en hardware** (no anticipado en el diseño): al pausar el escaneo
+  de audio mientras Select está sostenido (para que el botón musical usado en el gesto no
+  también dispare un jump/retrigger), el primer intento solo pausó el bloque que actualiza
+  `button_on`/`button_on2` — dejó sin pausar un bloque SEPARADO (`main.cpp`, dentro de
+  `pwm_interrupt_handler()`, justo después) que arma el retrigger leyendo esos mismos
+  valores, ahora congelados. Cada botón musical presionado durante el gesto Select se leía
+  como "segundo botón completando un combo" contra el `button_on` obsoleto, disparando
+  retriggers ("break fx") al azar — confirmado en hardware. Fix: pausar también ese
+  bloque con el mismo flag.
 - **RESUELTO — retrigger con subdivisión exacta (Start + 2do botón).** Ver sección 2 para
   el uso. Durante la implementación se encontró un bug real: marcar el flag
   `gamepi_start_used_as_modifier` solo en el instante exacto del disparo (dentro de la ISR
