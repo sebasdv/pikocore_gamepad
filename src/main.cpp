@@ -1765,44 +1765,6 @@ int main(void) {
         // if (input_button[i].ChangedHigh(false)) {
         //   MidiOut_on(midiout, midi_notes[(i % 8)], 127);
         // }
-        if (input_button[1].ChangedHigh(true) ||
-            input_button[2].ChangedHigh(true) ||
-            input_button[5].ChangedHigh(true) ||
-            input_button[6].ChangedHigh(true)) {
-          if (input_button[1].On() && input_button[2].On() &&
-              input_button[5].On() && input_button[6].On()) {
-            debounce_lock_clock = 80;
-            do_lock_clock = !do_lock_clock;
-          }
-        }
-        if (input_button[0].ChangedHigh(true) ||
-            input_button[1].ChangedHigh(true) ||
-            input_button[6].ChangedHigh(true) ||
-            input_button[7].ChangedHigh(true)) {
-          if (input_button[0].On() && input_button[1].On() &&
-              input_button[6].On() && input_button[7].On()) {
-            // reset fx
-            param_set_break(0, filter_fc, distortion, probability_jump,
-                            probability_retrig, probability_gate,
-                            probability_direction, probability_tunnel,
-                            save_data);
-          }
-        }
-        if (input_button[0].ChangedHigh(true) ||
-            input_button[3].ChangedHigh(true) ||
-            input_button[4].ChangedHigh(true) ||
-            input_button[7].ChangedHigh(true)) {
-          // button combo
-          if (input_button[0].On() && input_button[3].On() &&
-              input_button[4].On() && input_button[7].On()) {
-            if (do_mute) {
-              do_start_everything();
-            } else {
-              do_stop_everything();
-            }
-            // printf("switching do mute: %d\n", do_mute);
-          }
-        }
 #ifdef DEBUG_BUTTONS
         if (input_button[i].Changed(false)) {
           printf("[%6d] %d: %d", clock_ms, i, input_button[i].On());
@@ -1815,6 +1777,55 @@ int main(void) {
           printf("\n");
         }
 #endif
+      }
+      // Capture each button's rising edge ONCE per tick, after all 8 have
+      // been read above. Button::ChangedHigh(true) consumes the edge (see
+      // doth/button.h) -- the 3 combo checks below used to each call it
+      // independently, redundantly re-evaluated once per loop iteration
+      // above (harmless there since none of them depend on `i`, but the
+      // combos' button-index sets overlap each other: 1 appears in both the
+      // clock-lock and reset-fx combos, 0 and 7 appear in both reset-fx and
+      // mute/start-stop), so one consumer could silently eat an edge before
+      // another saw it -- the same class of bug already found and fixed for
+      // Start earlier this project. Consolidating into one array read here
+      // removes both the redundancy and that latent risk, and lets the new
+      // Select+musical-button gesture (added in a later task) share the same
+      // capture safely.
+      bool button_rising[NUM_BUTTONS];
+      for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+        button_rising[i] = input_button[i].ChangedHigh(true);
+      }
+      if (button_rising[1] || button_rising[2] || button_rising[5] ||
+          button_rising[6]) {
+        if (input_button[1].On() && input_button[2].On() &&
+            input_button[5].On() && input_button[6].On()) {
+          debounce_lock_clock = 80;
+          do_lock_clock = !do_lock_clock;
+        }
+      }
+      if (button_rising[0] || button_rising[1] || button_rising[6] ||
+          button_rising[7]) {
+        if (input_button[0].On() && input_button[1].On() &&
+            input_button[6].On() && input_button[7].On()) {
+          // reset fx
+          param_set_break(0, filter_fc, distortion, probability_jump,
+                          probability_retrig, probability_gate,
+                          probability_direction, probability_tunnel,
+                          save_data);
+        }
+      }
+      if (button_rising[0] || button_rising[3] || button_rising[4] ||
+          button_rising[7]) {
+        // button combo
+        if (input_button[0].On() && input_button[3].On() &&
+            input_button[4].On() && input_button[7].On()) {
+          if (do_mute) {
+            do_start_everything();
+          } else {
+            do_stop_everything();
+          }
+          // printf("switching do mute: %d\n", do_mute);
+        }
       }
 
 #if PIKO_GAMEPI13
