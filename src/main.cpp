@@ -1783,9 +1783,9 @@ int main(void) {
       // doth/button.h) -- the 3 combo checks below used to each call it
       // independently, redundantly re-evaluated once per loop iteration
       // above (harmless there since none of them depend on `i`, but the
-      // combos' button-index sets overlap each other: 1 appears in both the
-      // clock-lock and reset-fx combos, 0 and 7 appear in both reset-fx and
-      // mute/start-stop), so one consumer could silently eat an edge before
+      // combos' button-index sets overlap each other: 1 and 6 appear in both
+      // the clock-lock and reset-fx combos, 0 and 7 appear in both reset-fx
+      // and mute/start-stop), so one consumer could silently eat an edge before
       // another saw it -- the same class of bug already found and fixed for
       // Start earlier this project. Consolidating into one array read here
       // removes both the redundancy and that latent risk, and lets the new
