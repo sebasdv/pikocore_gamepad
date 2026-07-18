@@ -53,6 +53,26 @@ del retrigger, de más lento a más granular según el índice del botón:
 `retrig_len()` — 19 niveles Q8 de 1024/256=4x a 16/256=1/16x de la duración de un compás,
 el segundo botón restringe el sorteo aleatorio a una ventana de 2 niveles adyacentes.)
 
+**Mantener Start** en el instante de armar el combo de 2 botones fija la subdivisión a un
+valor exacto (el punto medio de esa misma ventana) en vez de sortearla — da control
+predecible en vivo. Solo afecta la subdivisión: repeticiones, pitch, filtro y reducción de
+volumen del efecto siguen sorteando igual, con o sin Start. Funciona sin importar el orden
+en que se presionen los 3 botones (los 2 musicales y Start) — el flag que evita que soltar
+Start dispare el toggle de mute/start-stop se marca de forma continua mientras el
+retrigger esté activo, no solo en el instante del disparo
+([`src/main.cpp`](src/main.cpp), busca `kExactRetrigSel`).
+
+| 2do botón | Nivel exacto con Start |
+|---|---|
+| Up (0) | 1 |
+| Down (1) | 3 |
+| Left (2) | 5 |
+| Right (3) | 7 |
+| Y (4) | 9 |
+| X (5) | 11 |
+| B (6) | 13 |
+| A (7) | 15 |
+
 **Tres botones específicos combinados** — tres combos de 4 botones fijos, chequeados
 contra flancos de subida en cualquiera de sus 4 botones ([`src/main.cpp:1693-1730`](src/main.cpp:1693)):
 
@@ -226,6 +246,15 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   antigua barra de LEDs (sección 4). Único hallazgo real en hardware: el throttle inicial
   del playhead (100 ms) generaba una demora perceptible entre el audio y el cursor —
   bajado a 40 ms (alineado con el flush global de 25 Hz) para resolverlo.
+- **RESUELTO — retrigger con subdivisión exacta (Start + 2do botón).** Ver sección 2 para
+  el uso. Durante la implementación se encontró un bug real: marcar el flag
+  `gamepi_start_used_as_modifier` solo en el instante exacto del disparo (dentro de la ISR
+  de audio) no alcanzaba — si Start se presionaba/soltaba en un tick distinto al del
+  disparo (casi cualquier secuencia real de dedos), el flag quedaba sin marcar y soltar
+  Start terminaba disparando el toggle de mute/start-stop, silenciando el audio.
+  Confirmado en hardware. Fix: marcar el flag de forma continua en el loop principal
+  mientras `btn_start.On() && btn_retrig` (el segundo se mantiene activo toda la duración
+  del efecto, no solo su primer tick) — cubre cualquier orden de presión.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
@@ -251,9 +280,5 @@ quedaron abiertas o se volvieron obvias durante las pruebas:
   la Fase 3 (nombre combinado en el dashboard + resaltado verde en la lista), pero podría
   sobrevivir a un reinicio (hoy es solo de sesión, se pierde al apagar) si se guardara el
   nombre del archivo en flash junto al resto de `save_data`.
-- **Exponer el retrigger de forma menos aleatoria**: hoy el segundo botón sortea DENTRO
-  de una ventana de 2 subdivisiones — se podría, por ejemplo, usar Start+segundo-botón
-  para fijar una subdivisión EXACTA en vez de aleatoria, dando más control predecible en
-  vivo.
 - **IMU (ICM20948, I2C GP2/3)** como modulador de FX — mencionado en el plan original,
   nunca implementado; podría mapear inclinación/movimiento a algún parámetro en vivo.
