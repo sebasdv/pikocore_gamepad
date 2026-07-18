@@ -682,44 +682,59 @@ void pwm_interrupt_handler() {
       do_mute_debounce--;
     }
 
+#if PIKO_GAMEPI13
+    // Pausing the beat-select scan below while Select is held keeps a
+    // musical button used as part of "Select + button = jump to mode N"
+    // (see the Select handler in main()) from also making the audio engine
+    // jump/retrigger on that same press. btn_select only exists under
+    // PIKO_GAMEPI13, hence the guard; the original build's gate is always
+    // false (never pauses), i.e. unchanged behavior there.
+    const bool gamepi_paused_for_select = btn_select.On();
+#else
+    const bool gamepi_paused_for_select = false;
+#endif
     // check button 1
-    if (button_on < NUM_BUTTONS) {
-      if (!input_button[button_on].On()) {
-        // button is off
-        button_on = NUM_BUTTONS;
-        button_on2 = NUM_BUTTONS;
-        select_beat_freeze = 0;
-        button_filter_on = false;
-        // hm
-        retrig_volume_reduce = 0;
-        retrig_volume_reduce_change = 0;  // reset
+    if (!gamepi_paused_for_select) {
+      if (button_on < NUM_BUTTONS) {
+        if (!input_button[button_on].On()) {
+          // button is off
+          button_on = NUM_BUTTONS;
+          button_on2 = NUM_BUTTONS;
+          select_beat_freeze = 0;
+          button_filter_on = false;
+          // hm
+          retrig_volume_reduce = 0;
+          retrig_volume_reduce_change = 0;  // reset
 
-        if (btn_reset) {
-          retrig_count = retrig_max;
-        }
-      }
-    } else if (do_mute_debounce == 0) {
-      for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        if (input_button[i].On()) {
-          if (button_on >= NUM_BUTTONS) {
-            select_beat_freeze = (select_beat / NUM_BUTTONS) * NUM_BUTTONS;
+          if (btn_reset) {
+            retrig_count = retrig_max;
           }
-          button_on = i;
+        }
+      } else if (do_mute_debounce == 0) {
+        for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+          if (input_button[i].On()) {
+            if (button_on >= NUM_BUTTONS) {
+              select_beat_freeze = (select_beat / NUM_BUTTONS) * NUM_BUTTONS;
+            }
+            button_on = i;
 
 // select new beat
 #ifdef DEBUG_BUTTONS
-          printf("%d on\n", button_on);
+            printf("%d on\n", button_on);
 #endif
-          break;
+            break;
+          }
         }
       }
     }
 
     // check button 2
-    if (button_on2 < NUM_BUTTONS) {
-      if (!input_button[button_on2].On()) {
-        button_on2 = NUM_BUTTONS;
-        button_filter_on = false;
+    if (!gamepi_paused_for_select) {
+      if (button_on2 < NUM_BUTTONS) {
+        if (!input_button[button_on2].On()) {
+          button_on2 = NUM_BUTTONS;
+          button_filter_on = false;
+        }
       }
     }
     if (!timestretch_active) {
