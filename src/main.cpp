@@ -1835,34 +1835,53 @@ int main(void) {
       btn_start.Read();
       btn_l.Read();
       btn_r.Read();
-      if (btn_select.ChangedHigh(true) && btn_select.On()) {
-        const uint8_t was = gamepi_selector;
-        gamepi_selector = (gamepi_selector + 1) % 9;
-        if (was == 8) {
-          // Leaving Browse SD: unmount, don't leave the card open, and close
-          // whatever SD screen was on-screen -- it's a persistent overlay
-          // (see gamepi_ui_sd_close()'s comment), so it won't time out on
-          // its own. Done BEFORE the entering-mode-0 overlay below (the only
-          // mode reachable from here, since Select only increments) so that
-          // overlay's real ~1s deadline isn't immediately clobbered by this
-          // call's "expire right now" semantics.
-          gamepi_sd_unmount_requested = true;
-          gamepi_sd_state = GAMEPI_SD_IDLE;
-          gamepi_ui_sd_close();
+      if (btn_select.Changed(true)) {
+        if (btn_select.Rising()) {
+          gamepi_select_used_as_modifier = false;
+        } else if (btn_select.Falling() && !gamepi_select_used_as_modifier) {
+          const uint8_t was = gamepi_selector;
+          gamepi_selector = (gamepi_selector + 1) % 9;
+          if (was == 8) {
+            // Leaving Browse SD: unmount, don't leave the card open, and close
+            // whatever SD screen was on-screen -- it's a persistent overlay
+            // (see gamepi_ui_sd_close()'s comment), so it won't time out on
+            // its own. Done BEFORE the entering-mode-0 overlay below (the only
+            // mode reachable from here, since Select only increments) so that
+            // overlay's real ~1s deadline isn't immediately clobbered by this
+            // call's "expire right now" semantics.
+            gamepi_sd_unmount_requested = true;
+            gamepi_sd_state = GAMEPI_SD_IDLE;
+            gamepi_ui_sd_close();
+          }
+          if (gamepi_selector < 8) {
+            input_knob[0].SetBucket(gamepi_selector, 8);
+            gamepi_ui_overlay_mode(gamepi_selector);
+          } else {
+            // gamepi_selector == 8: entering Browse SD, kick off the async
+            // directory listing.
+            gamepi_sd_state = GAMEPI_SD_LISTING;
+            gamepi_sd_index = 0;
+            gamepi_sd_hold_start_us = 0;
+            gamepi_sd_list_done = false;
+            __asm volatile("dmb" ::: "memory");
+            gamepi_sd_list_requested = true;
+            gamepi_ui_sd_listing();
+          }
         }
-        if (gamepi_selector < 8) {
-          input_knob[0].SetBucket(gamepi_selector, 8);
-          gamepi_ui_overlay_mode(gamepi_selector);
-        } else {
-          // gamepi_selector == 8: entering Browse SD, kick off the async
-          // directory listing.
-          gamepi_sd_state = GAMEPI_SD_LISTING;
-          gamepi_sd_index = 0;
-          gamepi_sd_hold_start_us = 0;
-          gamepi_sd_list_done = false;
-          __asm volatile("dmb" ::: "memory");
-          gamepi_sd_list_requested = true;
-          gamepi_ui_sd_listing();
+      }
+      if (btn_select.On() && !gamepi_select_used_as_modifier) {
+        // Hold Select + a musical button to jump directly to that button's
+        // mode (0-7) instead of cycling one step at a time. Mirrors Start's
+        // tap-vs-hold-modifier split above -- a plain Select tap (Falling()
+        // with the modifier flag still false) still cycles as before.
+        for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+          if (button_rising[i]) {
+            gamepi_selector = i;
+            gamepi_select_used_as_modifier = true;
+            input_knob[0].SetBucket(gamepi_selector, 8);
+            gamepi_ui_overlay_mode(gamepi_selector);
+            break;  // first musical button pressed this hold wins
+          }
         }
       }
       // Consolidated into ONE Changed(true) call: it consumes the button's
