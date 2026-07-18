@@ -738,31 +738,43 @@ void pwm_interrupt_handler() {
       }
     }
     if (!timestretch_active) {
-      if (!btn_retrig) {
-        // check button 2
-        if (button_on < NUM_BUTTONS && do_mute_debounce == 0) {
-          // 1st button pressed, check for second button
-          for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-            if (i == button_on) {
-              continue;
-            }
-            if (input_button[i].On()) {
+      // Gated by the same gamepi_paused_for_select as "check button 1"/"check
+      // button 2" above: this block reads button_on/button_on2, which are
+      // frozen (not updated) while Select is held, per that same pause. Left
+      // unguarded, every musical button pressed as part of the "Select +
+      // button = jump to mode" gesture got misread as a second button
+      // completing a retrigger combo with the stale button_on -- confirmed
+      // on hardware as spurious retrigger/break-fx activations. Pausing this
+      // block too means no retrigger can arm OR disarm while Select is held,
+      // consistent with the already-documented "audio freezes until Select
+      // is released" behavior for an already-held musical button.
+      if (!gamepi_paused_for_select) {
+        if (!btn_retrig) {
+          // check button 2
+          if (button_on < NUM_BUTTONS && do_mute_debounce == 0) {
+            // 1st button pressed, check for second button
+            for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+              if (i == button_on) {
+                continue;
+              }
+              if (input_button[i].On()) {
 #ifdef DEBUG_BUTTONS
-              printf("%d + %d\n", button_on, i);
+                printf("%d + %d\n", button_on, i);
 #endif
+                btn_retrig = true;
+                button_on2 = i;
+              }
+            }
+          } else {
+            if (randint(0, 254) < probability_retrig) {
               btn_retrig = true;
-              button_on2 = i;
             }
           }
-        } else {
-          if (randint(0, 254) < probability_retrig) {
-            btn_retrig = true;
+        } else if (btn_retrig) {
+          // turn off retrig if one of the buttons is released
+          if (button_on == NUM_BUTTONS || button_on2 == NUM_BUTTONS) {
+            retrig_count = retrig_max;
           }
-        }
-      } else if (btn_retrig) {
-        // turn off retrig if one of the buttons is released
-        if (button_on == NUM_BUTTONS || button_on2 == NUM_BUTTONS) {
-          retrig_count = retrig_max;
         }
       }
     } else {
