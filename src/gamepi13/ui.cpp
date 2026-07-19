@@ -78,7 +78,7 @@ static bool dirty[W_COUNT];
 static GamepiUiState drawn;
 static bool have_drawn = false;
 
-static const Rect kOverlay = {18, 50, 205, 138};
+static const Rect kOverlay = {18, 50, 205, 138};  // matches kSdOverlayFrame bitmap exactly
 static bool overlay_on = false;
 static bool overlay_persistent = false;  // true: SD-mode screens, no auto-expiry
 static uint64_t overlay_deadline_us = 0;
