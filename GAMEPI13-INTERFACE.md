@@ -160,7 +160,7 @@ tiene su propio ajuste directo sobre el BPM en vez de derivarlo del knob crudo, 
 paso genérico traducido a BPM saltaba en números muy grandes (descubierto en pruebas de
 hardware de la Fase 3): toque simple = ±1 BPM, mantener ≥1s = ±5 BPM por paso, mantener
 ≥3s = ±20 BPM por paso. Rango 20–360 BPM, cualquier valor entero (antes solo múltiplos
-de 5). El overlay de Tempo muestra el BPM real ("142 BPM"), no un porcentaje.
+de 5).
 
 ### 3.1 Modo 8: Browse SD
 
@@ -182,9 +182,8 @@ Detalles de la mecánica de botones (`src/main.cpp`, `GamepiSdState`):
   (`sample.wav | banco.pikobank`).
 - Las pantallas de este modo (listado, navegación, progreso, carga, resultado) son
   overlays **persistentes** (no se cierran solas por tiempo) mientras estés en el modo
-  8 — se cierran explícitamente al salir con Select (`gamepi_ui_sd_close()`). Esto es
-  distinto del resto de los overlays (Select/L/R en los otros modos), que sí se
-  desvanecen solos tras ~1s real.
+  8 — se cierran explícitamente al salir con Select (`gamepi_ui_sd_close()`). Es el
+  único overlay que queda en el dashboard (el resto se quitó, ver sección 4).
 - No hay detección de tarjeta insertada/retirada en caliente: si sacás o ponés la
   tarjeta con el dispositivo prendido, hace falta reiniciarlo para que se reconozca de
   nuevo. Sin tarjeta, entrar al modo 8 tarda ~5 segundos en mostrar "Sin tarjeta o sin
@@ -223,11 +222,19 @@ zona tiene la prioridad de redibujo más baja del dashboard (para no competir co
 de widgets por los slots de flush) y el movimiento del playhead está throttleado a ~25 Hz,
 alineado con el límite global de refresco.
 
-**Overlay temporal**: al presionar Select aparece el nombre del modo nuevo (Function A y
-B); al presionar L/R aparece el parámetro activo con su valor en grande y una barra de
-progreso. Se desvanece ~1 segundo real después (ver sección 5 sobre la calibración de
-este tiempo). Las pantallas del modo 8 (Browse SD) son la excepción: son persistentes,
-ver sección 3.1.
+**Sin overlay temporal**: existió hasta la Fase 5 (nombre de modo al presionar Select,
+parámetro con valor y barra de progreso al ajustar L/R) y se quitó — los shortcuts
+Select+botón musical (sección 3) ya permiten saltar de modo sin necesitar ese aviso, y
+las barras de Function A/B del dashboard normal se actualizan en vivo mientras se
+ajustan (el dirty-tracking ya reaccionaba al valor del knob; el overlay era lo único
+que bloqueaba que eso se viera). Las pantallas del modo 8 (Browse SD) son la única
+excepción: siguen siendo un overlay, y persistente (sección 3.1).
+
+**Barra de selección de sample (modo 0, Function A)**: en vez de un relleno continuo,
+un paginador de segmentos — un segmento resaltado por sample, agrupando en potencias de
+2 si el banco tiene más de 32 samples (el máximo real es 128, `PIKO_BANK_MAX_SAMPLES`)
+para que cada segmento siga siendo distinguible. El resto de las barras (Function B del
+modo 0, y Function A/B de los modos 1-7) siguen con el relleno continuo de siempre.
 
 Todo el render vive en `src/gamepi13/ui.cpp`, corre en core0 dentro del mismo lazo de
 control que escanea los botones (ver sección 5 sobre su frecuencia real), y está
@@ -326,10 +333,12 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   original eran LEDs (`debounce_led_save`/`debounce_led_sequencer`/`debounce_led_load`),
   y en GamePi13 la clase `LED` es un no-op total (`doth/led.h`, cada `gpio_put()` bajo
   `#if !PIKO_GAMEPI13` — Fase 1, "Neutralizar los GPIO de los LEDs", porque esos pines
-  están reasignados a otra cosa en este HAT). El overlay genérico del LCD
-  (`gamepi_ui_overlay_param()`) tampoco ayuda: muestra la misma barra numérica 0-4095
-  para cualquier modo, sin texto de "Grabando"/"Guardado"/"Cargado". Sin resolver por
-  ahora — ver sección 6 para la mejora propuesta (agregar feedback en el LCD).
+  están reasignados a otra cosa en este HAT). El overlay genérico que existía hasta la
+  Fase 5 tampoco ayudaba (mostraba la misma barra numérica 0-4095 para cualquier modo,
+  sin texto de "Grabando"/"Guardado"/"Cargado") y ya no existe (ver sección 4) — la
+  barra normal del dashboard ahora se mueve en vivo con el valor del knob, pero sigue
+  sin decir "Grabando"/"Guardado"/"Cargado" explícitamente. Sin resolver por ahora — ver
+  sección 6 para la mejora propuesta (agregar feedback en el LCD).
   **Hallazgo relacionado, no confirmado como causante de un problema real todavía:**
   `VirtualKnob::Reset()` (`doth/virtualknob.h`) es un no-op, mientras el código que
   cambia de modo (`src/main.cpp`, "prevent spurious changes when changing selection")
