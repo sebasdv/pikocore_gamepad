@@ -78,7 +78,7 @@ static bool dirty[W_COUNT];
 static GamepiUiState drawn;
 static bool have_drawn = false;
 
-static const Rect kOverlay = {20, 64, 200, 112};
+static const Rect kOverlay = {18, 50, 205, 138};
 static bool overlay_on = false;
 static bool overlay_persistent = false;  // true: SD-mode screens, no auto-expiry
 static uint64_t overlay_deadline_us = 0;
@@ -552,13 +552,10 @@ static void overlay_show_panel(bool persistent = false) {
   overlay_on = true;
   overlay_persistent = persistent;
   overlay_deadline_us = time_us_64() + OVERLAY_TTL_US;
-  Paint_ClearWindows(kOverlay.x, kOverlay.y,
-                     (uint16_t)(kOverlay.x + kOverlay.w),
-                     (uint16_t)(kOverlay.y + kOverlay.h), COL_DARK);
-  Paint_DrawRectangle(kOverlay.x, kOverlay.y,
-                      (uint16_t)(kOverlay.x + kOverlay.w - 1),
-                      (uint16_t)(kOverlay.y + kOverlay.h - 1), COL_PINK,
-                      DOT_PIXEL_2X2, DRAW_FILL_EMPTY);
+  // El bitmap ya cubre el rect completo (kOverlay.w x kOverlay.h) con su propio
+  // relleno + borde -- no hace falta un Paint_ClearWindows previo.
+  Paint_DrawImage((const unsigned char *)kSdOverlayFrame, kOverlay.x, kOverlay.y,
+                  kOverlay.w, kOverlay.h);
 }
 
 static uint16_t centered_x(const char *txt, uint16_t glyph_w) {
