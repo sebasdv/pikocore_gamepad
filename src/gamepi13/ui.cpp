@@ -29,6 +29,11 @@ extern "C" {
 #define COL_ORANGE_DIM 0x7A40  // #7c4a03
 #define COL_GRAY 0x632C      // #666666
 #define COL_DARK 0x18C3      // #1a1a1a
+#define COL_RED 0xFB8E       // #f87171
+#define COL_ORANGE2 0xFC87   // #fb923c (distinto de COL_ORANGE/amber ya existente)
+#define COL_YELLOW 0xFE62    // #facc15
+#define COL_TEAL 0x269D      // #22d3ee
+#define COL_VIOLET 0xA45F    // #a78bfa
 
 // Confirmed on hardware 2026-07-15: ROTATE_0 displayed 90 CW from correct
 // reading orientation. ROTATE_270 (== 90 CCW) fixes it; matches the
@@ -311,18 +316,26 @@ static void draw_bar(uint16_t bar_y, uint16_t val, UWORD col) {
   }
 }
 
+// Un color por modo para la barra de Function A/B (y el fallback de texto de
+// draw_function_label(), aunque hoy sea inalcanzable con los 8 modos ya
+// bitmapeados). Ver docs/superpowers/specs/2026-07-19-mode-colors-design.md.
+static const uint16_t kModeColorA[8] = {COL_RED,     COL_ORANGE2, COL_YELLOW, COL_GREEN,
+                                        COL_TEAL,    COL_BLUE,    COL_VIOLET, COL_PINK};
+static const uint16_t kModeColorB[8] = {COL_BLUE,    COL_VIOLET,  COL_PINK,   COL_RED,
+                                        COL_ORANGE2, COL_YELLOW,  COL_GREEN,  COL_TEAL};
+
 static void draw_function_a(const GamepiUiState &s) {
   clear_zone(kRect[W_BARA]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
-  draw_function_label(107, kModeABitmap[m], kModeA[m], COL_PINK);
-  draw_bar(132, s.knob_a, COL_PINK);
+  draw_function_label(107, kModeABitmap[m], kModeA[m], kModeColorA[m]);
+  draw_bar(132, s.knob_a, kModeColorA[m]);
 }
 
 static void draw_function_b(const GamepiUiState &s) {
   clear_zone(kRect[W_BARB]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
-  draw_function_label(157, kModeBBitmap[m], kModeB[m], COL_CYAN);
-  draw_bar(182, s.knob_b, COL_CYAN);
+  draw_function_label(157, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
+  draw_bar(182, s.knob_b, kModeColorB[m]);
 }
 
 static void draw_dots(const GamepiUiState &s) {
