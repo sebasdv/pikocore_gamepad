@@ -1872,10 +1872,7 @@ int main(void) {
             // Leaving Browse SD: unmount, don't leave the card open, and close
             // whatever SD screen was on-screen -- it's a persistent overlay
             // (see gamepi_ui_sd_close()'s comment), so it won't time out on
-            // its own. Done BEFORE the entering-mode-0 overlay below (the only
-            // mode reachable from here, since Select only increments) so that
-            // overlay's real ~1s deadline isn't immediately clobbered by this
-            // call's "expire right now" semantics.
+            // its own.
             gamepi_sd_unmount_requested = true;
             gamepi_sd_state = GAMEPI_SD_IDLE;
             gamepi_ui_sd_close();
