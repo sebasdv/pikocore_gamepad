@@ -25,6 +25,7 @@ struct GamepiUiState {
   uint8_t mode;          // selector 0-7
   uint16_t knob_a;       // 0-4095
   uint16_t knob_b;       // 0-4095
+  bool playing;          // !do_mute -- drives the play/stop icon pair
 };
 
 void gamepi_ui_init();                      // LCD init + splash (blocking ~2 s, call before audio IRQ is enabled)

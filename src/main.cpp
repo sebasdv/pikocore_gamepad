@@ -2206,6 +2206,7 @@ int main(void) {
         uis.active_bank_name[sizeof(uis.active_bank_name) - 1] = '\0';
         uis.knob_a = input_knob[1].Value();
         uis.knob_b = input_knob[2].Value();
+        uis.playing = !do_mute;
         gamepi_ui_tick(uis);
       }
 #endif
