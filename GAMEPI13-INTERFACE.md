@@ -188,8 +188,7 @@ con dígitos propios (ancho real por dígito, sin grilla fija) + ícono de fuent
 (el activo a full brillo, el otro atenuado); nombre del sample + índice/total de
 samples con el mismo sistema de dígitos (`NN/NN`, reemplaza el antiguo texto "NN/MM");
 **zona de waveform** (contenido dinámico sin cambios, ver detalle abajo); etiquetas de
-Function A/B ("SAMPLE"/"BREAK FX" como gráfico en modo 0, texto en los modos 1-7 hasta
-que se diseñen esos gráficos, ver sección 6) cada una sobre su propia barra; y una fila
+Function A/B como gráfico para los 8 modos (0-7), cada una sobre su propia barra; y una fila
 de 9 íconos de modo (reemplaza los 8 puntos + el caso especial de texto "SD") — el
 activo se dibuja a full color, los otros 8 se atenúan calculando su brillo en tiempo de
 dibujo (`dim_rgb565()`), sin necesitar variantes de imagen "apagadas". Los marcos que
@@ -332,7 +331,7 @@ quedaron abiertas o se volvieron obvias durante las pruebas:
   nombre del archivo en flash junto al resto de `save_data`.
 - **IMU (ICM20948, I2C GP2/3)** como modulador de FX — mencionado en el plan original,
   nunca implementado; podría mapear inclinación/movimiento a algún parámetro en vivo.
-- **Etiquetas de Function A/B para los modos 1-7 + ícono de reloj MIDI**: el dashboard
-  con bitmaps de Lopaka (ver sección 4) solo tiene diseñados "SAMPLE"/"BREAK FX" (modo 0)
-  y los íconos de reloj INT/EXT — el resto de los modos siguen mostrando su nombre en
-  texto, y el reloj en MIDI también, hasta que se diseñen esos gráficos.
+- **Ícono de reloj MIDI**: el dashboard con bitmaps de Lopaka (ver sección 4) solo
+  tiene diseñados los íconos de reloj INT/EXT — el reloj en MIDI sigue mostrando
+  "MIDI" en texto hasta que se diseñe ese gráfico. (Las etiquetas de Function A/B de
+  los 8 modos ya están todas resueltas como gráfico.)
