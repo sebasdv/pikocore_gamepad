@@ -14,6 +14,10 @@ extern "C" {
 #include "lcd/LCD_1in3.h"
 }
 
+// ui_bitmaps.h calls Paint_SetPixel()/Paint_DrawImage() (both declared above,
+// with C linkage from the extern "C" block) -- must be included after it.
+#include "ui_bitmaps.h"
+
 // ---- palette (RGB565; Paint scale 65 stores big-endian, no swap needed) ----
 #define COL_BG 0x0000        // black
 #define COL_WHITE 0xFFFF
@@ -38,18 +42,20 @@ struct Rect {
   uint16_t x, y, w, h;
 };
 
-// Widget zones (full-width strips; y per approved spec layout)
+// Widget zones (full-width strips; y per Lopaka MODE_0 layout). W_MODENAME
+// from the old text-only dashboard is gone -- Lopaka's design has no generic
+// "mode name" line; instead each bar (W_BARA/W_BARB) carries its own Function
+// A/B label right above it, so that concept folded into those two zones.
 enum {
-  W_TOP = 0,   // BPM + clock src | "NN/MM"
-  W_NAME,      // sample name
-  W_MODENAME,  // mode name
-  W_BARA,      // bar A + label
-  W_BARB,      // bar B + label
-  W_DOTS,      // 8 mode dots
-  // Waveform + playhead + slice highlights (ex "8 virtual LEDs" strip).
-  // Deliberately LAST: gamepi_ui_tick() flushes ONE dirty widget per slot,
-  // lowest index first, and this zone dirties often (moving playhead) --
-  // lowest priority keeps it from starving every other widget.
+  W_TOP = 0,   // BPM digits + clock-src icon + play/stop icons
+  W_NAME,      // filename frame + sample idx/count digits
+  W_BARA,      // Function A label (bitmap mode 0 / text fallback) + bar
+  W_BARB,      // Function B label (bitmap mode 0 / text fallback) + bar
+  W_DOTS,      // 9 mode-indicator icons (M_0..M_7 + M_SD)
+  // Waveform frame + playhead + slice highlights. Deliberately LAST:
+  // gamepi_ui_tick() flushes ONE dirty widget per slot, lowest index first,
+  // and this zone dirties often (moving playhead) -- lowest priority keeps
+  // it from starving every other widget.
   W_WAVE,
   W_COUNT
 };
@@ -57,11 +63,10 @@ enum {
 static const Rect kRect[W_COUNT] = {
     {0, 0, 240, 28},    // W_TOP
     {0, 28, 240, 24},   // W_NAME
-    {0, 112, 240, 24},  // W_MODENAME
-    {0, 136, 240, 32},  // W_BARA
-    {0, 168, 240, 32},  // W_BARB
-    {0, 208, 240, 20},  // W_DOTS
-    {0, 52, 240, 44},   // W_WAVE
+    {0, 105, 240, 47},  // W_BARA (label y107-127, bar y132-152)
+    {0, 155, 240, 47},  // W_BARB (label y157-177, bar y182-202)
+    {0, 205, 240, 26},  // W_DOTS (9 icons, y207-228)
+    {0, 54, 240, 48},   // W_WAVE
 };
 
 static bool dirty[W_COUNT];
@@ -153,36 +158,57 @@ static void clear_zone(const Rect &r) {
 
 static void draw_top(const GamepiUiState &s) {
   clear_zone(kRect[W_TOP]);
-  char buf[16];
-  snprintf(buf, sizeof(buf), "%3u", s.bpm);
-  Paint_DrawString_EN(8, 4, buf, &Font20, COL_GREEN, COL_BG);
-  static const char *kSrc[3] = {"INT", "EXT", "MIDI"};
-  Paint_DrawString_EN(58, 10, kSrc[s.clock_src < 3 ? s.clock_src : 0], &Font12,
-                      COL_GRAY, COL_BG);
-  if (s.sample_count > 0) {
-    snprintf(buf, sizeof(buf), "%02u/%02u", (unsigned)(s.sample_idx + 1),
-             (unsigned)s.sample_count);
+  char buf[8];
+  snprintf(buf, sizeof(buf), "%u", s.bpm);
+  // BPM digits right-aligned so their RIGHT edge always lands at x=30 (just
+  // before the clock-source slash/icon), growing leftward as the digit count
+  // changes (e.g. 99 -> 100) instead of colliding with what's to the right.
+  draw_digit_string(30, 6, buf, kBpmDigits, nullptr, 0, 0, true);
+  // BPM_Slash: always between the BPM digits and whichever clock-source icon
+  // is active. MODE_0.txt's own mockup shows it between the Int_clock and
+  // Ext_clock reference icons instead -- that's just how Lopaka laid out two
+  // static examples side by side (it doesn't simulate the real INT/EXT
+  // conditional), not the real runtime position.
+  Paint_DrawImage((const unsigned char *)kBpmSlash, 30, 3, 14, 20);
+  if (s.clock_src == 0) {
+    Paint_DrawImage((const unsigned char *)kIntClock, 44, 6, 38, 14);
+  } else if (s.clock_src == 1) {
+    Paint_DrawImage((const unsigned char *)kExtClock, 44, 6, 40, 14);
   } else {
-    snprintf(buf, sizeof(buf), "--/--");
+    // MIDI has no graphic yet (see the design spec's Riesgos conocidos) --
+    // text fallback, same pattern as the not-yet-designed Function A/B
+    // labels for modes 1-7 below.
+    Paint_DrawString_EN(44, 10, "MIDI", &Font12, COL_GRAY, COL_BG);
   }
-  Paint_DrawString_EN(240 - 8 - 5 * 11, 6, buf, &Font16, COL_BLUE, COL_BG);
+  Paint_DrawMonoBitmap(212, 7, kPlayBits, 12, 12,
+                       s.playing ? COL_WHITE : COL_GRAY);
+  Paint_DrawMonoBitmap(226, 7, kStopBits, 12, 12,
+                       s.playing ? COL_GRAY : COL_WHITE);
 }
 
 static void draw_name(const GamepiUiState &s) {
   clear_zone(kRect[W_NAME]);
+  Paint_DrawImage((const unsigned char *)kFilenameFrame, 0, 29, 191, 20);
   char buf[48];
   if (s.active_bank_name[0] != '\0') {
     snprintf(buf, sizeof(buf), "%s | %s", s.sample_name, s.active_bank_name);
   } else {
     snprintf(buf, sizeof(buf), "%s", s.sample_name);
   }
-  // Defensive hard truncation: at Font12's ~7px/char, this zone's 240px
-  // width holds ~32 visible characters from x=8 before running off the
-  // physical screen -- the combined sample+bank string can exceed that even
-  // though each field is individually truncated to fit on its own (22 and
-  // 24 chars respectively). Paint_DrawString_EN does not clip for us.
-  if (strlen(buf) > 32) buf[32] = '\0';
+  // Defensive hard truncation: at Font12's ~7px/char, this zone's 191px
+  // frame width (leaving room for the sample idx/count digits to its right)
+  // holds fewer visible characters than the full 240px screen would --
+  // Paint_DrawString_EN does not clip for us.
+  if (strlen(buf) > 24) buf[24] = '\0';
   Paint_DrawString_EN(8, 32, buf, &Font12, COL_GRAY, COL_BG);
+  char idx[8];
+  if (s.sample_count > 0) {
+    snprintf(idx, sizeof(idx), "%02u/%02u", (unsigned)(s.sample_idx + 1),
+             (unsigned)s.sample_count);
+  } else {
+    snprintf(idx, sizeof(idx), "00/00");
+  }
+  draw_digit_string(238, 32, idx, kBankDigits, kBankSlash, 7, 15, true);
 }
 
 // ---- waveform cache (W_WAVE) ----
@@ -228,6 +254,7 @@ static void wave_recompute(uint16_t sample_idx) {
 
 static void draw_wave(const GamepiUiState &s) {
   clear_zone(kRect[W_WAVE]);
+  Paint_DrawImage((const unsigned char *)kWaveformFrame, 0, 54, 240, 48);
   constexpr uint16_t kTop = 54;  // 39px band inside the 52..96 zone
   constexpr uint16_t kBot = 93;
   // Slice separators first (subtle, behind the waveform): the 8 music
@@ -261,19 +288,22 @@ static void draw_wave(const GamepiUiState &s) {
   }
 }
 
-static void draw_modename(const GamepiUiState &s) {
-  clear_zone(kRect[W_MODENAME]);
-  // Mode 8 (Browse SD) has no slot in the 8-entry kModeA table -- naively
-  // masking with & 7 would alias it onto mode 0 ("SAMPLE"), which read as a
-  // real bug during hardware testing (looked like the wrong mode was active).
-  const char *name = (s.mode == 8) ? "SD" : kModeA[s.mode & 7];
-  Paint_DrawString_EN(8, 116, name, &Font16, COL_PINK, COL_BG);
+// mode 8 (Browse SD) has no slot in the 8-entry label tables -- these two
+// zones sit behind the SD mode's persistent overlay while mode 8 is active,
+// so falling back to mode 0's label there is invisible, not a bug (unlike
+// the old draw_modename/draw_dots aliasing bug this replaces, which WAS
+// visible since nothing covered those zones).
+static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
+                                const char *text, UWORD text_col) {
+  if (bmp) {
+    Paint_DrawImage((const unsigned char *)bmp->pixels, 0, y, bmp->w, bmp->h);
+  } else {
+    Paint_DrawString_EN(8, y, text, &Font16, text_col, COL_BG);
+  }
 }
 
-static void draw_bar(const Rect &zone, uint16_t bar_y, uint16_t val, UWORD col,
-                     char ab) {
-  clear_zone(zone);
-  // frame + fill: 224 px wide, 14 px tall
+static void draw_bar(uint16_t bar_y, uint16_t val, UWORD col) {
+  // frame + fill: 224 px wide, 14 px tall (unchanged geometry, new y)
   Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), COL_DARK,
                       DOT_PIXEL_1X1, DRAW_FILL_FULL);
   uint16_t w = (uint16_t)((uint32_t)val * 224u / 4095u);
@@ -281,21 +311,40 @@ static void draw_bar(const Rect &zone, uint16_t bar_y, uint16_t val, UWORD col,
     Paint_DrawRectangle(8, bar_y, (uint16_t)(8 + w), (uint16_t)(bar_y + 13),
                         col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
   }
-  char buf[12];
-  snprintf(buf, sizeof(buf), "%c %u%%", ab, pct(val));
-  Paint_DrawString_EN(8, (uint16_t)(bar_y + 16), buf, &Font12, COL_GRAY,
-                      COL_BG);
+}
+
+static void draw_function_a(const GamepiUiState &s) {
+  clear_zone(kRect[W_BARA]);
+  const uint8_t m = (s.mode < 8) ? s.mode : 0;
+  draw_function_label(107, kModeABitmap[m], kModeA[m], COL_PINK);
+  draw_bar(132, s.knob_a, COL_PINK);
+}
+
+static void draw_function_b(const GamepiUiState &s) {
+  clear_zone(kRect[W_BARB]);
+  const uint8_t m = (s.mode < 8) ? s.mode : 0;
+  draw_function_label(157, kModeBBitmap[m], kModeB[m], COL_CYAN);
+  draw_bar(182, s.knob_b, COL_CYAN);
 }
 
 static void draw_dots(const GamepiUiState &s) {
   clear_zone(kRect[W_DOTS]);
-  // 8 dots, radius 4, 14 px pitch, centered: start x = 67
-  // Mode 8 (Browse SD) has no dot of its own -- leave all 8 dark rather than
-  // falsely lighting dot 0 via an & 7 alias (same bug as draw_modename above).
-  for (uint8_t i = 0; i < 8; i++) {
-    UWORD col = (s.mode != 8 && i == s.mode) ? COL_PINK : COL_DARK;
-    Paint_DrawCircle((uint16_t)(71 + i * 14), 218, 4, col, DOT_PIXEL_1X1,
-                     DRAW_FILL_FULL);
+  // 9 icons (M_0..M_7 + M_SD), 18px pitch starting at x=27 -- matches
+  // MODE_0.txt exactly (M_SD sits right after M_7 at x=27+8*18=171).
+  // Dimming factor is a first-attempt value (~35% brightness), tune on
+  // hardware per the design spec's Riesgos conocidos.
+  constexpr uint8_t kInactiveDim = 90;
+  for (uint8_t i = 0; i < 9; i++) {
+    const ModeIcon &icon = kModeIcons[i];
+    const uint16_t x = (uint16_t)(27 + i * 18);
+    const bool active = (i < 8) ? (s.mode == i) : (s.mode == 8);
+    if (active) {
+      Paint_DrawImage((const unsigned char *)icon.pixels, x, 207, icon.w,
+                       icon.h);
+    } else {
+      Paint_DrawImageDimmed(icon.pixels, x, 207, icon.w, icon.h,
+                            kInactiveDim);
+    }
   }
 }
 
@@ -310,14 +359,11 @@ static void draw_widget(uint8_t i, const GamepiUiState &s) {
     case W_WAVE:
       draw_wave(s);
       break;
-    case W_MODENAME:
-      draw_modename(s);
-      break;
     case W_BARA:
-      draw_bar(kRect[W_BARA], 140, s.knob_a, COL_PINK, 'A');
+      draw_function_a(s);
       break;
     case W_BARB:
-      draw_bar(kRect[W_BARB], 172, s.knob_b, COL_CYAN, 'B');
+      draw_function_b(s);
       break;
     case W_DOTS:
       draw_dots(s);
@@ -376,11 +422,14 @@ void gamepi_ui_tick(const GamepiUiState &s) {
     for (uint8_t i = 0; i < W_COUNT; i++) dirty[i] = true;
   } else {
     if (s.bpm != drawn.bpm || s.clock_src != drawn.clock_src ||
-        s.sample_idx != drawn.sample_idx ||
-        s.sample_count != drawn.sample_count) {
+        s.playing != drawn.playing) {
       dirty[W_TOP] = true;
     }
-    if (strcmp(s.sample_name, drawn.sample_name) != 0) dirty[W_NAME] = true;
+    if (strcmp(s.sample_name, drawn.sample_name) != 0 ||
+        s.sample_idx != drawn.sample_idx ||
+        s.sample_count != drawn.sample_count) {
+      dirty[W_NAME] = true;
+    }
     if (memcmp(s.leds, drawn.leds, sizeof(s.leds)) != 0 ||
         s.retrig_leds_mask != drawn.retrig_leds_mask) {
       dirty[W_WAVE] = true;
@@ -398,7 +447,8 @@ void gamepi_ui_tick(const GamepiUiState &s) {
       dirty[W_WAVE] = true;
     }
     if (s.mode != drawn.mode) {
-      dirty[W_MODENAME] = true;
+      dirty[W_BARA] = true;
+      dirty[W_BARB] = true;
       dirty[W_DOTS] = true;
     }
     if (s.knob_a != drawn.knob_a) dirty[W_BARA] = true;
@@ -424,8 +474,8 @@ void gamepi_ui_tick(const GamepiUiState &s) {
                        (uint16_t)(kOverlay.y + kOverlay.h), COL_BG);
     flush(kOverlay);
     dirty[W_WAVE] = true;      // zones the overlay covered
-    dirty[W_MODENAME] = true;
     dirty[W_BARA] = true;
+    dirty[W_BARB] = true;
     return;  // used this call's flush slot on the restore
   }
 
