@@ -599,18 +599,16 @@ void gamepi_ui_sd_listing() {
 void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
                          bool is_active) {
   if (!flush_allowed()) return;
-  char pos[12];
-  snprintf(pos, sizeof(pos), "%lu/%lu", (unsigned long)(index + 1),
+  overlay_show_panel(true);  // persistent, mismo criterio que sd_panel_title()
+  char idx[8];
+  snprintf(idx, sizeof(idx), "%02lu/%02lu", (unsigned long)(index + 1),
            (unsigned long)count);
-  sd_panel_title(pos, COL_GRAY);
-  draw_truncated(filename, (uint16_t)(kOverlay.y + 50),
+  draw_digit_string(89, 72, idx, kBankDigits, kBankSlash, 7, 15, false);
+  draw_truncated(filename, (uint16_t)(kOverlay.y + 57),
                 is_active ? COL_GREEN : COL_PINK);
-  // Two lines: L/R's navigation role was previously left implicit (only the
-  // hold-to-load hint was shown), which read as "L does nothing" during
-  // hardware testing.
-  draw_truncated("L: ciclar lista", (uint16_t)(kOverlay.y + 72), COL_GRAY);
+  Paint_DrawImage((const unsigned char *)kSdLCycle, 52, 138, 141, 15);
   draw_truncated(is_active ? "Cargado (banco activo)" : "Mantener R: cargar",
-                (uint16_t)(kOverlay.y + 88), COL_GRAY);
+                (uint16_t)(kOverlay.y + 102), COL_GRAY);
   flush(kOverlay);
 }
 
