@@ -104,17 +104,32 @@ struct ModeLabelBitmap {
 };
 static const ModeLabelBitmap kSampleWordBitmap = {kSampleWord, 88, 20};
 static const ModeLabelBitmap kBreakFxWordBitmap = {kBreakFxWord, 119, 20};
-// Index 0 = mode 0 ("SAMPLE"/"BREAK FX"), designed. Indices 1-7: nullptr until
-// the user designs those modes' labels in Lopaka (same pattern as the splash
-// and the IMU-era MIDI-clock fallback: missing asset -> text, not a blocker).
-static const ModeLabelBitmap *kModeABitmap[8] = {&kSampleWordBitmap, nullptr,
-                                                  nullptr,           nullptr,
-                                                  nullptr,           nullptr,
-                                                  nullptr,           nullptr};
-static const ModeLabelBitmap *kModeBBitmap[8] = {&kBreakFxWordBitmap, nullptr,
-                                                  nullptr,             nullptr,
-                                                  nullptr,             nullptr,
-                                                  nullptr,             nullptr};
+static const ModeLabelBitmap kFilterLabelBitmap = {kFilterLabel, 92, 20};
+static const ModeLabelBitmap kStretchLabelBitmap = {kStretchLabel, 105, 20};
+static const ModeLabelBitmap kGate1LabelBitmap = {kGate1Label, 62, 20};
+static const ModeLabelBitmap kPGateLabelBitmap = {kPGateLabel, 93, 20};
+static const ModeLabelBitmap kJumpLabelBitmap = {kJumpLabel, 62, 20};
+static const ModeLabelBitmap kPRetrigLabelBitmap = {kPRetrigLabel, 120, 20};
+static const ModeLabelBitmap kTunnelLabelBitmap = {kTunnelLabel, 90, 20};
+static const ModeLabelBitmap kPReverseLabelBitmap = {kPReverseLabel, 134, 20};
+static const ModeLabelBitmap kRecSeqLabelBitmap = {kRecSeqLabel, 105, 20};
+static const ModeLabelBitmap kPlaySeqLabelBitmap = {kPlaySeqLabel, 120, 20};
+static const ModeLabelBitmap kSaveLabelBitmap = {kSaveLabel, 61, 20};
+static const ModeLabelBitmap kLoadLabelBitmap = {kLoadLabel, 63, 20};
+static const ModeLabelBitmap kVolumeLabelBitmap = {kVolumeLabel, 92, 20};
+static const ModeLabelBitmap kTempoLabelBitmap = {kTempoLabel, 77, 20};
+// All 8 modes now have a designed label bitmap (Lopaka MODE_0..MODE_7.txt).
+// A future mode addition should add a real entry here too -- there's no more
+// nullptr-means-not-designed-yet fallback slot in this table, though
+// draw_function_label() still supports nullptr if that's ever needed again.
+static const ModeLabelBitmap *kModeABitmap[8] = {
+    &kSampleWordBitmap, &kFilterLabelBitmap, &kGate1LabelBitmap,
+    &kJumpLabelBitmap,  &kTunnelLabelBitmap, &kRecSeqLabelBitmap,
+    &kSaveLabelBitmap,  &kVolumeLabelBitmap};
+static const ModeLabelBitmap *kModeBBitmap[8] = {
+    &kBreakFxWordBitmap,  &kStretchLabelBitmap, &kPGateLabelBitmap,
+    &kPRetrigLabelBitmap, &kPReverseLabelBitmap, &kPlaySeqLabelBitmap,
+    &kLoadLabelBitmap,    &kTempoLabelBitmap};
 
 // ---- 9 mode-indicator icons (M_0..M_7 + M_SD), color, 16x21 (M_SD: 31x21) --
 struct ModeIcon {
