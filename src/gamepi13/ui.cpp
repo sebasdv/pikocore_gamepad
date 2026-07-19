@@ -589,16 +589,17 @@ void gamepi_ui_sd_close() {
   overlay_deadline_us = time_us_64();
 }
 
-void gamepi_ui_sd_listing() {
-  if (!flush_allowed()) return;
+bool gamepi_ui_sd_listing() {
+  if (!flush_allowed()) return false;
   sd_panel_title("SD", COL_GRAY);
   draw_truncated("Leyendo tarjeta...", (uint16_t)(kOverlay.y + 50), COL_WHITE);
   flush(kOverlay);
+  return true;
 }
 
-void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
+bool gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
                          bool is_active) {
-  if (!flush_allowed()) return;
+  if (!flush_allowed()) return false;
   overlay_show_panel(true);  // persistent, mismo criterio que sd_panel_title()
   char idx[8];
   snprintf(idx, sizeof(idx), "%02lu/%02lu", (unsigned long)(index + 1),
@@ -614,6 +615,7 @@ void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
   draw_truncated(is_active ? "Cargado (banco activo)" : "Mantener R: cargar",
                 (uint16_t)(kOverlay.y + 102), COL_GRAY);
   flush(kOverlay);
+  return true;
 }
 
 void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent) {
@@ -632,27 +634,32 @@ void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent) {
   flush(kOverlay);
 }
 
-void gamepi_ui_sd_loading(const char *filename) {
+bool gamepi_ui_sd_loading(const char *filename) {
   // Flushed once, unthrottled: this is the LAST LCD write before core0 stops
   // touching spi1 for the duration of the actual SD-read+flash-write (see
   // main.cpp's mode-8 handler) -- deliberately bypasses flush_allowed() so
   // the message is guaranteed on screen before that quiet window starts.
+  // Nunca deniega -- siempre devuelve true (no participa del reintento salvo
+  // por uniformidad de firma con las demás).
   sd_panel_title("Cargando...", COL_CYAN);
   draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_WHITE);
   flush(kOverlay);
+  return true;
 }
 
-void gamepi_ui_sd_result(bool ok, const char *filename) {
-  if (!flush_allowed()) return;
+bool gamepi_ui_sd_result(bool ok, const char *filename) {
+  if (!flush_allowed()) return false;
   sd_panel_title(ok ? "Listo" : "Error", ok ? COL_GREEN : COL_PINK);
   draw_truncated(ok ? filename : "No se pudo cargar",
                  (uint16_t)(kOverlay.y + 50), COL_WHITE);
   flush(kOverlay);
+  return true;
 }
 
-void gamepi_ui_sd_error(const char *message) {
-  if (!flush_allowed()) return;
+bool gamepi_ui_sd_error(const char *message) {
+  if (!flush_allowed()) return false;
   sd_panel_title("SD", COL_GRAY);
   draw_truncated(message, (uint16_t)(kOverlay.y + 50), COL_PINK);
   flush(kOverlay);
+  return true;
 }

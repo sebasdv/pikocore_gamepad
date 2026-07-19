@@ -34,10 +34,12 @@ void gamepi_ui_tick(const GamepiUiState &s);  // call once per 250 Hz control ti
 // Browse-SD mode (modo 8 del selector). Todas reusan el panel del overlay;
 // llamarlas SOLO desde el lazo de botones de main.cpp, nunca desde
 // gamepi_ui_tick() -- evitan competir con el dashboard normal por pantalla.
-void gamepi_ui_sd_listing();
-void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count, bool is_active);
+// Las que devuelven bool: false si flush_allowed() denegó esta vez (el
+// llamador debe reintentar en un tick posterior, no asumir que ya se dibujó).
+bool gamepi_ui_sd_listing();
+bool gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count, bool is_active);
 void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent);
-void gamepi_ui_sd_loading(const char *filename);
-void gamepi_ui_sd_result(bool ok, const char *filename);
-void gamepi_ui_sd_error(const char *message);
+bool gamepi_ui_sd_loading(const char *filename);
+bool gamepi_ui_sd_result(bool ok, const char *filename);
+bool gamepi_ui_sd_error(const char *message);
 void gamepi_ui_sd_close();  // call when leaving mode 8; closes any open SD screen immediately
