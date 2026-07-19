@@ -322,11 +322,43 @@ static const uint16_t kModeColorA[8] = {COL_RED,     COL_ORANGE2, COL_YELLOW, CO
 static const uint16_t kModeColorB[8] = {COL_BLUE,    COL_VIOLET,  COL_PINK,   COL_RED,
                                         COL_ORANGE2, COL_YELLOW,  COL_GREEN,  COL_TEAL};
 
+// Selección de sample (modo 0, Function A): en vez de un relleno continuo
+// proporcional al valor crudo del knob, un paginador de segmentos -- refleja
+// que la selección ya es discreta (sample_change = knob * sample_count / 4095,
+// main.cpp). Se agrupa en potencias de 2 si sample_count no entra en 32
+// segmentos, para que cada segmento siga siendo distinguible aun con el
+// máximo real de 128 samples por banco (PIKO_BANK_MAX_SAMPLES).
+static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
+                            uint16_t sample_count, UWORD col) {
+  Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), COL_DARK,
+                      DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  if (sample_count <= 1) {
+    Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), col,
+                        DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    return;
+  }
+  uint16_t group_size = 1;
+  while ((sample_count + group_size - 1) / group_size > 32) {
+    group_size = (uint16_t)(group_size * 2);
+  }
+  uint16_t n_segments =
+      (uint16_t)((sample_count + group_size - 1) / group_size);
+  uint16_t active_segment = (uint16_t)(sample_idx / group_size);
+  uint16_t seg_w = (uint16_t)((224u - (n_segments - 1)) / n_segments);
+  uint16_t x = (uint16_t)(8 + active_segment * (seg_w + 1));
+  Paint_DrawRectangle(x, bar_y, (uint16_t)(x + seg_w), (uint16_t)(bar_y + 13),
+                      col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+}
+
 static void draw_function_a(const GamepiUiState &s) {
   clear_zone(kRect[W_BARA]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
   draw_function_label(107, kModeABitmap[m], kModeA[m], kModeColorA[m]);
-  draw_bar(132, s.knob_a, kModeColorA[m]);
+  if (m == 0) {
+    draw_sample_bar(132, s.sample_idx, s.sample_count, kModeColorA[m]);
+  } else {
+    draw_bar(132, s.knob_a, kModeColorA[m]);
+  }
 }
 
 static void draw_function_b(const GamepiUiState &s) {
@@ -462,6 +494,14 @@ void gamepi_ui_tick(const GamepiUiState &s) {
     }
     if (s.knob_a != drawn.knob_a) dirty[W_BARA] = true;
     if (s.knob_b != drawn.knob_b) dirty[W_BARB] = true;
+    // Modo 0 Function A depende de sample_idx/sample_count (barra
+    // segmentada), no directamente de knob_a -- un cambio de sample sin
+    // cambio de knob_a bruto (redondeo de la división entera) igual debe
+    // redibujar.
+    if (s.sample_idx != drawn.sample_idx ||
+        s.sample_count != drawn.sample_count) {
+      dirty[W_BARA] = true;
+    }
   }
   drawn = s;
   have_drawn = true;
