@@ -346,6 +346,13 @@ static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
   uint16_t active_segment = (uint16_t)(sample_idx / group_size);
   uint16_t seg_w = (uint16_t)((224u - (n_segments - 1)) / n_segments);
   uint16_t x = (uint16_t)(8 + active_segment * (seg_w + 1));
+  // Clamp: grouping arithmetic can push the LAST segment 1px past the right
+  // edge (231) when n_segments evenly divides 225 -- e.g. n_segments=3,5,9,
+  // 15,25. Confirmed via exhaustive brute-force check over every valid
+  // sample_count/sample_idx combination up to 128.
+  if ((uint16_t)(x + seg_w) > 231) {
+    seg_w = (uint16_t)(231 - x);
+  }
   Paint_DrawRectangle(x, bar_y, (uint16_t)(x + seg_w), (uint16_t)(bar_y + 13),
                       col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
 }
