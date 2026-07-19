@@ -7,6 +7,7 @@
 
 #include "../hw_gamepi13.h"
 #include "../PikoAudioBank.h"
+#include "splash_logo.h"
 
 extern "C" {
 #include "lcd/GUI_Paint.h"
@@ -332,12 +333,24 @@ void gamepi_ui_init() {
   Paint_NewImage(fb, LCD_1IN3_WIDTH, LCD_1IN3_HEIGHT, GAMEPI_LCD_ROTATE, BLACK);
   Paint_SetScale(65);
   Paint_Clear(COL_BG);
-  // splash: "pikocore" Font24 (8*17=136 px) / "GamePi13" Font16 (8*11=88 px)
-  Paint_DrawString_EN(52, 96, "pikocore", &Font24, COL_PINK, COL_BG);
-  Paint_DrawString_EN(76, 130, "GamePi13", &Font16, COL_GRAY, COL_BG);
+  // splash: "pikocore" wordmark, designed in Lopaka (see splash_logo.h) --
+  // drawn once into the framebuffer at full brightness. The fade-in below
+  // is done via the backlight PWM, not by blending pixel colors -- there's
+  // no alpha/blend support in Paint_DrawImage(), and ramping the backlight
+  // is both simpler and cheaper (no extra SPI redraws).
+  Paint_DrawImage((const unsigned char *)kSplashLogoPixels, 37, 97,
+                   SPLASH_LOGO_WIDTH, SPLASH_LOGO_HEIGHT);
   LCD_1IN3_Display((UWORD *)fb);
-  gamepi_lcd_backlight(60);
-  sleep_ms(600);
+  // Fade the backlight in over ~300ms, then hold at splash brightness for
+  // the rest of a ~2s total on-screen time before the dashboard takes over.
+  constexpr uint8_t kSplashBacklightPercent = 60;  // matches dashboard level
+  constexpr uint32_t kSplashFadeInMs = 300;
+  constexpr uint8_t kFadeSteps = 20;
+  for (uint8_t i = 1; i <= kFadeSteps; i++) {
+    gamepi_lcd_backlight((uint8_t)(kSplashBacklightPercent * i / kFadeSteps));
+    sleep_ms(kSplashFadeInMs / kFadeSteps);
+  }
+  sleep_ms(2000 - kSplashFadeInMs);
   Paint_Clear(COL_BG);
   LCD_1IN3_Display((UWORD *)fb);
   for (uint8_t i = 0; i < W_COUNT; i++) dirty[i] = true;

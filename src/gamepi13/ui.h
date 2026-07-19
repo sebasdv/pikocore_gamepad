@@ -27,7 +27,7 @@ struct GamepiUiState {
   uint16_t knob_b;       // 0-4095
 };
 
-void gamepi_ui_init();                      // LCD init + splash (blocking ~1 s, call before audio IRQ is enabled)
+void gamepi_ui_init();                      // LCD init + splash (blocking ~2 s, call before audio IRQ is enabled)
 void gamepi_ui_tick(const GamepiUiState &s);  // call once per 250 Hz control tick
 void gamepi_ui_overlay_mode(uint8_t mode);  // Select pressed
 void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val);  // L/R adjust
