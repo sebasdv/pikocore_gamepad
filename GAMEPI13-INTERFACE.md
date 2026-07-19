@@ -182,12 +182,18 @@ Detalles de la mecánica de botones (`src/main.cpp`, `GamepiSdState`):
 
 ## 4. Qué muestra el LCD
 
-**Dashboard** (siempre visible): BPM + fuente de clock (INT/EXT/MIDI), número y nombre
-del sample activo (+ nombre del banco `.pikobank` cargado desde SD, si alguno), **zona de
-waveform** (reemplaza la antigua barra de 8 LEDs virtuales — ver detalle abajo), nombre
-del modo activo con barras A/B, y una fila de 8 puntos indicando qué modo está
-seleccionado (el modo 8 no ilumina ninguno de los 8 puntos, ya que no tiene uno propio;
-el nombre del modo pasa a decir "SD").
+**Dashboard** (siempre visible, diseñado en Lopaka — `src/gamepi13/ui_bitmaps.h`): BPM
+con dígitos propios (ancho real por dígito, sin grilla fija) + ícono de fuente de clock
+(INT/EXT como gráfico; MIDI todavía en texto, ver sección 6) + par de íconos play/stop
+(el activo a full brillo, el otro atenuado); nombre del sample dentro de un marco
+gráfico + índice/total de samples con el mismo sistema de dígitos (`NN/NN`, reemplaza
+el antiguo texto "NN/MM"); **zona de waveform** con marco gráfico estático (contenido
+dinámico sin cambios, ver detalle abajo); etiquetas de Function A/B ("SAMPLE"/"BREAK FX"
+como gráfico en modo 0, texto en los modos 1-7 hasta que se diseñen esos gráficos, ver
+sección 6) cada una sobre su propia barra; y una fila de 9 íconos de modo (reemplaza los
+8 puntos + el caso especial de texto "SD") — el activo se dibuja a full color, los otros
+8 se atenúan calculando su brillo en tiempo de dibujo (`dim_rgb565()`), sin necesitar
+variantes de imagen "apagadas".
 
 **Zona de waveform** (`src/gamepi13/ui.cpp`, `draw_wave()`): muestra la forma de onda del
 sample que está **sonando** (`sample` en `main.cpp` — con el FX de túnel activo, puede
@@ -324,3 +330,7 @@ quedaron abiertas o se volvieron obvias durante las pruebas:
   nombre del archivo en flash junto al resto de `save_data`.
 - **IMU (ICM20948, I2C GP2/3)** como modulador de FX — mencionado en el plan original,
   nunca implementado; podría mapear inclinación/movimiento a algún parámetro en vivo.
+- **Etiquetas de Function A/B para los modos 1-7 + ícono de reloj MIDI**: el dashboard
+  con bitmaps de Lopaka (ver sección 4) solo tiene diseñados "SAMPLE"/"BREAK FX" (modo 0)
+  y los íconos de reloj INT/EXT — el resto de los modos siguen mostrando su nombre en
+  texto, y el reloj en MIDI también, hasta que se diseñen esos gráficos.
