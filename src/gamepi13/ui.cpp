@@ -338,7 +338,7 @@ void gamepi_ui_init() {
   // is done via the backlight PWM, not by blending pixel colors -- there's
   // no alpha/blend support in Paint_DrawImage(), and ramping the backlight
   // is both simpler and cheaper (no extra SPI redraws).
-  Paint_DrawImage((const unsigned char *)kSplashLogoPixels, 36, 36,
+  Paint_DrawImage((const unsigned char *)kSplashLogoPixels, 36, 97,
                    SPLASH_LOGO_WIDTH, SPLASH_LOGO_HEIGHT);
   LCD_1IN3_Display((UWORD *)fb);
   // Fade the backlight in over ~300ms, then hold at splash brightness for
