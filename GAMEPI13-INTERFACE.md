@@ -142,6 +142,17 @@ sección 5 para un bug real que esto mismo destapó durante las pruebas.
 | 7 | Volumen / distorsión | **Tempo (BPM)** |
 | 8 | Browse SD — ver sección 3.1 | (no aplica) |
 
+| Modo | Color Function A | Color Function B |
+|---|---|---|
+| 0 | Rojo | Azul |
+| 1 | Naranja | Violeta |
+| 2 | Amarillo | Rosa |
+| 3 | Verde | Rojo |
+| 4 | Cian | Naranja |
+| 5 | Azul | Amarillo |
+| 6 | Violeta | Verde |
+| 7 | Rosa | Cian |
+
 Cada ajuste de L/R mueve el valor virtual del knob en pasos de `GAMEPI_KNOB_STEP` (164,
 ~4% de 4095) cada ~100ms mientras se mantiene presionado
 ([`src/hw_gamepi13.h`](src/hw_gamepi13.h)) — **excepto Tempo** (modo 7, Function B), que
@@ -188,8 +199,9 @@ con dígitos propios (ancho real por dígito, sin grilla fija) + ícono de fuent
 (el activo a full brillo, el otro atenuado); nombre del sample + índice/total de
 samples con el mismo sistema de dígitos (`NN/NN`, reemplaza el antiguo texto "NN/MM");
 **zona de waveform** (contenido dinámico sin cambios, ver detalle abajo); etiquetas de
-Function A/B como gráfico para los 8 modos (0-7), cada una sobre su propia barra; y una fila
-de 9 íconos de modo (reemplaza los 8 puntos + el caso especial de texto "SD") — el
+Function A/B como gráfico para los 8 modos (0-7), cada una sobre su propia barra y con
+un color propio por modo (ver tabla más abajo); y una fila de 9 íconos de modo
+(reemplaza los 8 puntos + el caso especial de texto "SD") — el
 activo se dibuja a full color, los otros 8 se atenúan calculando su brillo en tiempo de
 dibujo (`dim_rgb565()`), sin necesitar variantes de imagen "apagadas". Los marcos que
 Lopaka mostraba alrededor del nombre de sample y de la waveform eran solo guías de
