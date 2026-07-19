@@ -177,7 +177,7 @@ static inline void draw_digit_string(uint16_t x, uint16_t y, const char *text,
     for (const char *p = text; *p; p++) {
       total = (uint16_t)(total + (*p == '/' ? slash_w : digits[*p - '0'].w));
     }
-    x = (uint16_t)(x - total);
+    x = (total > x) ? 0 : (uint16_t)(x - total);
   }
   for (const char *p = text; *p; p++) {
     if (*p == '/') {
