@@ -185,15 +185,17 @@ Detalles de la mecánica de botones (`src/main.cpp`, `GamepiSdState`):
 **Dashboard** (siempre visible, diseñado en Lopaka — `src/gamepi13/ui_bitmaps.h`): BPM
 con dígitos propios (ancho real por dígito, sin grilla fija) + ícono de fuente de clock
 (INT/EXT como gráfico; MIDI todavía en texto, ver sección 6) + par de íconos play/stop
-(el activo a full brillo, el otro atenuado); nombre del sample dentro de un marco
-gráfico + índice/total de samples con el mismo sistema de dígitos (`NN/NN`, reemplaza
-el antiguo texto "NN/MM"); **zona de waveform** con marco gráfico estático (contenido
-dinámico sin cambios, ver detalle abajo); etiquetas de Function A/B ("SAMPLE"/"BREAK FX"
-como gráfico en modo 0, texto en los modos 1-7 hasta que se diseñen esos gráficos, ver
-sección 6) cada una sobre su propia barra; y una fila de 9 íconos de modo (reemplaza los
-8 puntos + el caso especial de texto "SD") — el activo se dibuja a full color, los otros
-8 se atenúan calculando su brillo en tiempo de dibujo (`dim_rgb565()`), sin necesitar
-variantes de imagen "apagadas".
+(el activo a full brillo, el otro atenuado); nombre del sample + índice/total de
+samples con el mismo sistema de dígitos (`NN/NN`, reemplaza el antiguo texto "NN/MM");
+**zona de waveform** (contenido dinámico sin cambios, ver detalle abajo); etiquetas de
+Function A/B ("SAMPLE"/"BREAK FX" como gráfico en modo 0, texto en los modos 1-7 hasta
+que se diseñen esos gráficos, ver sección 6) cada una sobre su propia barra; y una fila
+de 9 íconos de modo (reemplaza los 8 puntos + el caso especial de texto "SD") — el
+activo se dibuja a full color, los otros 8 se atenúan calculando su brillo en tiempo de
+dibujo (`dim_rgb565()`), sin necesitar variantes de imagen "apagadas". Los marcos que
+Lopaka mostraba alrededor del nombre de sample y de la waveform eran solo guías de
+layout (la cavidad donde va el contenido dinámico), no assets pensados para dibujarse
+en tiempo real -- no se renderizan.
 
 **Zona de waveform** (`src/gamepi13/ui.cpp`, `draw_wave()`): muestra la forma de onda del
 sample que está **sonando** (`sample` en `main.cpp` — con el FX de túnel activo, puede
