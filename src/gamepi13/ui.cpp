@@ -188,7 +188,6 @@ static void draw_top(const GamepiUiState &s) {
 
 static void draw_name(const GamepiUiState &s) {
   clear_zone(kRect[W_NAME]);
-  Paint_DrawImage((const unsigned char *)kFilenameFrame, 0, 29, 191, 20);
   char buf[48];
   if (s.active_bank_name[0] != '\0') {
     snprintf(buf, sizeof(buf), "%s | %s", s.sample_name, s.active_bank_name);
@@ -254,7 +253,6 @@ static void wave_recompute(uint16_t sample_idx) {
 
 static void draw_wave(const GamepiUiState &s) {
   clear_zone(kRect[W_WAVE]);
-  Paint_DrawImage((const unsigned char *)kWaveformFrame, 0, 54, 240, 48);
   constexpr uint16_t kTop = 54;  // 39px band inside the 52..96 zone
   constexpr uint16_t kBot = 93;
   // Slice separators first (subtle, behind the waveform): the 8 music
