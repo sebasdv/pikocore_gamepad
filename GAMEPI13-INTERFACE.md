@@ -304,6 +304,28 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   Confirmado en hardware. Fix: marcar el flag de forma continua en el loop principal
   mientras `btn_start.On() && btn_retrig` (el segundo se mantiene activo toda la duración
   del efecto, no solo su primer tick) — cubre cualquier orden de presión.
+- **CONFIRMADO — modos 5 (grabar/reproducir secuenciador) y 6 (guardar/cargar en
+  flash) funcionan correctamente, pero no dan ninguna confirmación visible.** El
+  usuario reportó que "no parecen funcionar"; la investigación (lectura de código +
+  prueba en hardware: subir Function A en modo 6 para guardar un cambio de parámetro,
+  apagar y reprender, confirmar que el cambio persistió) confirmó que la lógica interna
+  (`sequencer.SetRecording()`, `save_settings()`, `do_load`, `src/main.cpp`) se ejecuta
+  sin problemas. La causa real es que su ÚNICA señal de confirmación en el hardware
+  original eran LEDs (`debounce_led_save`/`debounce_led_sequencer`/`debounce_led_load`),
+  y en GamePi13 la clase `LED` es un no-op total (`doth/led.h`, cada `gpio_put()` bajo
+  `#if !PIKO_GAMEPI13` — Fase 1, "Neutralizar los GPIO de los LEDs", porque esos pines
+  están reasignados a otra cosa en este HAT). El overlay genérico del LCD
+  (`gamepi_ui_overlay_param()`) tampoco ayuda: muestra la misma barra numérica 0-4095
+  para cualquier modo, sin texto de "Grabando"/"Guardado"/"Cargado". Sin resolver por
+  ahora — ver sección 6 para la mejora propuesta (agregar feedback en el LCD).
+  **Hallazgo relacionado, no confirmado como causante de un problema real todavía:**
+  `VirtualKnob::Reset()` (`doth/virtualknob.h`) es un no-op, mientras el código que
+  cambia de modo (`src/main.cpp`, "prevent spurious changes when changing selection")
+  asume que sí resetea el knob. Como el valor de knob1/knob2 es compartido entre los 8
+  modos y las acciones de modos 5/6 solo se evalúan en el flanco de `Changed()` (un
+  tick justo cuando `Adjust()` cambia el valor), si al entrar a modo 5/6 el knob ya
+  está por encima/debajo del umbral de otro ajuste previo en otro modo, la acción no se
+  dispara hasta mover el knob de nuevo. No se reprodujo explícitamente en hardware.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
@@ -320,6 +342,11 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
 Con las Fases 2 (LCD) y 3 (microSD) funcionando, estas son líneas de trabajo que
 quedaron abiertas o se volvieron obvias durante las pruebas:
 
+- **Feedback en el LCD para grabar/reproducir secuenciador y guardar/cargar (modos
+  5/6)**: ver sección 5 — la lógica funciona, pero no hay ninguna confirmación visible
+  desde que las LEDs quedaron deshabilitadas en este HAT. Agregar texto o ícono en el
+  dashboard (ej. "Grabando…"/"Guardado"/"Cargado") resolvería el problema real detrás
+  del reporte de que estos modos "no funcionan".
 - **Detección de SD en caliente**: hoy hace falta reiniciar el dispositivo después de
   sacar/poner la tarjeta (ver sección 5). El socket no expone Card Detect, así que esto
   requeriría o bien un GPIO físico adicional cableado a mano al socket, o pulir el
