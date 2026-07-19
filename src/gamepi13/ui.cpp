@@ -153,8 +153,6 @@ static void flush(const Rect &r) {
   mutex_exit(&gamepi_spi1_mutex);
 }
 
-static uint8_t pct(uint16_t v) { return (uint8_t)((uint32_t)v * 100u / 4095u); }
-
 // ---- widget draw functions ----
 static void clear_zone(const Rect &r) {
   Paint_ClearWindows(r.x, r.y, (uint16_t)(r.x + r.w), (uint16_t)(r.y + r.h),
@@ -519,73 +517,6 @@ static void overlay_show_panel(bool persistent = false) {
 static uint16_t centered_x(const char *txt, uint16_t glyph_w) {
   uint16_t w = (uint16_t)(strlen(txt) * glyph_w);
   return (uint16_t)(kOverlay.x + (kOverlay.w > w ? (kOverlay.w - w) / 2 : 0));
-}
-
-void gamepi_ui_overlay_mode(uint8_t mode) {
-  mode &= 7;
-  overlay_show_panel();
-  char title[12];
-  snprintf(title, sizeof(title), "MODO %u", (unsigned)(mode + 1));
-  Paint_DrawString_EN(centered_x(title, 11), (uint16_t)(kOverlay.y + 12),
-                      title, &Font16, COL_GRAY, COL_DARK);
-  Paint_DrawString_EN(centered_x(kModeA[mode], 14), (uint16_t)(kOverlay.y + 40),
-                      kModeA[mode], &Font20, COL_PINK, COL_DARK);
-  Paint_DrawString_EN(centered_x(kModeB[mode], 11), (uint16_t)(kOverlay.y + 74),
-                      kModeB[mode], &Font16, COL_CYAN, COL_DARK);
-  if (flush_allowed()) flush(kOverlay);
-}
-
-void gamepi_ui_overlay_param(uint8_t mode, bool is_b, uint16_t val) {
-  mode &= 7;
-  overlay_show_panel();
-  const char *name = is_b ? kModeB[mode] : kModeA[mode];
-  UWORD col = is_b ? COL_CYAN : COL_PINK;
-  Paint_DrawString_EN(centered_x(name, 11), (uint16_t)(kOverlay.y + 10), name,
-                      &Font16, col, COL_DARK);
-  char v[8];
-  snprintf(v, sizeof(v), "%u%%", (unsigned)pct(val));
-  Paint_DrawString_EN(centered_x(v, 17), (uint16_t)(kOverlay.y + 38), v,
-                      &Font24, COL_WHITE, COL_DARK);
-  // progress bar: 170 px wide, centered
-  uint16_t bx = (uint16_t)(kOverlay.x + (kOverlay.w - 170) / 2);
-  uint16_t by = (uint16_t)(kOverlay.y + 86);
-  Paint_DrawRectangle(bx, by, (uint16_t)(bx + 170), (uint16_t)(by + 10),
-                      COL_BG, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-  uint16_t w = (uint16_t)((uint32_t)val * 170u / 4095u);
-  if (w > 0) {
-    Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10), col,
-                        DOT_PIXEL_1X1, DRAW_FILL_FULL);
-  }
-  if (flush_allowed()) flush(kOverlay);
-}
-
-// Tempo shows the real BPM integer, not a raw-knob percentage -- unlike
-// every other Function A/B parameter, bpm_set is adjusted directly (see
-// main.cpp's is_tempo branch) rather than derived from input_knob[]'s 0-4095
-// range, so a "%" readout wouldn't mean anything here.
-void gamepi_ui_overlay_tempo(uint16_t bpm) {
-  overlay_show_panel();
-  Paint_DrawString_EN(centered_x("TEMPO", 11), (uint16_t)(kOverlay.y + 10),
-                      "TEMPO", &Font16, COL_CYAN, COL_DARK);
-  char v[12];
-  snprintf(v, sizeof(v), "%u BPM", (unsigned)bpm);
-  Paint_DrawString_EN(centered_x(v, 17), (uint16_t)(kOverlay.y + 38), v,
-                      &Font24, COL_WHITE, COL_DARK);
-  uint16_t bx = (uint16_t)(kOverlay.x + (kOverlay.w - 170) / 2);
-  uint16_t by = (uint16_t)(kOverlay.y + 86);
-  Paint_DrawRectangle(bx, by, (uint16_t)(bx + 170), (uint16_t)(by + 10),
-                      COL_BG, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-  const uint16_t clamped =
-      bpm < GAMEPI_TEMPO_MIN_BPM ? GAMEPI_TEMPO_MIN_BPM
-      : bpm > GAMEPI_TEMPO_MAX_BPM ? GAMEPI_TEMPO_MAX_BPM : bpm;
-  const uint16_t w = (uint16_t)((uint32_t)(clamped - GAMEPI_TEMPO_MIN_BPM) *
-                                170u /
-                                (GAMEPI_TEMPO_MAX_BPM - GAMEPI_TEMPO_MIN_BPM));
-  if (w > 0) {
-    Paint_DrawRectangle(bx, by, (uint16_t)(bx + w), (uint16_t)(by + 10),
-                        COL_CYAN, DOT_PIXEL_1X1, DRAW_FILL_FULL);
-  }
-  if (flush_allowed()) flush(kOverlay);
 }
 
 static void sd_panel_title(const char *title, UWORD color) {

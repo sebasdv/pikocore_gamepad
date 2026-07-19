@@ -1882,7 +1882,6 @@ int main(void) {
           }
           if (gamepi_selector < 8) {
             input_knob[0].SetBucket(gamepi_selector, 8);
-            gamepi_ui_overlay_mode(gamepi_selector);
           } else {
             // gamepi_selector == 8: entering Browse SD, kick off the async
             // directory listing.
@@ -1918,7 +1917,6 @@ int main(void) {
             gamepi_selector = i;
             gamepi_select_used_as_modifier = true;
             input_knob[0].SetBucket(gamepi_selector, 8);
-            gamepi_ui_overlay_mode(gamepi_selector);
             break;  // first musical button pressed this hold wins
           }
         }
@@ -1978,12 +1976,9 @@ int main(void) {
                                       : GAMEPI_TEMPO_MIN_BPM;
               param_set_bpm(new_bpm, bpm_set, beat_thresh, audio_clk_thresh);
               gamepi_start_used_as_modifier = true;
-              gamepi_ui_overlay_tempo(bpm_set);
             } else {
               input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
-              gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
-                                      input_knob[active_knob].Value());
             }
             gamepi_next_repeat_l_us = now_repeat_us + GAMEPI_REPEAT_US;
           }
@@ -2006,12 +2001,9 @@ int main(void) {
               if (new_bpm > GAMEPI_TEMPO_MAX_BPM) new_bpm = GAMEPI_TEMPO_MAX_BPM;
               param_set_bpm(new_bpm, bpm_set, beat_thresh, audio_clk_thresh);
               gamepi_start_used_as_modifier = true;
-              gamepi_ui_overlay_tempo(bpm_set);
             } else {
               input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
-              gamepi_ui_overlay_param(gamepi_selector, active_knob == 2,
-                                      input_knob[active_knob].Value());
             }
             gamepi_next_repeat_r_us = now_repeat_us + GAMEPI_REPEAT_US;
           }
