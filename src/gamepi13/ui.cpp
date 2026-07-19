@@ -603,9 +603,13 @@ void gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
   char idx[8];
   snprintf(idx, sizeof(idx), "%02lu/%02lu", (unsigned long)(index + 1),
            (unsigned long)count);
+  // Posición y tamaño de esta franja y las 3 de abajo: coordenadas absolutas
+  // de MODE_SD_OVERLAY.txt (mismo criterio que kOverlay/kSdOverlayFrame).
   draw_digit_string(89, 72, idx, kBankDigits, kBankSlash, 7, 15, false);
   draw_truncated(filename, (uint16_t)(kOverlay.y + 57),
                 is_active ? COL_GREEN : COL_PINK);
+  // Ícono en vez de texto para "L: ciclar" -- el rol de L quedaba poco claro
+  // mostrando solo el hint de R durante pruebas de hardware (ver historial).
   Paint_DrawImage((const unsigned char *)kSdLCycle, 52, 138, 141, 15);
   draw_truncated(is_active ? "Cargado (banco activo)" : "Mantener R: cargar",
                 (uint16_t)(kOverlay.y + 102), COL_GRAY);
