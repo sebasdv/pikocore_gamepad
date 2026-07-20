@@ -182,25 +182,25 @@ static void draw_top(const GamepiUiState &s) {
   clear_zone(kRect[W_TOP]);
   char buf[8];
   snprintf(buf, sizeof(buf), "%u", s.bpm);
-  // BPM alineado a la izquierda: borde IZQUIERDO en x8, creciendo a la derecha.
-  // El slash y el icono de clock quedan fijos (x46/x62), pasado el BPM máximo de
-  // 3 dígitos condensados de 12px (360 = 36px = x8..x44), así que no se mueven
-  // con el conteo de dígitos aunque el número sí quede left-aligned.
-  draw_digit_string(8, 8, buf, kCondDigits, nullptr, 0, 0, false);
+  // BPM alineado a la izquierda: borde IZQUIERDO en x0, el mismo borde donde
+  // arranca la waveform -- todos los elementos de la izquierda parten de ahí.
+  // El slash y el clock quedan fijos (x38/x54), pasado el BPM máximo de 3
+  // dígitos de 12px (360 = 36px = x0..x36).
+  draw_digit_string(0, 8, buf, kCondDigits, nullptr, 0, 0, false);
   // BPM_Slash: always between the BPM digits and whichever clock-source icon
   // is active. MODE_0.txt's own mockup shows it between the Int_clock and
   // Ext_clock reference icons instead -- that's just how Lopaka laid out two
   // static examples side by side (it doesn't simulate the real INT/EXT
   // conditional), not the real runtime position.
-  Paint_DrawImage((const unsigned char *)kBpmSlash, 46, 8, 14, 20);
+  Paint_DrawImage((const unsigned char *)kBpmSlash, 38, 8, 14, 20);
   if (s.clock_src == 0) {
-    Paint_DrawImage((const unsigned char *)kIntClock, 62, 8, 32, 20);
+    Paint_DrawImage((const unsigned char *)kIntClock, 54, 8, 32, 20);
   } else if (s.clock_src == 1) {
-    Paint_DrawImage((const unsigned char *)kExtClock, 62, 8, 38, 20);
+    Paint_DrawImage((const unsigned char *)kExtClock, 54, 8, 38, 20);
   } else {
     // MIDI clock: ahora tiene bitmap propio (ICONS.txt), reemplaza el texto
     // que además arrastraba el bug de color del Paint_DrawString_EN invertido.
-    Paint_DrawImage((const unsigned char *)kMidiClock, 62, 8, 39, 20);
+    Paint_DrawImage((const unsigned char *)kMidiClock, 54, 8, 39, 20);
   }
   // Play/stop restyled a 20x20 (ICONS.txt), a y8 como el resto de la barra.
   // Arriba a la derecha: play x196..215, stop x218..237 (borde <=239).
@@ -226,16 +226,16 @@ static void draw_name(const GamepiUiState &s) {
   draw_digit_string(238, 36, idx, kCondDigits, kCondSlash, 9, 20, true);
 
   // Nombre del sample en Font20 (14px/char, llena la fila de 20px), alineado a
-  // la izquierda en x8. Límite: hasta 10 chars de nombre y luego "..." si es
+  // la izquierda en x0. Límite: hasta 10 chars de nombre y luego "..." si es
   // más largo, PERO sin pisar el contador NN/NN. Los dígitos condensados son
   // proporcionales (12px salvo '1' y '/' = 9px), así que sumamos los anchos
   // reales del NN/NN para saber su borde izquierdo, y de ahí cuántos glifos
-  // Font20 entran hasta 6px antes.
+  // Font20 entran hasta 6px antes (desde x0).
   uint16_t nn_w = 0;
   for (const char *p = idx; *p; p++)
     nn_w = (uint16_t)(nn_w + (*p == '/' ? 9u : kCondDigits[*p - '0'].w));
   const uint16_t nn_left = (uint16_t)(238u - nn_w);
-  const uint16_t name_px = (nn_left > 14u) ? (uint16_t)(nn_left - 6u - 8u) : 0u;
+  const uint16_t name_px = (nn_left > 6u) ? (uint16_t)(nn_left - 6u) : 0u;
   const uint16_t fit = (uint16_t)(name_px / 14u);  // glifos Font20 que entran
 
   char name[24];
@@ -246,7 +246,7 @@ static void draw_name(const GamepiUiState &s) {
     // Paint_DrawChar -- el color del TEXTO es el ÚLTIMO argumento, y el 5º es el
     // relleno (si es == FONT_BACKGROUND=0xFFFF activa modo transparente). Para
     // texto blanco sobre negro: (relleno=COL_BG, texto=COL_WHITE).
-    Paint_DrawString_EN(8, 36, name, &Font20, COL_BG, COL_WHITE);  // entra entero
+    Paint_DrawString_EN(0, 36, name, &Font20, COL_BG, COL_WHITE);  // entra entero
   } else {
     // Truncar: 'keep' chars + "...", reservando 3 glifos para los puntos y sin
     // pasar de 10 chars de nombre.
@@ -255,7 +255,7 @@ static void draw_name(const GamepiUiState &s) {
     if (keep < n) name[keep] = '\0';
     char disp[24];
     snprintf(disp, sizeof(disp), "%s...", name);
-    Paint_DrawString_EN(8, 36, disp, &Font20, COL_BG, COL_WHITE);  // ver nota arriba
+    Paint_DrawString_EN(0, 36, disp, &Font20, COL_BG, COL_WHITE);  // ver nota arriba
   }
 }
 
@@ -346,9 +346,9 @@ static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
     // x=8: mismo riel izquierdo que el BPM, el nombre, las barras y los valores
     // -- la etiqueta era la única en x0 y sobresalía 8px. La más ancha (STRETCH,
     // 228px) llega a x236, dentro de la pantalla.
-    Paint_DrawImage((const unsigned char *)bmp->pixels, 8, y, bmp->w, bmp->h);
+    Paint_DrawImage((const unsigned char *)bmp->pixels, 0, y, bmp->w, bmp->h);
   } else {
-    Paint_DrawString_EN(8, y, text, &Font16, text_col, COL_BG);
+    Paint_DrawString_EN(0, y, text, &Font16, text_col, COL_BG);
   }
 }
 
@@ -379,7 +379,7 @@ static inline uint16_t bar_bot(uint16_t bar_y) {
 }
 
 static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
-  constexpr uint16_t kX0 = 8;
+  constexpr uint16_t kX0 = 0;
   constexpr uint8_t kSegs = 25;
   constexpr uint16_t kSegW = 6;
   constexpr uint16_t kPitch = kSegW + 1;
@@ -425,10 +425,10 @@ static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
   // dashboard tengan idéntica altura y alineación (bar_top/bar_bot).
   const uint16_t top = bar_top(bar_y);
   const uint16_t bot = bar_bot(bar_y);
-  Paint_DrawRectangle(8, top, 231, bot, COL_DARK, DOT_PIXEL_1X1,
+  Paint_DrawRectangle(0, top, 231, bot, COL_DARK, DOT_PIXEL_1X1,
                       DRAW_FILL_FULL);
   if (sample_count <= 1) {
-    Paint_DrawRectangle(8, top, 231, bot, col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(0, top, 231, bot, col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     return;
   }
   uint16_t group_size = 1;
@@ -438,11 +438,11 @@ static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
   uint16_t n_segments =
       (uint16_t)((sample_count + group_size - 1) / group_size);
   uint16_t active_segment = (uint16_t)(sample_idx / group_size);
-  uint16_t seg_w = (uint16_t)((224u - (n_segments - 1)) / n_segments);
-  uint16_t x = (uint16_t)(8 + active_segment * (seg_w + 1));
+  // La barra ocupa x0..x231 (232px) desde que el riel izquierdo pasó a x0.
+  uint16_t seg_w = (uint16_t)((232u - (n_segments - 1)) / n_segments);
+  uint16_t x = (uint16_t)(active_segment * (seg_w + 1));
   // Clamp: grouping arithmetic can push the LAST segment 1px past the right
-  // edge (231) when n_segments evenly divides 225 -- e.g. n_segments=3,5,9,
-  // 15,25. Confirmed via exhaustive brute-force check over every valid
+  // edge (231). Confirmed via exhaustive brute-force check over every valid
   // sample_count/sample_idx combination up to 128.
   if ((uint16_t)(x + seg_w) > 231) {
     seg_w = (uint16_t)(231 - x);
