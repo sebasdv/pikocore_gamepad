@@ -65,13 +65,23 @@ enum {
   W_COUNT
 };
 
+// Retícula vertical de 20px (la altura de un glifo condensado / una barra es
+// la unidad base). Cada fila es 1U=20px salvo la waveform, que es el elemento
+// héroe a 2U=40px (el máximo; nada más debe superar 1U o competiría con ella).
+// Ritmo: 8px de margen arriba/abajo, 8px de aire entre bloques, y 2px dentro de
+// un par label+barra (Function A/B). Todo cierra exacto en 240px:
+//   0-7  margen · 8-27 TOP · 28-35 · 36-55 NAME · 56-63 · 64-103 WAVE(40) ·
+//   104-111 · 112-153 BARA(42) · 154-161 · 162-203 BARB(42) · 204-211 ·
+//   212-231 DOTS · 232-239 margen.
+// W_BARA/W_BARB miden 42 = label 20 + 2 (par) + barra 20. Los draw_* de abajo
+// posicionan cada elemento dentro de su zona (sub-20px van centrados en su 1U).
 static const Rect kRect[W_COUNT] = {
-    {0, 0, 240, 28},    // W_TOP
-    {0, 28, 240, 24},   // W_NAME
-    {0, 105, 240, 47},  // W_BARA (label y107-127, bar y132-152)
-    {0, 155, 240, 47},  // W_BARB (label y157-177, bar y182-202)
-    {0, 205, 240, 26},  // W_DOTS (9 icons, y207-228)
-    {0, 54, 240, 48},   // W_WAVE
+    {0, 8, 240, 20},    // W_TOP   (BPM/clock/play y8-27)
+    {0, 36, 240, 20},   // W_NAME  (filename + NN/NN y36-55)
+    {0, 112, 240, 42},  // W_BARA  (label y112-131, barra y134-153)
+    {0, 162, 240, 42},  // W_BARB  (label y162-181, barra y184-203)
+    {0, 212, 240, 21},  // W_DOTS  (9 iconos 21px, y212-232)
+    {0, 64, 240, 40},   // W_WAVE  (2U, banda y64-103)
 };
 
 static bool dirty[W_COUNT];
@@ -175,26 +185,26 @@ static void draw_top(const GamepiUiState &s) {
   // BPM digits right-aligned so their RIGHT edge always lands at x=30 (just
   // before the clock-source slash/icon), growing leftward as the digit count
   // changes (e.g. 99 -> 100) instead of colliding with what's to the right.
-  draw_digit_string(30, 6, buf, kCondDigits, nullptr, 0, 0, true);
+  draw_digit_string(30, 8, buf, kCondDigits, nullptr, 0, 0, true);
   // BPM_Slash: always between the BPM digits and whichever clock-source icon
   // is active. MODE_0.txt's own mockup shows it between the Int_clock and
   // Ext_clock reference icons instead -- that's just how Lopaka laid out two
   // static examples side by side (it doesn't simulate the real INT/EXT
   // conditional), not the real runtime position.
-  Paint_DrawImage((const unsigned char *)kBpmSlash, 30, 3, 14, 20);
+  Paint_DrawImage((const unsigned char *)kBpmSlash, 30, 8, 14, 20);
   if (s.clock_src == 0) {
-    Paint_DrawImage((const unsigned char *)kIntClock, 44, 6, 38, 14);
+    Paint_DrawImage((const unsigned char *)kIntClock, 44, 11, 38, 14);
   } else if (s.clock_src == 1) {
-    Paint_DrawImage((const unsigned char *)kExtClock, 44, 6, 40, 14);
+    Paint_DrawImage((const unsigned char *)kExtClock, 44, 11, 40, 14);
   } else {
     // MIDI has no graphic yet (see the design spec's Riesgos conocidos) --
     // text fallback, same pattern as the not-yet-designed Function A/B
     // labels for modes 1-7 below.
-    Paint_DrawString_EN(44, 10, "MIDI", &Font12, COL_GRAY, COL_BG);
+    Paint_DrawString_EN(44, 12, "MIDI", &Font12, COL_GRAY, COL_BG);
   }
-  Paint_DrawMonoBitmap(212, 7, kPlayBits, 12, 12,
+  Paint_DrawMonoBitmap(212, 12, kPlayBits, 12, 12,
                        s.playing ? COL_WHITE : COL_GRAY);
-  Paint_DrawMonoBitmap(226, 7, kStopBits, 12, 12,
+  Paint_DrawMonoBitmap(226, 12, kStopBits, 12, 12,
                        s.playing ? COL_GRAY : COL_WHITE);
 }
 
@@ -211,7 +221,7 @@ static void draw_name(const GamepiUiState &s) {
   // holds fewer visible characters than the full 240px screen would --
   // Paint_DrawString_EN does not clip for us.
   if (strlen(buf) > 24) buf[24] = '\0';
-  Paint_DrawString_EN(8, 32, buf, &Font12, COL_GRAY, COL_BG);
+  Paint_DrawString_EN(8, 40, buf, &Font12, COL_GRAY, COL_BG);
   char idx[8];
   if (s.sample_count > 0) {
     snprintf(idx, sizeof(idx), "%02u/%02u", (unsigned)(s.sample_idx + 1),
@@ -219,9 +229,9 @@ static void draw_name(const GamepiUiState &s) {
   } else {
     snprintf(idx, sizeof(idx), "00/00");
   }
-  // y=30 centra el glifo de 20px en la zona W_NAME (y28..51). El slash es el
-  // kCondSlash de 10x20 (la fracción NN/NN), no el kBpmSlash del clock.
-  draw_digit_string(238, 30, idx, kCondDigits, kCondSlash, 10, 20, true);
+  // El glifo de 20px llena la fila W_NAME (y36-55). El slash es el kCondSlash
+  // de 10x20 (la fracción NN/NN), no el kBpmSlash del clock.
+  draw_digit_string(238, 36, idx, kCondDigits, kCondSlash, 10, 20, true);
 }
 
 // ---- waveform cache (W_WAVE) ----
@@ -267,8 +277,8 @@ static void wave_recompute(uint16_t sample_idx) {
 
 static void draw_wave(const GamepiUiState &s) {
   clear_zone(kRect[W_WAVE]);
-  constexpr uint16_t kTop = 54;  // 39px band inside the 52..96 zone
-  constexpr uint16_t kBot = 93;
+  constexpr uint16_t kTop = 64;  // banda de 2U (40px) dentro de W_WAVE (y64-103)
+  constexpr uint16_t kBot = 103;
   // Slice separators first (subtle, behind the waveform): the 8 music
   // buttons ARE the 8 slices of the loop, 30 columns each.
   for (uint8_t b = 1; b < 8; b++) {
@@ -413,21 +423,21 @@ static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
 static void draw_function_a(const GamepiUiState &s) {
   clear_zone(kRect[W_BARA]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
-  draw_function_label(107, kModeABitmap[m], kModeA[m], kModeColorA[m]);
+  draw_function_label(112, kModeABitmap[m], kModeA[m], kModeColorA[m]);
   if (m == 0) {
     // Excepción: selección de sample es una lista discreta, no un parámetro
     // continuo -- sigue siendo el paginador con su propio índice.
-    draw_sample_bar(132, s.sample_idx, s.sample_count, kModeColorA[m]);
+    draw_sample_bar(137, s.sample_idx, s.sample_count, kModeColorA[m]);
   } else {
-    draw_stepped_bar(132, s.knob_a, kModeColorA[m]);
+    draw_stepped_bar(137, s.knob_a, kModeColorA[m]);
   }
 }
 
 static void draw_function_b(const GamepiUiState &s) {
   clear_zone(kRect[W_BARB]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
-  draw_function_label(157, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
-  draw_stepped_bar(182, s.knob_b, kModeColorB[m]);
+  draw_function_label(162, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
+  draw_stepped_bar(187, s.knob_b, kModeColorB[m]);
 }
 
 static void draw_dots(const GamepiUiState &s) {
@@ -450,10 +460,10 @@ static void draw_dots(const GamepiUiState &s) {
     const uint16_t x = (uint16_t)(27 + i * 18);
     const bool active = (i < 8) ? (s.mode == i) : (s.mode == 8);
     if (active) {
-      Paint_DrawImage((const unsigned char *)icon.pixels, x, 207, icon.w,
+      Paint_DrawImage((const unsigned char *)icon.pixels, x, 212, icon.w,
                        icon.h);
     } else {
-      Paint_DrawImageDimmed(icon.pixels, x, 207, icon.w, icon.h,
+      Paint_DrawImageDimmed(icon.pixels, x, 212, icon.w, icon.h,
                             kInactiveDim);
     }
   }
