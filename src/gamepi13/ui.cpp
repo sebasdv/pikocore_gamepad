@@ -194,14 +194,13 @@ static void draw_top(const GamepiUiState &s) {
   // conditional), not the real runtime position.
   Paint_DrawImage((const unsigned char *)kBpmSlash, 46, 8, 14, 20);
   if (s.clock_src == 0) {
-    Paint_DrawImage((const unsigned char *)kIntClock, 62, 11, 38, 14);
+    Paint_DrawImage((const unsigned char *)kIntClock, 62, 8, 32, 20);
   } else if (s.clock_src == 1) {
-    Paint_DrawImage((const unsigned char *)kExtClock, 62, 11, 40, 14);
+    Paint_DrawImage((const unsigned char *)kExtClock, 62, 8, 38, 20);
   } else {
-    // MIDI has no graphic yet (see the design spec's Riesgos conocidos) --
-    // text fallback, same pattern as the not-yet-designed Function A/B
-    // labels for modes 1-7 below.
-    Paint_DrawString_EN(62, 12, "MIDI", &Font12, COL_GRAY, COL_BG);
+    // MIDI clock: ahora tiene bitmap propio (ICONS.txt), reemplaza el texto
+    // que además arrastraba el bug de color del Paint_DrawString_EN invertido.
+    Paint_DrawImage((const unsigned char *)kMidiClock, 62, 8, 39, 20);
   }
   Paint_DrawMonoBitmap(212, 12, kPlayBits, 12, 12,
                        s.playing ? COL_WHITE : COL_GRAY);
