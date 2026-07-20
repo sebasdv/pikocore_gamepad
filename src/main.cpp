@@ -1958,7 +1958,7 @@ int main(void) {
           }
         }
       }
-      if (btn_start.On() && btn_retrig) {
+      if (btn_start.On() && btn_retrig && button_on2 < NUM_BUTTONS) {
         // Continuously (not just the single tick the retrigger's exact-
         // subdivision branch fires in pwm_interrupt_handler) mark Start as
         // "used as a modifier" for as long as a retrigger is active and
@@ -1969,6 +1969,18 @@ int main(void) {
         // Without this, releasing Start shortly after -- but not in the
         // exact same tick as -- the retrigger start could still fall
         // through to the mute/start-stop toggle above.
+        // button_on2 < NUM_BUTTONS also requires a REAL second button to be
+        // held (set only by the 2-button-combo detection in
+        // pwm_interrupt_handler) -- btn_retrig alone isn't enough, since it
+        // can also become true purely from probability_retrig's random
+        // per-beat roll (see "check button 2" -> the probability branch)
+        // with no button combo involved at all. Without this extra check,
+        // high "break fx" intensity (which raises probability_retrig) made
+        // btn_retrig true almost continuously, so pressing Start to stop
+        // playback very often got misread as "Start held as a combo
+        // modifier" and silently swallowed the stop -- confirmed on
+        // hardware: with break fx at max, Start stopped responding until
+        // the intensity was lowered back down.
         gamepi_start_used_as_modifier = true;
       }
       if (gamepi_selector < 8) {
