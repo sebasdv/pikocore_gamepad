@@ -2012,7 +2012,7 @@ int main(void) {
                 sample_change--;
                 save_data[SAVE_SAMPLE] = sample_change;
               }
-              gamepi_sample_repeat_count_l++;
+              if (gamepi_sample_repeat_count_l < 2) gamepi_sample_repeat_count_l++;
             } else {
               input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
@@ -2049,7 +2049,7 @@ int main(void) {
                 sample_change++;
                 save_data[SAVE_SAMPLE] = sample_change;
               }
-              gamepi_sample_repeat_count_r++;
+              if (gamepi_sample_repeat_count_r < 2) gamepi_sample_repeat_count_r++;
             } else {
               input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
