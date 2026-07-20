@@ -175,7 +175,7 @@ static void draw_top(const GamepiUiState &s) {
   // BPM digits right-aligned so their RIGHT edge always lands at x=30 (just
   // before the clock-source slash/icon), growing leftward as the digit count
   // changes (e.g. 99 -> 100) instead of colliding with what's to the right.
-  draw_digit_string(30, 6, buf, kBpmDigits, nullptr, 0, 0, true);
+  draw_digit_string(30, 6, buf, kCondDigits, nullptr, 0, 0, true);
   // BPM_Slash: always between the BPM digits and whichever clock-source icon
   // is active. MODE_0.txt's own mockup shows it between the Int_clock and
   // Ext_clock reference icons instead -- that's just how Lopaka laid out two
@@ -219,7 +219,9 @@ static void draw_name(const GamepiUiState &s) {
   } else {
     snprintf(idx, sizeof(idx), "00/00");
   }
-  draw_digit_string(238, 32, idx, kBankDigits, kBankSlash, 7, 15, true);
+  // y=30 centra el glifo de 20px en la zona W_NAME (y28..51). El slash es el
+  // kCondSlash de 10x20 (la fracción NN/NN), no el kBpmSlash del clock.
+  draw_digit_string(238, 30, idx, kCondDigits, kCondSlash, 10, 20, true);
 }
 
 // ---- waveform cache (W_WAVE) ----
@@ -321,8 +323,11 @@ static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
 // que usa Elektron/MIDI), que es lo que los segmentos por sí solos no dicen.
 // Geometría: 25 bloques de 6px con 1px de aire = 174px (x8..182), y el valor
 // alineado a la derecha en x=231, dejando ~25px de separación.
-// Los dígitos son los kBankDigits actuales; cuando lleguen los condensados de
-// 20px se cambian acá y toda la UI hereda el estilo nuevo.
+// El valor usa los dígitos condensados de 20px (kCondDigits), monoespaciados.
+// Como el glifo (20px) es más alto que la barra (14px), se centra verticalmente
+// sobre ella en bar_y-3: así sobresale 3px arriba y 3px abajo (número "héroe"
+// estilo Elektron) sin salirse del rect del widget -- a bar_y+1 un dígito de
+// 20px llegaría a bar_y+21, 1px fuera de W_BARA/W_BARB.
 static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
   constexpr uint16_t kX0 = 8;
   constexpr uint8_t kSegs = 25;
@@ -342,7 +347,7 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
   }
   char v[4];
   snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
-  draw_digit_string(231, (uint16_t)(bar_y + 1), v, kBankDigits, nullptr, 0, 0,
+  draw_digit_string(231, (uint16_t)(bar_y - 3), v, kCondDigits, nullptr, 0, 0,
                     true);
 }
 
