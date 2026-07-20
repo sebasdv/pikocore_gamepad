@@ -89,12 +89,12 @@ static uint64_t overlay_deadline_us = 0;
 // assumed, so OVERLAY_TTL_TICKS=250 expired in ~4 ms instead of ~1 s.
 #define OVERLAY_TTL_US 1000000  // ~1 s
 
-static const char *kModeA[8] = {"SAMPLE",     "FILTRO",     "GATE",
-                                "PROB SALTO", "PROB TUNEL", "SEC GRABAR",
-                                "GUARDAR",    "VOLUMEN"};
-static const char *kModeB[8] = {"BREAK FX",    "STRETCH",      "PROB GATE",
-                                "PROB RETRIG", "PROB REVERSA", "SEC PLAY",
-                                "CARGAR",      "TEMPO"};
+static const char *kModeA[8] = {"SAMPLE",    "FILTER",     "GATE",
+                                "JUMP PROB", "TUNNEL PROB", "REC SEQ",
+                                "SAVE",      "VOLUME"};
+static const char *kModeB[8] = {"BREAK FX",   "STRETCH",     "GATE PROB",
+                                "RETRIG PROB", "REVERSE PROB", "PLAY SEQ",
+                                "LOAD",       "TEMPO"};
 
 // Caps how often the LCD is allowed to do a blocking SPI flush, independent
 // of how often gamepi_ui_tick()/gamepi_ui_overlay_*() get called. Confirmed
@@ -592,7 +592,7 @@ void gamepi_ui_sd_close() {
 bool gamepi_ui_sd_listing() {
   if (!flush_allowed()) return false;
   sd_panel_title("SD", COL_GRAY);
-  draw_truncated("Leyendo tarjeta...", (uint16_t)(kOverlay.y + 50), COL_WHITE);
+  draw_truncated("Reading card...", (uint16_t)(kOverlay.y + 50), COL_WHITE);
   flush(kOverlay);
   return true;
 }
@@ -612,7 +612,7 @@ bool gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
   // Ícono en vez de texto para "L: ciclar" -- el rol de L quedaba poco claro
   // mostrando solo el hint de R durante pruebas de hardware (ver historial).
   Paint_DrawImage((const unsigned char *)kSdLCycle, 52, 138, 141, 15);
-  draw_truncated(is_active ? "Cargado (banco activo)" : "Mantener R: cargar",
+  draw_truncated(is_active ? "Loaded (active bank)" : "Hold R: load",
                 (uint16_t)(kOverlay.y + 102), COL_GRAY);
   flush(kOverlay);
   return true;
@@ -620,7 +620,7 @@ bool gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count,
 
 void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent) {
   if (!flush_allowed()) return;
-  sd_panel_title("Cargando...", COL_CYAN);
+  sd_panel_title("Loading...", COL_CYAN);
   draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_WHITE);
   uint16_t bx = (uint16_t)(kOverlay.x + (kOverlay.w - 170) / 2);
   uint16_t by = (uint16_t)(kOverlay.y + 86);
@@ -641,7 +641,7 @@ bool gamepi_ui_sd_loading(const char *filename) {
   // the message is guaranteed on screen before that quiet window starts.
   // Nunca deniega -- siempre devuelve true (no participa del reintento salvo
   // por uniformidad de firma con las demás).
-  sd_panel_title("Cargando...", COL_CYAN);
+  sd_panel_title("Loading...", COL_CYAN);
   draw_truncated(filename, (uint16_t)(kOverlay.y + 50), COL_WHITE);
   flush(kOverlay);
   return true;
@@ -649,8 +649,8 @@ bool gamepi_ui_sd_loading(const char *filename) {
 
 bool gamepi_ui_sd_result(bool ok, const char *filename) {
   if (!flush_allowed()) return false;
-  sd_panel_title(ok ? "Listo" : "Error", ok ? COL_GREEN : COL_PINK);
-  draw_truncated(ok ? filename : "No se pudo cargar",
+  sd_panel_title(ok ? "Done" : "Error", ok ? COL_GREEN : COL_PINK);
+  draw_truncated(ok ? filename : "Load failed",
                  (uint16_t)(kOverlay.y + 50), COL_WHITE);
   flush(kOverlay);
   return true;
