@@ -386,10 +386,21 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   escribe), sin tocar la ISR de audio ni ninguna variable relacionada con el sonido en
   sí (`sample_set`/`sample` siguen intactos). Confirmado en hardware: el nombre/índice y
   la barra segmentada se actualizan al instante, esté sonando o no.
-- **PENDIENTE — con la intensidad de "break fx" (modo 0, Function B) al máximo, el
-  botón de stop no detiene la reproducción** hasta bajar la intensidad a 0. Reportado en
-  pruebas de hardware, no relacionado con ningún cambio de esta sesión — no investigado
-  todavía.
+- **RESUELTO — con la intensidad de "break fx" (modo 0, Function B) al máximo, el
+  botón de stop no detenía la reproducción** hasta bajar la intensidad a 0. Bug
+  preexistente, no relacionado con ningún cambio de esta sesión. Causa real: dentro de
+  la ISR de audio, un retrigger puede dispararse puramente al azar en cada compás
+  (`if (randint(0, 254) < probability_retrig) { btn_retrig = true; }`) sin que el
+  usuario toque ningún segundo botón — y con break fx al máximo, `probability_retrig`
+  es tan alta que esto pasa casi todo el tiempo. El manejo de Start marcaba
+  `gamepi_start_used_as_modifier = true` con solo `btn_start.On() && btn_retrig`, sin
+  distinguir un retrigger real de 2 botones de uno disparado solo por azar — así que
+  soltar Start para detener, justo cuando `btn_retrig` estaba en `true` por pura
+  casualidad, se interpretaba como "Start usado como modificador de un combo" y
+  suprimía el stop. Fix: agregar `&& button_on2 < NUM_BUTTONS` a esa condición —
+  `button_on2` solo es válido durante un combo real de 2 botones, nunca en el camino de
+  probabilidad pura. Confirmado en hardware: con break fx al máximo, Start ahora
+  detiene la reproducción correctamente.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
