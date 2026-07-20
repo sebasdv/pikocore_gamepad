@@ -5,7 +5,8 @@
 
 #include "../hw_gamepi13.h"
 
-#define GAMEPI_SPI spi1
+// GAMEPI_SPI / GAMEPI_LCD_SPI_HZ viven ahora en hw_gamepi13.h, para que
+// flush() (ui.cpp) pueda reafirmar la velocidad del LCD con el mismo valor.
 
 int EPD_RST_PIN = GAMEPI_LCD_RST_PIN;
 int EPD_DC_PIN = GAMEPI_LCD_DC_PIN;
@@ -45,7 +46,7 @@ void gamepi_lcd_dev_init(void) {
   // Bajado al valor exacto que usa Gamepi13-RP2040-Demo/C/lib/Config/
   // DEV_Config.c para este mismo panel/cableado, validado por Waveshare.
   mutex_enter_blocking(&gamepi_spi1_mutex);
-  spi_init(GAMEPI_SPI, 10000 * 1000);
+  spi_init(GAMEPI_SPI, GAMEPI_LCD_SPI_HZ);
   gpio_set_function(GAMEPI_LCD_CLK_PIN, GPIO_FUNC_SPI);
   gpio_set_function(GAMEPI_LCD_MOSI_PIN, GPIO_FUNC_SPI);
   mutex_exit(&gamepi_spi1_mutex);

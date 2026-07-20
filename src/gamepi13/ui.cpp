@@ -128,6 +128,15 @@ static bool flush_allowed() {
 // full-frame stride (patched off-by-one in Task 1).
 static void flush(const Rect &r) {
   mutex_enter_blocking(&gamepi_spi1_mutex);
+  // La microSD comparte spi1 y deja el bus a SU velocidad (100 kHz durante el
+  // init del driver, 400 kHz para el init de tarjeta, 12 MHz para datos) sin
+  // restaurar la del LCD -- ver GAMEPI_LCD_SPI_HZ en hw_gamepi13.h. Hay que
+  // reafirmarla acá, en cada flush, no solo al arrancar: si no, al volver del
+  // modo 8 el LCD quedaba transfiriendo a 100-400 kHz y bloqueaba el lazo de
+  // control por segundos. Cuesta una escritura a registro, despreciable frente
+  // a los decenas de KB que siguen. Mismo contrato que ya cumple el lado SD:
+  // quien toma el mutex fija sus propios parámetros de bus.
+  spi_set_baudrate(GAMEPI_SPI, GAMEPI_LCD_SPI_HZ);
 #if GAMEPI_LCD_ROTATE == ROTATE_270
   const uint16_t mx0 = r.y;
   const uint16_t mx1 = (uint16_t)(r.y + r.h);

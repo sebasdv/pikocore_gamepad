@@ -61,3 +61,17 @@
 #define GAMEPI_LCD_DC_PIN 25
 #define GAMEPI_LCD_RST_PIN 27
 #define GAMEPI_LCD_BL_PIN 7  // backlight, PWM
+
+// El LCD y la microSD COMPARTEN spi1. El driver de SD reconfigura el bus cada
+// vez que lo usa (my_spi.c lo abre a 100 kHz, sd_spi.c baja a 400 kHz para el
+// init de tarjeta y sube a 12 MHz para datos) y no restaura nada al terminar --
+// no sabe que el LCD existe. Por eso el LCD tiene que reafirmar SU velocidad
+// cada vez que toma el bus (ver flush() en ui.cpp), no solo una vez al
+// arrancar. Sin eso, al volver del modo 8 (Browse SD) los flush quedaban
+// corriendo a 100-400 kHz para siempre: confirmado en hardware, un flush de
+// zona pasaba de ~18 ms a ~1.8 s y bloqueaba el lazo de control (botones sin
+// responder, cambio de modo tardando segundos, mientras el audio seguía porque
+// va por la ISR de PWM). El valor es el que usa el demo de Waveshare para este
+// panel/cableado -- ver en dev_shim.c por qué no se sube más.
+#define GAMEPI_SPI spi1
+#define GAMEPI_LCD_SPI_HZ (10000 * 1000)
