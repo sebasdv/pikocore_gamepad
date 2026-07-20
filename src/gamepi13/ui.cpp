@@ -399,10 +399,10 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
   }
   char v[4];
   snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
-  // Alineado a la izquierda pegado al final de la barra (borde derecho x181):
-  // el número arranca en x188 y crece a la derecha, en vez de flotar contra el
-  // borde derecho. "127" (30px) llega a x218, dentro de la pantalla.
-  draw_digit_string(188, top, v, kCondDigits, nullptr, 0, 0, false);
+  // Alineado a la DERECHA con borde en x237, el mismo riel derecho que los
+  // iconos de play/stop (stop termina en x237). El número crece hacia la
+  // izquierda desde ahí; "127" (33px) llega a x204, sin pisar la barra (x181).
+  draw_digit_string(237, top, v, kCondDigits, nullptr, 0, 0, true);
 }
 
 // Un color por modo para la barra de Function A/B (y el fallback de texto de
