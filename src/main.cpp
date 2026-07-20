@@ -2155,6 +2155,43 @@ int main(void) {
           }
         }
       }
+      // Corre ANTES de gamepi_ui_tick(): su camino normal (overlay_on falso)
+      // llama a flush_allowed() sin condición cada tick, así que si este
+      // bloque corriera después, gamepi_ui_tick() siempre "ganaría" el
+      // próximo turno disponible primero -- una vez que se sale del modo 8
+      // (overlay_on vuelve a falso), eso deja a este bloque sin ninguna
+      // oportunidad real de volver a dibujar nunca más. Puesto primero, el
+      // reintento del modo 8 tiene prioridad; el dashboard normal tolera
+      // ceder un tick (ya se reintenta solo en su propio próximo llamado).
+      if (gamepi_sd_redraw_kind != GAMEPI_SD_REDRAW_NONE) {
+        bool ok = false;
+        switch (gamepi_sd_redraw_kind) {
+          case GAMEPI_SD_REDRAW_LISTING:
+            ok = gamepi_ui_sd_listing();
+            break;
+          case GAMEPI_SD_REDRAW_BROWSE: {
+            const uint32_t count = gamepi_sd_file_count();
+            const bool is_active = count > 0 && gamepi_active_bank_name[0] != '\0' &&
+                strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
+            ok = count > 0 && gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
+                                                  gamepi_sd_index, count, is_active);
+            break;
+          }
+          case GAMEPI_SD_REDRAW_LOADING:
+            ok = gamepi_ui_sd_loading(gamepi_sd_file_name(gamepi_sd_load_index));
+            break;
+          case GAMEPI_SD_REDRAW_RESULT:
+            ok = gamepi_ui_sd_result(gamepi_sd_load_ok,
+                                     gamepi_sd_file_name(gamepi_sd_load_index));
+            break;
+          case GAMEPI_SD_REDRAW_ERROR:
+            ok = gamepi_ui_sd_error(gamepi_sd_redraw_error_msg);
+            break;
+          default:
+            break;
+        }
+        if (ok) gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_NONE;
+      }
       {
         GamepiUiState uis;
         uis.bpm = bpm_set;
@@ -2206,35 +2243,6 @@ int main(void) {
         uis.knob_b = input_knob[2].Value();
         uis.playing = !do_mute;
         gamepi_ui_tick(uis);
-      }
-      if (gamepi_sd_redraw_kind != GAMEPI_SD_REDRAW_NONE) {
-        bool ok = false;
-        switch (gamepi_sd_redraw_kind) {
-          case GAMEPI_SD_REDRAW_LISTING:
-            ok = gamepi_ui_sd_listing();
-            break;
-          case GAMEPI_SD_REDRAW_BROWSE: {
-            const uint32_t count = gamepi_sd_file_count();
-            const bool is_active = count > 0 && gamepi_active_bank_name[0] != '\0' &&
-                strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
-            ok = count > 0 && gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
-                                                  gamepi_sd_index, count, is_active);
-            break;
-          }
-          case GAMEPI_SD_REDRAW_LOADING:
-            ok = gamepi_ui_sd_loading(gamepi_sd_file_name(gamepi_sd_load_index));
-            break;
-          case GAMEPI_SD_REDRAW_RESULT:
-            ok = gamepi_ui_sd_result(gamepi_sd_load_ok,
-                                     gamepi_sd_file_name(gamepi_sd_load_index));
-            break;
-          case GAMEPI_SD_REDRAW_ERROR:
-            ok = gamepi_ui_sd_error(gamepi_sd_redraw_error_msg);
-            break;
-          default:
-            break;
-        }
-        if (ok) gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_NONE;
       }
 #endif
 
