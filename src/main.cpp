@@ -341,8 +341,8 @@ void param_set_break(uint16_t knob_val, uint8_t &filter_fc_,
   }
   save_data_[SAVE_PROB_JUMP] = probability_jump_;
   save_data_[SAVE_PROB_DIRECTION] = probability_direction_;
-  save_data_[SAVE_PROB_RETRIG] = probability_jump_;
-  save_data_[SAVE_PROB_GATE] = probability_direction_;
+  save_data_[SAVE_PROB_RETRIG] = probability_retrig_;
+  save_data_[SAVE_PROB_GATE] = probability_gate_;
   save_data_[SAVE_PROB_TUNNEL] = probability_tunnel_;
   save_data_[SAVE_VOLUME] =
       (uint8_t)((distortion_ * 1095 / DISTORTION_MAX + 3000) >> 8);
@@ -2464,7 +2464,7 @@ int main(void) {
                     probability_gate = (input_knob[i].Value() * 254 /
                                         input_knob[i].ValueMax());
                   }
-                  save_data[SAVE_PROB_GATE] = probability_direction;
+                  save_data[SAVE_PROB_GATE] = probability_gate;
                   break;
                 case 3:
                   // retrig probability
@@ -2474,7 +2474,7 @@ int main(void) {
                     probability_retrig = (input_knob[i].Value() * 254 /
                                           input_knob[i].ValueMax());
                   }
-                  save_data[SAVE_PROB_RETRIG] = probability_jump;
+                  save_data[SAVE_PROB_RETRIG] = probability_retrig;
                   break;
                 case 4:
                   // reverse probability
