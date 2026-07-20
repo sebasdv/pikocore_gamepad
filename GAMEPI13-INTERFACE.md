@@ -155,12 +155,20 @@ sección 5 para un bug real que esto mismo destapó durante las pruebas.
 
 Cada ajuste de L/R mueve el valor virtual del knob en pasos de `GAMEPI_KNOB_STEP` (164,
 ~4% de 4095) cada ~100ms mientras se mantiene presionado
-([`src/hw_gamepi13.h`](src/hw_gamepi13.h)) — **excepto Tempo** (modo 7, Function B), que
-tiene su propio ajuste directo sobre el BPM en vez de derivarlo del knob crudo, porque el
-paso genérico traducido a BPM saltaba en números muy grandes (descubierto en pruebas de
-hardware de la Fase 3): toque simple = ±1 BPM, mantener ≥1s = ±5 BPM por paso, mantener
-≥3s = ±20 BPM por paso. Rango 20–360 BPM, cualquier valor entero (antes solo múltiplos
-de 5).
+([`src/hw_gamepi13.h`](src/hw_gamepi13.h)) — **excepto Tempo** (modo 7, Function B) y
+**Selección de sample** (modo 0, Function A), que tienen su propio ajuste directo en
+vez de derivarlo del knob crudo. Tempo: el paso genérico traducido a BPM saltaba en
+números muy grandes (descubierto en pruebas de hardware de la Fase 3): toque simple =
+±1 BPM, mantener ≥1s = ±5 BPM por paso, mantener ≥3s = ±20 BPM por paso. Rango
+20–360 BPM, cualquier valor entero (antes solo múltiplos de 5). Selección de sample:
+un solo toque casi nunca cambiaba de sample en bancos con pocas muestras, porque el
+paso genérico (164 de 4095) era mucho más chico que el "casillero" de cada sample —
+ahora cada toque o repetición mueve exactamente ±1 sample, sin acelerar, con clamp en
+los extremos (no da la vuelta). El segundo paso de una tanda espera 350ms en vez de
+los 100ms normales (`GAMEPI_SAMPLE_FIRST_REPEAT_US`), para que un toque humano real
+(150-300ms de presionar a soltar) no dispare un cambio de más — descubierto en
+pruebas de hardware: sin ese retraso, un toque "rápido" cambiaba de sample al
+presionar y otra vez al soltar.
 
 ### 3.1 Modo 8: Browse SD
 
@@ -347,6 +355,36 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   tick justo cuando `Adjust()` cambia el valor), si al entrar a modo 5/6 el knob ya
   está por encima/debajo del umbral de otro ajuste previo en otro modo, la acción no se
   dispara hasta mover el knob de nuevo. No se reprodujo explícitamente en hardware.
+- **RESUELTO — el rediseño de la pantalla Browse SD (marco + dígitos gráficos +
+  ícono, ver sección 4) al principio nunca aparecía a partir de la segunda entrada al
+  modo 8.** Se dibujaba bien la primera vez desde el arranque, pero al salir y volver a
+  entrar, el dashboard normal seguía mostrándose (con el ícono de modo correctamente en
+  SD) en vez de la pantalla de SD, indefinidamente. Causa real: el bloque de reintento
+  de estas pantallas (`gamepi_sd_redraw_kind`, `src/main.cpp`) quedó ubicado *después*
+  de `gamepi_ui_tick()` en el mismo tick — y el camino normal de `gamepi_ui_tick()`
+  llama a `flush_allowed()` (el límite de 25Hz de refresco del LCD) sin condición en
+  cada tick, así que le "ganaba" el turno al bloque de reintento apenas se abría la
+  ventana. Mientras el overlay de SD estaba activo (persistente) esto no importaba,
+  porque `gamepi_ui_tick()` deja de competir por `flush_allowed()` en ese caso — pero
+  al salir del modo 8 y volver el dashboard normal a competir, el reintento quedaba
+  bloqueado para siempre. Fix: mover el bloque de reintento para que corra *antes* de
+  `gamepi_ui_tick()`, dándole prioridad. Confirmado en hardware: entra y sale del modo 8
+  repetidamente sin problema después del fix.
+  **Hallazgo relacionado, pendiente de investigar:** después del fix, el indicador
+  "Cargado (banco activo)" se ve bien justo después de cargar un banco, pero se pierde
+  si se sale del modo 8 y se vuelve a entrar más tarde — no se encontró la causa
+  todavía (el código de `is_active`/`gamepi_active_bank_name` se ve correcto en una
+  lectura estática).
+- **PENDIENTE — el cambio de sample no se ve en el dashboard mientras el reproductor
+  está detenido, solo mientras está sonando.** Reportado en pruebas de hardware junto
+  con el ajuste directo de selección de sample (ver sección 3). Consistente con que
+  `sample_set` (lo que muestra el dashboard) solo se sincroniza con `sample_change` en
+  un punto del código atado al compás — sin reproducción no hay compás que dispare esa
+  sincronización. No investigado a fondo todavía.
+- **PENDIENTE — con la intensidad de "break fx" (modo 0, Function B) al máximo, el
+  botón de stop no detiene la reproducción** hasta bajar la intensidad a 0. Reportado en
+  pruebas de hardware, no relacionado con ningún cambio de esta sesión — no investigado
+  todavía.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
