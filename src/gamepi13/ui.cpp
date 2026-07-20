@@ -183,25 +183,25 @@ static void draw_top(const GamepiUiState &s) {
   char buf[8];
   snprintf(buf, sizeof(buf), "%u", s.bpm);
   // BPM alineado a la izquierda: borde IZQUIERDO en x8, creciendo a la derecha.
-  // El slash y el icono de clock quedan fijos (x40/x54), pasado el BPM máximo
-  // de 3 dígitos (360 = 30px = x8..x38), así que no se mueven con el conteo de
-  // dígitos aunque el número sí quede left-aligned.
+  // El slash y el icono de clock quedan fijos (x46/x62), pasado el BPM máximo de
+  // 3 dígitos condensados de 12px (360 = 36px = x8..x44), así que no se mueven
+  // con el conteo de dígitos aunque el número sí quede left-aligned.
   draw_digit_string(8, 8, buf, kCondDigits, nullptr, 0, 0, false);
   // BPM_Slash: always between the BPM digits and whichever clock-source icon
   // is active. MODE_0.txt's own mockup shows it between the Int_clock and
   // Ext_clock reference icons instead -- that's just how Lopaka laid out two
   // static examples side by side (it doesn't simulate the real INT/EXT
   // conditional), not the real runtime position.
-  Paint_DrawImage((const unsigned char *)kBpmSlash, 40, 8, 14, 20);
+  Paint_DrawImage((const unsigned char *)kBpmSlash, 46, 8, 14, 20);
   if (s.clock_src == 0) {
-    Paint_DrawImage((const unsigned char *)kIntClock, 54, 11, 38, 14);
+    Paint_DrawImage((const unsigned char *)kIntClock, 62, 11, 38, 14);
   } else if (s.clock_src == 1) {
-    Paint_DrawImage((const unsigned char *)kExtClock, 54, 11, 40, 14);
+    Paint_DrawImage((const unsigned char *)kExtClock, 62, 11, 40, 14);
   } else {
     // MIDI has no graphic yet (see the design spec's Riesgos conocidos) --
     // text fallback, same pattern as the not-yet-designed Function A/B
     // labels for modes 1-7 below.
-    Paint_DrawString_EN(54, 12, "MIDI", &Font12, COL_GRAY, COL_BG);
+    Paint_DrawString_EN(62, 12, "MIDI", &Font12, COL_GRAY, COL_BG);
   }
   Paint_DrawMonoBitmap(212, 12, kPlayBits, 12, 12,
                        s.playing ? COL_WHITE : COL_GRAY);
@@ -222,14 +222,18 @@ static void draw_name(const GamepiUiState &s) {
   } else {
     snprintf(idx, sizeof(idx), "00/00");
   }
-  draw_digit_string(238, 36, idx, kCondDigits, kCondSlash, 10, 20, true);
+  draw_digit_string(238, 36, idx, kCondDigits, kCondSlash, 9, 20, true);
 
   // Nombre del sample en Font20 (14px/char, llena la fila de 20px), alineado a
   // la izquierda en x8. Límite: hasta 10 chars de nombre y luego "..." si es
-  // más largo, PERO sin pisar el contador NN/NN, cuyo ancho varía (5 glifos
-  // "00/00" .. 7 "128/128"). Calculamos cuántos glifos entran hasta 6px antes
-  // del contador; con el mínimo NN/NN de 5 glifos entran ~9 chars + "...".
-  const uint16_t nn_left = (uint16_t)(238u - (uint16_t)strlen(idx) * 10u);
+  // más largo, PERO sin pisar el contador NN/NN. Los dígitos condensados son
+  // proporcionales (12px salvo '1' y '/' = 9px), así que sumamos los anchos
+  // reales del NN/NN para saber su borde izquierdo, y de ahí cuántos glifos
+  // Font20 entran hasta 6px antes.
+  uint16_t nn_w = 0;
+  for (const char *p = idx; *p; p++)
+    nn_w = (uint16_t)(nn_w + (*p == '/' ? 9u : kCondDigits[*p - '0'].w));
+  const uint16_t nn_left = (uint16_t)(238u - nn_w);
   const uint16_t name_px = (nn_left > 14u) ? (uint16_t)(nn_left - 6u - 8u) : 0u;
   const uint16_t fit = (uint16_t)(name_px / 14u);  // glifos Font20 que entran
 
