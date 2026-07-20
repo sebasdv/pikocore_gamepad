@@ -338,7 +338,10 @@ static void draw_wave(const GamepiUiState &s) {
 static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
                                 const char *text, UWORD text_col) {
   if (bmp) {
-    Paint_DrawImage((const unsigned char *)bmp->pixels, 0, y, bmp->w, bmp->h);
+    // x=8: mismo riel izquierdo que el BPM, el nombre, las barras y los valores
+    // -- la etiqueta era la única en x0 y sobresalía 8px. La más ancha (STRETCH,
+    // 228px) llega a x236, dentro de la pantalla.
+    Paint_DrawImage((const unsigned char *)bmp->pixels, 8, y, bmp->w, bmp->h);
   } else {
     Paint_DrawString_EN(8, y, text, &Font16, text_col, COL_BG);
   }
