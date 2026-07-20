@@ -375,12 +375,17 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   si se sale del modo 8 y se vuelve a entrar más tarde — no se encontró la causa
   todavía (el código de `is_active`/`gamepi_active_bank_name` se ve correcto en una
   lectura estática).
-- **PENDIENTE — el cambio de sample no se ve en el dashboard mientras el reproductor
-  está detenido, solo mientras está sonando.** Reportado en pruebas de hardware junto
-  con el ajuste directo de selección de sample (ver sección 3). Consistente con que
-  `sample_set` (lo que muestra el dashboard) solo se sincroniza con `sample_change` en
-  un punto del código atado al compás — sin reproducción no hay compás que dispare esa
-  sincronización. No investigado a fondo todavía.
+- **RESUELTO — el cambio de sample no se veía en el dashboard mientras el reproductor
+  estaba detenido, solo mientras sonaba.** Causa real: el nombre/índice de sample que
+  muestra el dashboard se armaba a partir de `sample_set`, que solo se sincroniza desde
+  `sample_change` (lo que escribe el ajuste de L/R) en un evento de compás dentro de la
+  ISR de audio (`pwm_interrupt_handler()`) — y esa ISR corta camino antes de llegar a
+  esa lógica cuando `do_mute` (detenido) es verdadero, así que el compás nunca ocurre y
+  el display queda congelado. Fix: el dashboard pasa a mostrar `sample_change`
+  directamente (siempre queda acotado a un rango válido por todos los puntos donde se
+  escribe), sin tocar la ISR de audio ni ninguna variable relacionada con el sonido en
+  sí (`sample_set`/`sample` siguen intactos). Confirmado en hardware: el nombre/índice y
+  la barra segmentada se actualizan al instante, esté sonando o no.
 - **PENDIENTE — con la intensidad de "break fx" (modo 0, Function B) al máximo, el
   botón de stop no detiene la reproducción** hasta bajar la intensidad a 0. Reportado en
   pruebas de hardware, no relacionado con ningún cambio de esta sesión — no investigado
