@@ -202,9 +202,11 @@ static void draw_top(const GamepiUiState &s) {
     // que además arrastraba el bug de color del Paint_DrawString_EN invertido.
     Paint_DrawImage((const unsigned char *)kMidiClock, 62, 8, 39, 20);
   }
-  Paint_DrawMonoBitmap(212, 12, kPlayBits, 12, 12,
+  // Play/stop restyled a 20x20 (ICONS.txt), a y8 como el resto de la barra.
+  // Arriba a la derecha: play x196..215, stop x218..237 (borde <=239).
+  Paint_DrawMonoBitmap(196, 8, kPlayBits, 20, 20,
                        s.playing ? COL_WHITE : COL_GRAY);
-  Paint_DrawMonoBitmap(226, 12, kStopBits, 12, 12,
+  Paint_DrawMonoBitmap(218, 8, kStopBits, 20, 20,
                        s.playing ? COL_GRAY : COL_WHITE);
 }
 
