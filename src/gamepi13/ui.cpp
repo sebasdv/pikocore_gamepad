@@ -323,16 +323,30 @@ static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
 // que usa Elektron/MIDI), que es lo que los segmentos por sí solos no dicen.
 // Geometría: 25 bloques de 6px con 1px de aire = 174px (x8..182), y el valor
 // alineado a la derecha en x=231, dejando ~25px de separación.
-// El valor usa los dígitos condensados de 20px (kCondDigits), monoespaciados.
-// Como el glifo (20px) es más alto que la barra (14px), se centra verticalmente
-// sobre ella en bar_y-3: así sobresale 3px arriba y 3px abajo (número "héroe"
-// estilo Elektron) sin salirse del rect del widget -- a bar_y+1 un dígito de
-// 20px llegaría a bar_y+21, 1px fuera de W_BARA/W_BARB.
+// El valor usa los dígitos condensados de 20px (kCondDigits), monoespaciados,
+// y la BARRA comparte esa misma banda de 20px: mismo top y mismo bottom que el
+// número, para que se lean como una sola unidad (barra + magnitud). El caller
+// pasa bar_y como la "línea base" histórica de la barra de 14px; restamos
+// kBarBandUp para subir la banda de 20px y centrarla ahí. La banda entra en
+// W_BARA (y129..148) y W_BARB (y179..198) sin pisar la etiqueta de arriba.
+static constexpr uint16_t kBarBandUp = 3;
+static constexpr uint16_t kBarBandH = 20;
+static inline uint16_t bar_top(uint16_t bar_y) {
+  return (uint16_t)(bar_y - kBarBandUp);
+}
+static inline uint16_t bar_bot(uint16_t bar_y) {
+  // -1: Paint_DrawRectangle incluye ambos extremos, así que top..bot son
+  // (bot-top+1) px. top + kBarBandH - 1 => exactamente kBarBandH filas.
+  return (uint16_t)(bar_top(bar_y) + kBarBandH - 1);
+}
+
 static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
   constexpr uint16_t kX0 = 8;
   constexpr uint8_t kSegs = 25;
   constexpr uint16_t kSegW = 6;
   constexpr uint16_t kPitch = kSegW + 1;
+  const uint16_t top = bar_top(bar_y);
+  const uint16_t bot = bar_bot(bar_y);
   // Redondeo al paso más cercano para que el último toque encienda el bloque
   // 25 exacto en el tope (val=4095), sin quedarse en 24 por truncamiento.
   const uint8_t lit = (uint8_t)(((uint32_t)val * kSegs + 2047u) / 4095u);
@@ -341,14 +355,13 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
     // -1: Paint_DrawRectangle incluye AMBOS extremos, así que x..x+kSegW son
     // kSegW+1 px. Sin esto el bloque medía 7px con pitch 7 -- se tocaban entre
     // sí y la barra se veía sólida (confirmado en hardware).
-    Paint_DrawRectangle(x, bar_y, (uint16_t)(x + kSegW - 1),
-                        (uint16_t)(bar_y + 13), i < lit ? col : COL_DARK,
-                        DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(x, top, (uint16_t)(x + kSegW - 1), bot,
+                        i < lit ? col : COL_DARK, DOT_PIXEL_1X1,
+                        DRAW_FILL_FULL);
   }
   char v[4];
   snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
-  draw_digit_string(231, (uint16_t)(bar_y - 3), v, kCondDigits, nullptr, 0, 0,
-                    true);
+  draw_digit_string(231, top, v, kCondDigits, nullptr, 0, 0, true);
 }
 
 // Un color por modo para la barra de Function A/B (y el fallback de texto de
@@ -367,11 +380,14 @@ static const uint16_t kModeColorB[8] = {COL_BLUE,    COL_VIOLET,  COL_PINK,   CO
 // máximo real de 128 samples por banco (PIKO_BANK_MAX_SAMPLES).
 static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
                             uint16_t sample_count, UWORD col) {
-  Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), COL_DARK,
-                      DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  // Misma banda de 20px que draw_stepped_bar, para que todas las barras del
+  // dashboard tengan idéntica altura y alineación (bar_top/bar_bot).
+  const uint16_t top = bar_top(bar_y);
+  const uint16_t bot = bar_bot(bar_y);
+  Paint_DrawRectangle(8, top, 231, bot, COL_DARK, DOT_PIXEL_1X1,
+                      DRAW_FILL_FULL);
   if (sample_count <= 1) {
-    Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), col,
-                        DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    Paint_DrawRectangle(8, top, 231, bot, col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
     return;
   }
   uint16_t group_size = 1;
@@ -390,8 +406,8 @@ static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
   if ((uint16_t)(x + seg_w) > 231) {
     seg_w = (uint16_t)(231 - x);
   }
-  Paint_DrawRectangle(x, bar_y, (uint16_t)(x + seg_w), (uint16_t)(bar_y + 13),
-                      col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+  Paint_DrawRectangle(x, top, (uint16_t)(x + seg_w), bot, col, DOT_PIXEL_1X1,
+                      DRAW_FILL_FULL);
 }
 
 static void draw_function_a(const GamepiUiState &s) {
