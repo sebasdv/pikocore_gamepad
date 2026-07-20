@@ -480,16 +480,29 @@ export function App() {
 
   function downloadBankFile() {
     if (samples.length === 0) return;
-    const bankBytes = buildBankBlob(samples, device?.capacityBytes ?? 0);
-    const blob = new Blob([bankBytes as BlobPart], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'bank.pikobank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // The downloaded .pikobank targets an SD card, not the connected device's
+    // flash -- so it must NOT be constrained by device?.capacityBytes (which
+    // is 0 when offline, the primary use case, and would spuriously throw).
+    // The header's capacityBytes field is informational (never validated on
+    // parse; the firmware validates against its own flash capacity at load),
+    // so we build against the largest platform capacity (16 MB) and only a
+    // genuine >16MB bank throws -- surfaced to the user instead of swallowed.
+    const SD_BANK_CAPACITY_BYTES = 16 * 1024 * 1024;
+    try {
+      const bankBytes = buildBankBlob(samples, SD_BANK_CAPACITY_BYTES);
+      const blob = new Blob([bankBytes as BlobPart], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'bank.pikobank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setStatus({ text: `Downloaded bank.pikobank (${samples.length} samples)`, kind: 'good' });
+    } catch (error) {
+      setStatus({ text: errorMessage(error), kind: 'bad' });
+    }
   }
 
   async function uploadBank() {
