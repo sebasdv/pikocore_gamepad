@@ -100,6 +100,15 @@ toggle por accidente.
 
 ## 3. El selector de modo y los 9 modos
 
+> **APARCADO desde 2026-07-20 — el modo 8 (Browse SD) está detrás del flag
+> `PIKO_GAMEPI13_SD`, apagado por defecto.** Con el flag en OFF el selector cicla
+> **0–7** (8 modos) y el modo 8 es inalcanzable; la fila muestra 8 íconos, no 9.
+> Decisión de producto para enfocar el esfuerzo en la experiencia de uso, no un
+> defecto sin resolver: los dos bugs reales de SD (inanición del redibujo y el
+> baudrate compartido de spi1) **están corregidos y verificados**. Reactivar con
+> `-DPIKO_GAMEPI13_SD=ON`. Cargar samples por USB (.pikobank) no se ve afectado.
+> Todo lo que sigue sobre el modo 8 describe el comportamiento con el flag en ON.
+
 Select cicla un índice 0–8 (`gamepi_selector`). Los índices 0–7 determinan qué controla
 L/R (Function A) y qué controla Start+L/R (Function B); el índice 8 es un modo aparte
 (Browse SD, ver sección 3.1). Los switches reales están en
@@ -412,6 +421,25 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   computado. Confirmado en hardware con valores extremos (retrig al máximo, jump a 0,
   guardar, reiniciar → se oyen los stutters al azar restaurados; con el bug se cargaba
   el 0 de jump y no había ninguno).
+- **LÍMITE CONOCIDO (no es un bug introducido) — con la probabilidad de retrigger al
+  máximo, el equipo queda casi inusable.** La ISR de audio dispara retriggers al azar en
+  cada compás (`randint(0, 254) < probability_retrig`); al tope, eso ocurre casi
+  continuamente y satura la CPU, dejando sin tiempo al lazo de control: Start no detiene
+  la reproducción (tarda ~20 s), el playhead no avanza y los parámetros no responden.
+  El audio sigue sonando porque va por la ISR, que es justamente la que acapara. Bajar
+  la probabilidad devuelve todo a la normalidad. **Cuidado con guardar ese valor a
+  flash**: persiste entre arranques y hace parecer que el equipo está roto desde el
+  boot — nos costó un ciclo entero de debugging hasta darnos cuenta (la causa se
+  atribuyó erróneamente a la microSD). Es un límite heredado del motor de audio
+  original, no algo del port.
+- **RESUELTO — el LCD quedaba lentísimo después de visitar el modo 8 (Browse SD).** El
+  LCD y la microSD comparten spi1, pero el LCD fijaba su velocidad (10 MHz) una sola vez
+  al arrancar, mientras que el driver de SD reconfigura el bus cada vez que lo usa
+  (100 kHz al abrir, 400 kHz para el init de tarjeta, 12 MHz para datos) sin restaurar
+  nada. Al volver del modo 8 el bus quedaba en 100–400 kHz y cada flush del LCD pasaba
+  de ~18 ms a ~1.8 s, bloqueando el lazo de control con el mutex tomado. Fix: `flush()`
+  reafirma `GAMEPI_LCD_SPI_HZ` en cada llamada (mismo contrato que ya cumple el lado SD:
+  quien toma el mutex fija sus propios parámetros de bus). Confirmado en hardware.
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
