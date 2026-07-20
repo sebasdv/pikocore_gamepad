@@ -391,7 +391,15 @@ static void draw_dots(const GamepiUiState &s) {
   // Dimming factor is a first-attempt value (~35% brightness), tune on
   // hardware per the design spec's Riesgos conocidos.
   constexpr uint8_t kInactiveDim = 90;
-  for (uint8_t i = 0; i < 9; i++) {
+  // Con el modo 8 (Browse SD) aparcado -- PIKO_GAMEPI13_SD=0, ver CMakeLists --
+  // el selector nunca llega al 8, asi que no se dibuja su icono: quedaria uno
+  // muerto que nunca se enciende.
+#if PIKO_GAMEPI13_SD
+  constexpr uint8_t kIconCount = 9;
+#else
+  constexpr uint8_t kIconCount = 8;
+#endif
+  for (uint8_t i = 0; i < kIconCount; i++) {
     const ModeIcon &icon = kModeIcons[i];
     const uint16_t x = (uint16_t)(27 + i * 18);
     const bool active = (i < 8) ? (s.mode == i) : (s.mode == 8);

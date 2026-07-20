@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 
 option(PIKO_GAMEPI13 "Build for Waveshare RP2350-PiZero + GamePi13" OFF)
+# Modo 8 (Browse SD) APARCADO por defecto. La microSD comparte spi1 con el LCD,
+# y ese conflicto de bus produjo tres bugs distintos y encadenados (inanicion
+# del redibujo, el baudrate que la SD dejaba en 100-400 kHz, y un stall de ~20 s
+# con tarjeta presente). Con el flag en OFF el selector cicla 0-7 y el modo 8 es
+# inalcanzable: cero actividad de SD en runtime. El codigo queda intacto -- basta
+# poner esto en ON para reactivarlo. Cargar samples por USB (.pikobank) no se ve
+# afectado. Ver docs/superpowers/specs/2026-07-20-*-design.md.
+option(PIKO_GAMEPI13_SD "Enable the Browse SD mode (mode 8) on GamePi13" OFF)
 if(PIKO_GAMEPI13)
 	list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/boards)
 	set(PICO_BOARD waveshare_rp2350_pizero CACHE STRING "Board type")
@@ -65,6 +73,11 @@ include(target_compile_definitions.cmake)
 
 if(PIKO_GAMEPI13)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13=1)
+	if(PIKO_GAMEPI13_SD)
+		target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13_SD=1)
+	else()
+		target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13_SD=0)
+	endif()
 	target_sources(${PROJECT_NAME} PRIVATE
 		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/LCD_1in3.c
 		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd/GUI_Paint.c

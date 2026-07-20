@@ -142,6 +142,19 @@ bool gamepi_start_used_as_modifier = false;
 // musical button = jump directly to that mode" gesture.
 bool gamepi_select_used_as_modifier = false;
 
+// Cantidad de modos que cicla Select. Con PIKO_GAMEPI13_SD=0 (por defecto) el
+// modo 8 (Browse SD) queda APARCADO: el selector cicla 0-7 y nunca llega al 8,
+// asi que toda la maquinaria de SD de abajo queda inalcanzable en runtime (cero
+// actividad en el bus spi1 que comparte con el LCD, que es de donde salieron
+// los tres bugs encadenados de SD). El codigo sigue compilando intacto: alcanza
+// con -DPIKO_GAMEPI13_SD=ON para reactivarlo. Cargar samples por USB no se ve
+// afectado. Ver el comentario en CMakeLists.txt.
+#if PIKO_GAMEPI13_SD
+#define GAMEPI_MODE_COUNT 9
+#else
+#define GAMEPI_MODE_COUNT 8
+#endif
+
 // Modo 8 (Browse SD) state machine.
 enum GamepiSdState {
   GAMEPI_SD_IDLE,      // not in mode 8, or entered but nothing requested yet
@@ -1889,7 +1902,7 @@ int main(void) {
           gamepi_select_used_as_modifier = false;
         } else if (btn_select.Falling() && !gamepi_select_used_as_modifier) {
           const uint8_t was = gamepi_selector;
-          gamepi_selector = (gamepi_selector + 1) % 9;
+          gamepi_selector = (gamepi_selector + 1) % GAMEPI_MODE_COUNT;
           if (was == 8) {
             // Leaving Browse SD: unmount, don't leave the card open, and close
             // whatever SD screen was on-screen -- it's a persistent overlay
