@@ -2086,7 +2086,7 @@ int main(void) {
           case GAMEPI_SD_LISTING:
             if (gamepi_sd_list_done) {
               if (gamepi_sd_file_count() == 0) {
-                strncpy(gamepi_sd_redraw_error_msg, "Sin tarjeta o sin archivos",
+                strncpy(gamepi_sd_redraw_error_msg, "No card or files",
                        sizeof(gamepi_sd_redraw_error_msg) - 1);
                 gamepi_sd_redraw_error_msg[sizeof(gamepi_sd_redraw_error_msg) - 1] = '\0';
                 gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_ERROR;
@@ -2266,7 +2266,7 @@ int main(void) {
           }
           uis.sample_name[n] = '\0';
         } else {
-          snprintf(uis.sample_name, sizeof(uis.sample_name), "(sin samples)");
+          snprintf(uis.sample_name, sizeof(uis.sample_name), "(no samples)");
         }
         for (uint8_t j = 0; j < 8; j++) uis.leds[j] = ledarray.Get(j);
         uis.retrig_leds_mask = 0;
