@@ -174,10 +174,16 @@ un solo toque casi nunca cambiaba de sample en bancos con pocas muestras, porque
 paso genérico (164 de 4095) era mucho más chico que el "casillero" de cada sample —
 ahora cada toque o repetición mueve exactamente ±1 sample, sin acelerar, con clamp en
 los extremos (no da la vuelta). El segundo paso de una tanda espera 350ms en vez de
-los 100ms normales (`GAMEPI_SAMPLE_FIRST_REPEAT_US`), para que un toque humano real
+los 100ms normales (`GAMEPI_FIRST_REPEAT_US`), para que un toque humano real
 (150-300ms de presionar a soltar) no dispare un cambio de más — descubierto en
 pruebas de hardware: sin ese retraso, un toque "rápido" cambiaba de sample al
 presionar y otra vez al soltar.
+
+Ese retraso aplica a **todos** los parámetros de L/R, no sólo a la selección de
+sample. Al principio era específico de sample, que es donde el problema se notaba
+primero; con las barras segmentadas (sección 4) el doble-paso quedó visible en
+todos los modos — un toque avanzaba dos bloques — y en tempo daba ±2 BPM en vez
+de ±1. Generalizarlo arregló los tres casos de una vez.
 
 ### 3.1 Modo 8: Browse SD
 
@@ -250,8 +256,18 @@ excepción: siguen siendo un overlay, y persistente (sección 3.1).
 **Barra de selección de sample (modo 0, Function A)**: en vez de un relleno continuo,
 un paginador de segmentos — un segmento resaltado por sample, agrupando en potencias de
 2 si el banco tiene más de 32 samples (el máximo real es 128, `PIKO_BANK_MAX_SAMPLES`)
-para que cada segmento siga siendo distinguible. El resto de las barras (Function B del
-modo 0, y Function A/B de los modos 1-7) siguen con el relleno continuo de siempre.
+para que cada segmento siga siendo distinguible.
+
+**Barras de parámetro (Function B del modo 0, y Function A/B de los modos 1-7)**:
+también segmentadas, con 25 bloques de 6 px separados por 1 px (`draw_stepped_bar()`),
+más el valor numérico normalizado a 0-127 a la derecha. El control es por botones y
+cada pulsación es un paso discreto, así que una barra de relleno continuo mentía sobre
+la naturaleza del control: mostrarla en bloques hace que "un toque = un bloque" sea
+literal y verificable de un vistazo. La proporción 6+1 px se validó en el panel real.
+
+Ojo con `Paint_DrawRectangle`: **incluye ambos extremos**, así que el ancho de cada
+bloque es `x` a `x + kSegW - 1`. Sin el `-1` los bloques se tocan entre sí y la barra
+se ve como un relleno continuo — exactamente el bug que se estaba tratando de evitar.
 
 Todo el render vive en `src/gamepi13/ui.cpp`, corre en core0 dentro del mismo lazo de
 control que escanea los botones (ver sección 5 sobre su frecuencia real), y está
