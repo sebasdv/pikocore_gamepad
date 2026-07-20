@@ -161,6 +161,20 @@ uint64_t gamepi_sd_result_deadline_us = 0;
 // really designed to guarantee either.
 #define GAMEPI_SD_RESULT_US 1500000  // ~1.5 s
 char gamepi_active_bank_name[24] = "";  // "" until a bank is loaded from SD this session
+// Qué pantalla del modo 8 falta (re)dibujar -- ver el bloque junto a
+// gamepi_ui_tick() más abajo, que reintenta cada tick hasta que la llamada
+// correspondiente devuelva true (flush_allowed() puede denegar la primera
+// vez sin que eso signifique que la pantalla nunca deba mostrarse).
+enum GamepiSdRedrawKind {
+  GAMEPI_SD_REDRAW_NONE,
+  GAMEPI_SD_REDRAW_LISTING,
+  GAMEPI_SD_REDRAW_BROWSE,
+  GAMEPI_SD_REDRAW_LOADING,
+  GAMEPI_SD_REDRAW_RESULT,
+  GAMEPI_SD_REDRAW_ERROR,
+};
+GamepiSdRedrawKind gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_NONE;
+char gamepi_sd_redraw_error_msg[32] = "";
 #else
 Knob input_knob[NUM_KNOBS];
 #endif
@@ -1875,6 +1889,7 @@ int main(void) {
             // its own.
             gamepi_sd_unmount_requested = true;
             gamepi_sd_state = GAMEPI_SD_IDLE;
+            gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_NONE;
             gamepi_ui_sd_close();
           }
           if (gamepi_selector < 8) {
@@ -1888,7 +1903,7 @@ int main(void) {
             gamepi_sd_list_done = false;
             __asm volatile("dmb" ::: "memory");
             gamepi_sd_list_requested = true;
-            gamepi_ui_sd_listing();
+            gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_LISTING;
           }
         }
       }
@@ -1909,6 +1924,7 @@ int main(void) {
               // Browse SD" branch needed here.
               gamepi_sd_unmount_requested = true;
               gamepi_sd_state = GAMEPI_SD_IDLE;
+              gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_NONE;
               gamepi_ui_sd_close();
             }
             gamepi_selector = i;
@@ -2017,15 +2033,15 @@ int main(void) {
           case GAMEPI_SD_LISTING:
             if (gamepi_sd_list_done) {
               if (gamepi_sd_file_count() == 0) {
-                gamepi_ui_sd_error("Sin tarjeta o sin archivos");
+                strncpy(gamepi_sd_redraw_error_msg, "Sin tarjeta o sin archivos",
+                       sizeof(gamepi_sd_redraw_error_msg) - 1);
+                gamepi_sd_redraw_error_msg[sizeof(gamepi_sd_redraw_error_msg) - 1] = '\0';
+                gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_ERROR;
                 gamepi_sd_state = GAMEPI_SD_IDLE;
               } else {
                 gamepi_sd_index = 0;
                 gamepi_sd_state = GAMEPI_SD_BROWSE;
-                const bool is_active = gamepi_active_bank_name[0] != '\0' &&
-                    strcmp(gamepi_sd_file_name(0), gamepi_active_bank_name) == 0;
-                gamepi_ui_sd_browse(gamepi_sd_file_name(0), 0,
-                                    gamepi_sd_file_count(), is_active);
+                gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_BROWSE;
               }
             }
             break;
@@ -2047,10 +2063,7 @@ int main(void) {
             }
             if (moved) {
               gamepi_sd_hold_start_us = 0;
-              const bool is_active = gamepi_active_bank_name[0] != '\0' &&
-                  strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
-              gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
-                                  gamepi_sd_index, count, is_active);
+              gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_BROWSE;
             }
             if (btn_r.On()) {
               const uint64_t now_us = time_us_64();
@@ -2064,12 +2077,12 @@ int main(void) {
                   gamepi_ui_sd_confirm_progress(
                       gamepi_sd_file_name(gamepi_sd_index), pct);
                 } else {
-                  gamepi_ui_sd_loading(gamepi_sd_file_name(gamepi_sd_index));
                   gamepi_sd_load_index = gamepi_sd_index;
                   gamepi_sd_load_done = false;
                   __asm volatile("dmb" ::: "memory");
                   gamepi_sd_load_requested = true;
                   gamepi_sd_state = GAMEPI_SD_LOADING;
+                  gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_LOADING;
                 }
               }
             } else {
@@ -2079,10 +2092,7 @@ int main(void) {
                 // browse screen. SD overlays are persistent now (no
                 // auto-expiry), so without this the "Cargando... XX%"
                 // screen would stay frozen on-screen indefinitely.
-                const bool is_active = gamepi_active_bank_name[0] != '\0' &&
-                    strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
-                gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
-                                    gamepi_sd_index, count, is_active);
+                gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_BROWSE;
               }
               gamepi_sd_hold_start_us = 0;
             }
@@ -2103,10 +2113,9 @@ int main(void) {
                        sizeof(gamepi_active_bank_name) - 1);
                 gamepi_active_bank_name[sizeof(gamepi_active_bank_name) - 1] = '\0';
               }
-              gamepi_ui_sd_result(gamepi_sd_load_ok,
-                                  gamepi_sd_file_name(gamepi_sd_load_index));
               gamepi_sd_result_deadline_us = time_us_64() + GAMEPI_SD_RESULT_US;
               gamepi_sd_state = GAMEPI_SD_RESULT;
+              gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_RESULT;
             }
             break;
           case GAMEPI_SD_RESULT:
@@ -2114,10 +2123,7 @@ int main(void) {
               // still showing "Listo"/"Error"
             } else {
               gamepi_sd_state = GAMEPI_SD_BROWSE;
-              const bool is_active = gamepi_active_bank_name[0] != '\0' &&
-                  strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
-              gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
-                                  gamepi_sd_index, gamepi_sd_file_count(), is_active);
+              gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_BROWSE;
             }
             break;
         }
@@ -2197,6 +2203,35 @@ int main(void) {
         uis.knob_b = input_knob[2].Value();
         uis.playing = !do_mute;
         gamepi_ui_tick(uis);
+      }
+      if (gamepi_sd_redraw_kind != GAMEPI_SD_REDRAW_NONE) {
+        bool ok = false;
+        switch (gamepi_sd_redraw_kind) {
+          case GAMEPI_SD_REDRAW_LISTING:
+            ok = gamepi_ui_sd_listing();
+            break;
+          case GAMEPI_SD_REDRAW_BROWSE: {
+            const uint32_t count = gamepi_sd_file_count();
+            const bool is_active = count > 0 && gamepi_active_bank_name[0] != '\0' &&
+                strcmp(gamepi_sd_file_name(gamepi_sd_index), gamepi_active_bank_name) == 0;
+            ok = count > 0 && gamepi_ui_sd_browse(gamepi_sd_file_name(gamepi_sd_index),
+                                                  gamepi_sd_index, count, is_active);
+            break;
+          }
+          case GAMEPI_SD_REDRAW_LOADING:
+            ok = gamepi_ui_sd_loading(gamepi_sd_file_name(gamepi_sd_load_index));
+            break;
+          case GAMEPI_SD_REDRAW_RESULT:
+            ok = gamepi_ui_sd_result(gamepi_sd_load_ok,
+                                     gamepi_sd_file_name(gamepi_sd_load_index));
+            break;
+          case GAMEPI_SD_REDRAW_ERROR:
+            ok = gamepi_ui_sd_error(gamepi_sd_redraw_error_msg);
+            break;
+          default:
+            break;
+        }
+        if (ok) gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_NONE;
       }
 #endif
 
