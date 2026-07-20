@@ -35,7 +35,11 @@ void gamepi_ui_tick(const GamepiUiState &s);  // call once per 250 Hz control ti
 // llamarlas SOLO desde el lazo de botones de main.cpp, nunca desde
 // gamepi_ui_tick() -- evitan competir con el dashboard normal por pantalla.
 // Las que devuelven bool: false si flush_allowed() denegó esta vez (el
-// llamador debe reintentar en un tick posterior, no asumir que ya se dibujó).
+// llamador debe reintentar en un tick posterior, no asumir que ya se dibujó
+// -- el reintento en main.cpp todavía no está armado, ver
+// docs/superpowers/specs/2026-07-19-sd-screen-redraw-retry-design.md).
+// Excepción: gamepi_ui_sd_loading() nunca devuelve false (ver su comentario
+// en ui.cpp).
 bool gamepi_ui_sd_listing();
 bool gamepi_ui_sd_browse(const char *filename, uint32_t index, uint32_t count, bool is_active);
 void gamepi_ui_sd_confirm_progress(const char *filename, uint8_t percent);
