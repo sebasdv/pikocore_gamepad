@@ -165,6 +165,9 @@ char gamepi_active_bank_name[24] = "";  // "" until a bank is loaded from SD thi
 // gamepi_ui_tick() más abajo, que reintenta cada tick hasta que la llamada
 // correspondiente devuelva true (flush_allowed() puede denegar la primera
 // vez sin que eso signifique que la pantalla nunca deba mostrarse).
+// Independiente de GamepiSdState (arriba): ese enum maneja en qué paso de
+// la máquina de estados estamos, este maneja si ya se logró dibujar la
+// pantalla correspondiente a ese paso.
 enum GamepiSdRedrawKind {
   GAMEPI_SD_REDRAW_NONE,
   GAMEPI_SD_REDRAW_LISTING,
