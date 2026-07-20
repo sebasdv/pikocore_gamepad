@@ -237,7 +237,7 @@ static void draw_name(const GamepiUiState &s) {
   snprintf(name, sizeof(name), "%s", s.sample_name);
   const uint16_t n = (uint16_t)strlen(name);
   if (n <= 10u && n <= fit) {
-    Paint_DrawString_EN(8, 36, name, &Font20, COL_GRAY, COL_BG);  // entra entero
+    Paint_DrawString_EN(8, 36, name, &Font20, COL_WHITE, COL_BG);  // entra entero
   } else {
     // Truncar: 'keep' chars + "...", reservando 3 glifos para los puntos y sin
     // pasar de 10 chars de nombre.
@@ -246,7 +246,7 @@ static void draw_name(const GamepiUiState &s) {
     if (keep < n) name[keep] = '\0';
     char disp[24];
     snprintf(disp, sizeof(disp), "%s...", name);
-    Paint_DrawString_EN(8, 36, disp, &Font20, COL_GRAY, COL_BG);
+    Paint_DrawString_EN(8, 36, disp, &Font20, COL_WHITE, COL_BG);
   }
 }
 
