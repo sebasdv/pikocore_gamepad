@@ -237,7 +237,11 @@ static void draw_name(const GamepiUiState &s) {
   snprintf(name, sizeof(name), "%s", s.sample_name);
   const uint16_t n = (uint16_t)strlen(name);
   if (n <= 10u && n <= fit) {
-    Paint_DrawString_EN(8, 36, name, &Font20, COL_WHITE, COL_BG);  // entra entero
+    // OJO: el Paint_DrawString_EN vendorizado invierte los colores al llamar a
+    // Paint_DrawChar -- el color del TEXTO es el ÚLTIMO argumento, y el 5º es el
+    // relleno (si es == FONT_BACKGROUND=0xFFFF activa modo transparente). Para
+    // texto blanco sobre negro: (relleno=COL_BG, texto=COL_WHITE).
+    Paint_DrawString_EN(8, 36, name, &Font20, COL_BG, COL_WHITE);  // entra entero
   } else {
     // Truncar: 'keep' chars + "...", reservando 3 glifos para los puntos y sin
     // pasar de 10 chars de nombre.
@@ -246,7 +250,7 @@ static void draw_name(const GamepiUiState &s) {
     if (keep < n) name[keep] = '\0';
     char disp[24];
     snprintf(disp, sizeof(disp), "%s...", name);
-    Paint_DrawString_EN(8, 36, disp, &Font20, COL_WHITE, COL_BG);
+    Paint_DrawString_EN(8, 36, disp, &Font20, COL_BG, COL_WHITE);  // ver nota arriba
   }
 }
 
