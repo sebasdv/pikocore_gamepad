@@ -333,9 +333,12 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
   const uint8_t lit = (uint8_t)(((uint32_t)val * kSegs + 2047u) / 4095u);
   for (uint8_t i = 0; i < kSegs; i++) {
     const uint16_t x = (uint16_t)(kX0 + i * kPitch);
-    Paint_DrawRectangle(x, bar_y, (uint16_t)(x + kSegW), (uint16_t)(bar_y + 13),
-                        i < lit ? col : COL_DARK, DOT_PIXEL_1X1,
-                        DRAW_FILL_FULL);
+    // -1: Paint_DrawRectangle incluye AMBOS extremos, así que x..x+kSegW son
+    // kSegW+1 px. Sin esto el bloque medía 7px con pitch 7 -- se tocaban entre
+    // sí y la barra se veía sólida (confirmado en hardware).
+    Paint_DrawRectangle(x, bar_y, (uint16_t)(x + kSegW - 1),
+                        (uint16_t)(bar_y + 13), i < lit ? col : COL_DARK,
+                        DOT_PIXEL_1X1, DRAW_FILL_FULL);
   }
   char v[4];
   snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
