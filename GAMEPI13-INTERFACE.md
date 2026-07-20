@@ -370,11 +370,11 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   bloqueado para siempre. Fix: mover el bloque de reintento para que corra *antes* de
   `gamepi_ui_tick()`, dándole prioridad. Confirmado en hardware: entra y sale del modo 8
   repetidamente sin problema después del fix.
-  **Hallazgo relacionado, pendiente de investigar:** después del fix, el indicador
-  "Cargado (banco activo)" se ve bien justo después de cargar un banco, pero se pierde
-  si se sale del modo 8 y se vuelve a entrar más tarde — no se encontró la causa
-  todavía (el código de `is_active`/`gamepi_active_bank_name` se ve correcto en una
-  lectura estática).
+  **Hallazgo relacionado, descartado como bug:** al principio pareció que el indicador
+  "Cargado (banco activo)" se perdía al salir y volver a entrar al modo 8 — pero era
+  simplemente que reingresar resetea la navegación al primer archivo de la lista (no
+  necesariamente el que está cargado). Confirmado en hardware navegando puntualmente
+  hasta el archivo cargado tras reingresar: el indicador funciona correctamente.
 - **RESUELTO — el cambio de sample no se veía en el dashboard mientras el reproductor
   estaba detenido, solo mientras sonaba.** Causa real: el nombre/índice de sample que
   muestra el dashboard se armaba a partir de `sample_set`, que solo se sincroniza desde
