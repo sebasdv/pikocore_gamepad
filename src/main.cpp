@@ -2237,7 +2237,14 @@ int main(void) {
             clock_input_ittybittymidi ? 2 : ((is_syncing && do_sync_play) ? 1 : 0);
         uint16_t ui_scount = (uint16_t)piko_audio_sample_count();
         uis.sample_count = ui_scount;
-        uis.sample_idx = ui_scount ? (uint16_t)(sample_set % ui_scount) : 0;
+        // sample_change (no sample_set) para que el dashboard refleje la
+        // selección al instante -- sample_set solo se sincroniza desde
+        // sample_change en un evento de compás dentro de la ISR de audio
+        // (pwm_interrupt_handler), que nunca ocurre mientras el reproductor
+        // está detenido (do_mute), dejando el display congelado hasta que
+        // vuelve a sonar. sample_change ya está siempre acotado a un rango
+        // válido por todos los puntos donde se escribe.
+        uis.sample_idx = ui_scount ? (uint16_t)(sample_change % ui_scount) : 0;
         if (ui_scount > 0) {
           const char *nm = piko_audio_sample(uis.sample_idx).name;
           size_t n = 0;
