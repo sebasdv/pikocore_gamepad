@@ -401,6 +401,17 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   `button_on2` solo es válido durante un combo real de 2 botones, nunca en el camino de
   probabilidad pura. Confirmado en hardware: con break fx al máximo, Start ahora
   detiene la reproducción correctamente.
+- **RESUELTO (bug preexistente de pikocore, encontrado en un code review) — se
+  guardaba a flash el valor de probabilidad equivocado para gate y retrig.** Tres
+  instancias del mismo copy-paste (`src/main.cpp`, dos en el switch de knob B y una en
+  `param_set_break()`): tras computar `probability_gate`/`probability_retrig`, se
+  guardaba `probability_direction`/`probability_jump` en su slot de `save_data`. Como la
+  carga al arrancar lee justo esos slots (`probability_gate = save_data[SAVE_PROB_GATE]`,
+  etc.), después de un guardado + ciclo de encendido esos dos parámetros se restauraban
+  con el valor de reversa/salto en vez del propio. Fix: guardar el valor recién
+  computado. Confirmado en hardware con valores extremos (retrig al máximo, jump a 0,
+  guardar, reiniciar → se oyen los stutters al azar restaurados; con el bug se cargaba
+  el 0 de jump y no había ninguno).
 - **RESUELTO — lecturas XIP fantasma en el arranque.** En esta placa, las lecturas de
   flash vía XIP durante los primeros instantes después de `set_sys_clock_khz(248000)`
   devuelven datos corruptos de forma determinista (el header del banco de audio se leía
