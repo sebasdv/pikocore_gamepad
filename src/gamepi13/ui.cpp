@@ -312,15 +312,35 @@ static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
   }
 }
 
-static void draw_bar(uint16_t bar_y, uint16_t val, UWORD col) {
-  // frame + fill: 224 px wide, 14 px tall (unchanged geometry, new y)
-  Paint_DrawRectangle(8, bar_y, 231, (uint16_t)(bar_y + 13), COL_DARK,
-                      DOT_PIXEL_1X1, DRAW_FILL_FULL);
-  uint16_t w = (uint16_t)((uint32_t)val * 224u / 4095u);
-  if (w > 0) {
-    Paint_DrawRectangle(8, bar_y, (uint16_t)(8 + w), (uint16_t)(bar_y + 13),
-                        col, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+// Barra de parámetro segmentada + valor 0-127 (dirección Elektron aprobada).
+// Los 25 segmentos SON los pasos de botón: GAMEPI_KNOB_STEP=164 de 4095 da
+// 4095/164 ≈ 25 toques de punta a punta, así que cada toque enciende
+// exactamente un bloque. El relleno continuo anterior mentía sobre eso -- el
+// control es discreto porque no hay knobs, sólo L/R. El número da la magnitud
+// precisa, normalizada a 0-127 igual para todos los parámetros (mismo rango
+// que usa Elektron/MIDI), que es lo que los segmentos por sí solos no dicen.
+// Geometría: 25 bloques de 6px con 1px de aire = 174px (x8..182), y el valor
+// alineado a la derecha en x=231, dejando ~25px de separación.
+// Los dígitos son los kBankDigits actuales; cuando lleguen los condensados de
+// 20px se cambian acá y toda la UI hereda el estilo nuevo.
+static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
+  constexpr uint16_t kX0 = 8;
+  constexpr uint8_t kSegs = 25;
+  constexpr uint16_t kSegW = 6;
+  constexpr uint16_t kPitch = kSegW + 1;
+  // Redondeo al paso más cercano para que el último toque encienda el bloque
+  // 25 exacto en el tope (val=4095), sin quedarse en 24 por truncamiento.
+  const uint8_t lit = (uint8_t)(((uint32_t)val * kSegs + 2047u) / 4095u);
+  for (uint8_t i = 0; i < kSegs; i++) {
+    const uint16_t x = (uint16_t)(kX0 + i * kPitch);
+    Paint_DrawRectangle(x, bar_y, (uint16_t)(x + kSegW), (uint16_t)(bar_y + 13),
+                        i < lit ? col : COL_DARK, DOT_PIXEL_1X1,
+                        DRAW_FILL_FULL);
   }
+  char v[4];
+  snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
+  draw_digit_string(231, (uint16_t)(bar_y + 1), v, kBankDigits, nullptr, 0, 0,
+                    true);
 }
 
 // Un color por modo para la barra de Function A/B (y el fallback de texto de
@@ -371,9 +391,11 @@ static void draw_function_a(const GamepiUiState &s) {
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
   draw_function_label(107, kModeABitmap[m], kModeA[m], kModeColorA[m]);
   if (m == 0) {
+    // Excepción: selección de sample es una lista discreta, no un parámetro
+    // continuo -- sigue siendo el paginador con su propio índice.
     draw_sample_bar(132, s.sample_idx, s.sample_count, kModeColorA[m]);
   } else {
-    draw_bar(132, s.knob_a, kModeColorA[m]);
+    draw_stepped_bar(132, s.knob_a, kModeColorA[m]);
   }
 }
 
@@ -381,7 +403,7 @@ static void draw_function_b(const GamepiUiState &s) {
   clear_zone(kRect[W_BARB]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
   draw_function_label(157, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
-  draw_bar(182, s.knob_b, kModeColorB[m]);
+  draw_stepped_bar(182, s.knob_b, kModeColorB[m]);
 }
 
 static void draw_dots(const GamepiUiState &s) {
