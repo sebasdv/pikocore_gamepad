@@ -131,11 +131,13 @@ uint64_t gamepi_next_repeat_r_us = 0;
 // 1/5/20 BPM tier).
 uint64_t gamepi_tempo_hold_l_us = 0;
 uint64_t gamepi_tempo_hold_r_us = 0;
-// Cuenta pasos de selección de sample dados durante el hold actual de L/R
-// (se resetea a 0 al soltar) -- ver GAMEPI_SAMPLE_FIRST_REPEAT_US en
-// hw_gamepi13.h para por qué el paso #2 espera más que los siguientes.
-uint8_t gamepi_sample_repeat_count_l = 0;
-uint8_t gamepi_sample_repeat_count_r = 0;
+// Cuenta pasos dados durante el hold actual de L/R, para cualquier parámetro
+// (se resetea a 0 al soltar) -- ver GAMEPI_FIRST_REPEAT_US en hw_gamepi13.h
+// para por qué el paso #2 espera más que los siguientes. Satura en 2: sólo
+// interesa distinguir "recién di el primero" del resto, y así no puede
+// desbordar en un hold largo.
+uint8_t gamepi_repeat_count_l = 0;
+uint8_t gamepi_repeat_count_r = 0;
 bool gamepi_start_used_as_modifier = false;
 // Mirrors gamepi_start_used_as_modifier: Select's own tap-vs-hold-modifier
 // distinction (see the Select handler in main()) for the new "hold Select +
@@ -2037,21 +2039,20 @@ int main(void) {
                 sample_change--;
                 save_data[SAVE_SAMPLE] = sample_change;
               }
-              if (gamepi_sample_repeat_count_l < 2) gamepi_sample_repeat_count_l++;
             } else {
               input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
             }
+            if (gamepi_repeat_count_l < 2) gamepi_repeat_count_l++;
             const uint64_t next_interval_l =
-                (is_sample_select && gamepi_sample_repeat_count_l == 1)
-                    ? GAMEPI_SAMPLE_FIRST_REPEAT_US
-                    : GAMEPI_REPEAT_US;
+                (gamepi_repeat_count_l == 1) ? GAMEPI_FIRST_REPEAT_US
+                                             : GAMEPI_REPEAT_US;
             gamepi_next_repeat_l_us = now_repeat_us + next_interval_l;
           }
         } else {
           gamepi_next_repeat_l_us = 0;
           gamepi_tempo_hold_l_us = 0;
-          gamepi_sample_repeat_count_l = 0;
+          gamepi_repeat_count_l = 0;
         }
         if (btn_r.On()) {
           if (is_tempo && gamepi_tempo_hold_r_us == 0) {
@@ -2074,21 +2075,20 @@ int main(void) {
                 sample_change++;
                 save_data[SAVE_SAMPLE] = sample_change;
               }
-              if (gamepi_sample_repeat_count_r < 2) gamepi_sample_repeat_count_r++;
             } else {
               input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
             }
+            if (gamepi_repeat_count_r < 2) gamepi_repeat_count_r++;
             const uint64_t next_interval_r =
-                (is_sample_select && gamepi_sample_repeat_count_r == 1)
-                    ? GAMEPI_SAMPLE_FIRST_REPEAT_US
-                    : GAMEPI_REPEAT_US;
+                (gamepi_repeat_count_r == 1) ? GAMEPI_FIRST_REPEAT_US
+                                             : GAMEPI_REPEAT_US;
             gamepi_next_repeat_r_us = now_repeat_us + next_interval_r;
           }
         } else {
           gamepi_next_repeat_r_us = 0;
           gamepi_tempo_hold_r_us = 0;
-          gamepi_sample_repeat_count_r = 0;
+          gamepi_repeat_count_r = 0;
         }
       }
 
