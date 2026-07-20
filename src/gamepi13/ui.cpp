@@ -28,6 +28,8 @@ extern "C" {
 #define COL_ORANGE 0xF4E1    // #f59e0b
 #define COL_ORANGE_DIM 0x7A40  // #7c4a03
 #define COL_GRAY 0x632C      // #666666
+#define COL_GRAY_MID 0x8410  // #808080 (waveform: slice activo, mono)
+#define COL_GRAY_DIM 0x4208  // #404040 (waveform: fondo, mono)
 #define COL_DARK 0x18C3      // #1a1a1a
 #define COL_RED 0xFB8E       // #f87171
 #define COL_ORANGE2 0xFC87   // #fb923c (distinto de COL_ORANGE/amber ya existente)
@@ -313,15 +315,14 @@ static void draw_wave(const GamepiUiState &s) {
   }
   for (uint16_t c = 0; c < 240; c++) {
     const uint8_t slice = (uint8_t)(c / 30);
-    UWORD col = COL_ORANGE_DIM;  // background waveform
+    // Monocromático: 3 niveles de gris en vez de naranja/cian. Fondo tenue
+    // (waveform siempre visible), slice activo gris medio, retrigger blanco
+    // (el indicador de stutter "gana" y es el más brillante).
+    UWORD col = COL_GRAY_DIM;  // background waveform
     if (s.retrig_leds_mask & (uint8_t)(1u << slice)) {
-      col = COL_CYAN;  // stutter indicator wins, same as the old LED strip
+      col = COL_WHITE;  // stutter indicator wins
     } else if (s.leds[slice] >= 8) {
-      // Collapsed from the old LED strip's 3-tier brightness (off/dim/bright)
-      // to 2 tiers here: the dim waveform IS the new "off" state, so this
-      // "lit" threshold (>= 8) reuses the old bright color at a lower bar
-      // than before, not the same threshold as the old >=128 bright tier.
-      col = COL_ORANGE;
+      col = COL_GRAY_MID;
     }
     const uint16_t y0 =
         (uint16_t)(kBot - ((uint16_t)wave_max[c] * (kBot - kTop)) / 255u);
@@ -458,9 +459,9 @@ static void draw_function_a(const GamepiUiState &s) {
   if (m == 0) {
     // Excepción: selección de sample es una lista discreta, no un parámetro
     // continuo -- sigue siendo el paginador con su propio índice.
-    draw_sample_bar(137, s.sample_idx, s.sample_count, kModeColorA[m]);
+    draw_sample_bar(137, s.sample_idx, s.sample_count, COL_WHITE);
   } else {
-    draw_stepped_bar(137, s.knob_a, kModeColorA[m]);
+    draw_stepped_bar(137, s.knob_a, COL_WHITE);
   }
 }
 
@@ -468,7 +469,7 @@ static void draw_function_b(const GamepiUiState &s) {
   clear_zone(kRect[W_BARB]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
   draw_function_label(162, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
-  draw_stepped_bar(187, s.knob_b, kModeColorB[m]);
+  draw_stepped_bar(187, s.knob_b, COL_WHITE);
 }
 
 static void draw_dots(const GamepiUiState &s) {
