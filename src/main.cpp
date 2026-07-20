@@ -1976,6 +1976,15 @@ int main(void) {
         // translated into huge BPM swings per repeat. This mirrors a
         // tap/hold-1s/hold-3s acceleration (1/5/20 BPM per repeat) instead.
         const bool is_tempo = (gamepi_selector == 7 && active_knob == 2);
+        // Selección de sample (modo 0, Function A) tiene el mismo problema que
+        // tuvo Tempo: el paso genérico de knob (GAMEPI_KNOB_STEP=164 de 4095)
+        // es mucho más chico que el "casillero" de cada sample cuando el
+        // banco tiene pocas muestras, así que un solo toque casi nunca
+        // alcanza a cruzar al siguiente. Mismo mecanismo que is_tempo: evita
+        // Adjust() y escribe sample_change directamente, ±1 por
+        // toque/repetición, sin acelerar, con clamp en los extremos (sin dar
+        // la vuelta) -- ver docs/superpowers/specs/2026-07-19-sample-select-direct-step-design.md.
+        const bool is_sample_select = (gamepi_selector == 0 && active_knob == 1);
         if (btn_l.On()) {
           if (is_tempo && gamepi_tempo_hold_l_us == 0) {
             gamepi_tempo_hold_l_us = now_repeat_us;
@@ -1992,6 +2001,12 @@ int main(void) {
                                       : GAMEPI_TEMPO_MIN_BPM;
               param_set_bpm(new_bpm, bpm_set, beat_thresh, audio_clk_thresh);
               gamepi_start_used_as_modifier = true;
+            } else if (is_sample_select) {
+              const uint16_t sample_count = (uint16_t)piko_audio_sample_count();
+              if (sample_count > 0 && sample_change > 0) {
+                sample_change--;
+                save_data[SAVE_SAMPLE] = sample_change;
+              }
             } else {
               input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
@@ -2017,6 +2032,12 @@ int main(void) {
               if (new_bpm > GAMEPI_TEMPO_MAX_BPM) new_bpm = GAMEPI_TEMPO_MAX_BPM;
               param_set_bpm(new_bpm, bpm_set, beat_thresh, audio_clk_thresh);
               gamepi_start_used_as_modifier = true;
+            } else if (is_sample_select) {
+              const uint16_t sample_count = (uint16_t)piko_audio_sample_count();
+              if (sample_count > 0 && sample_change < sample_count - 1) {
+                sample_change++;
+                save_data[SAVE_SAMPLE] = sample_change;
+              }
             } else {
               input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
