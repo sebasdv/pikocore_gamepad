@@ -29,6 +29,16 @@
 // ~61.7 kHz, ~247x faster, so the tick-counted delay fired in well under a
 // millisecond instead of the intended ~100 ms.
 #define GAMEPI_REPEAT_US 100000  // repeat every 100 ms while L/R is held
+// Selección de sample (modo 0, Function A): un toque humano "rápido" real
+// suele durar 150-300ms entre presionar y soltar -- más que GAMEPI_REPEAT_US,
+// así que el mecanismo de repetición disparaba un SEGUNDO paso (el primer
+// "repeat") antes de soltar el botón, percibido como "cambia al presionar y
+// al soltar" en vez de exactamente una vez. Mismo patrón que el "typematic
+// delay" de un teclado: el primer paso es inmediato, pero el SEGUNDO espera
+// este intervalo más largo antes de disparar (no GAMEPI_REPEAT_US); a partir
+// del tercer paso en adelante, vuelve a la cadencia normal de 100ms. No
+// afecta a is_tempo, que sigue usando GAMEPI_REPEAT_US sin cambios.
+#define GAMEPI_SAMPLE_FIRST_REPEAT_US 350000  // 350 ms antes del 2do paso
 
 // Tempo (mode 7 / Volumen, Function B) direct bpm_set adjustment. BPM's
 // practical range (20-360) is much narrower than the generic 0-4095 knobs
