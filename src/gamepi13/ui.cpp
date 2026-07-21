@@ -622,12 +622,16 @@ void gamepi_ui_init() {
   Paint_NewImage(fb, LCD_1IN3_WIDTH, LCD_1IN3_HEIGHT, GAMEPI_LCD_ROTATE, BLACK);
   Paint_SetScale(65);
   Paint_Clear(COL_BG);
-  // splash: "pikocore" wordmark, designed in Lopaka (see splash_logo.h) --
-  // drawn once into the framebuffer at full brightness. The fade-in below
-  // is done via the backlight PWM, not by blending pixel colors -- there's
-  // no alpha/blend support in Paint_DrawImage(), and ramping the backlight
-  // is both simpler and cheaper (no extra SPI redraws).
-  Paint_DrawImage((const unsigned char *)kSplashLogoPixels, 36, 97,
+  // splash designed in Lopaka (see splash_logo.h) -- drawn once into the
+  // framebuffer at full brightness. The fade-in below is done via the backlight
+  // PWM, not by blending pixel colors -- there's no alpha/blend support in
+  // Paint_DrawImage(), and ramping the backlight is both simpler and cheaper
+  // (no extra SPI redraws).
+  // Centrado por cálculo y no con constantes fijas: así sobrevive a un cambio
+  // de arte sin quedar corrido (el splash anterior era 167x46, éste 183x92).
+  Paint_DrawImage((const unsigned char *)kSplashLogoPixels,
+                   (LCD_1IN3_WIDTH - SPLASH_LOGO_WIDTH) / 2,
+                   (LCD_1IN3_HEIGHT - SPLASH_LOGO_HEIGHT) / 2,
                    SPLASH_LOGO_WIDTH, SPLASH_LOGO_HEIGHT);
   LCD_1IN3_Display((UWORD *)fb);
   // Fade the backlight in over ~300ms, then hold at splash brightness for
