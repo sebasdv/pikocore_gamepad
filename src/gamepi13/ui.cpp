@@ -382,9 +382,11 @@ static inline uint16_t bar_bot(uint16_t bar_y) {
 // icon != nullptr (modo 6, Save/Load state): en vez del valor 0-127 se dibuja
 // ese ícono de 15x16. icon_lit lo enciende (blanco) cuando la acción se
 // concretó; apagado queda gris.
+// print_value >= 0 reemplaza el número por ese valor crudo, en vez del 0-127
+// derivado de val (lo usa Tempo, que muestra BPM).
 static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col,
                              const unsigned char *icon = nullptr,
-                             bool icon_lit = false) {
+                             bool icon_lit = false, int16_t print_value = -1) {
   constexpr uint16_t kX0 = 0;
   constexpr uint8_t kSegs = 25;
   constexpr uint16_t kSegW = 6;
@@ -410,8 +412,10 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col,
                          icon_lit ? COL_WHITE : COL_GRAY);
     return;
   }
-  char v[4];
-  snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
+  char v[6];
+  snprintf(v, sizeof(v), "%u",
+           print_value >= 0 ? (unsigned)print_value
+                            : (unsigned)((uint32_t)val * 127u / 4095u));
   // Alineado a la DERECHA con borde en x237, el mismo riel derecho que los
   // iconos de play/stop (stop termina en x237). El número crece hacia la
   // izquierda desde ahí; "127" (33px) llega a x204, sin pisar la barra (x181).
@@ -488,6 +492,15 @@ static void draw_function_b(const GamepiUiState &s) {
   if (m == 6) {
     // Load state: mismo criterio que Save en draw_function_a().
     draw_stepped_bar(187, s.knob_b, COL_WHITE, kFileLoadedBits, s.state_loaded);
+  } else if (m == 7) {
+    // Tempo: el BPM se ajusta DIRECTO (param_set_bpm en main.cpp), sin pasar
+    // por el knob virtual -- s.knob_b se queda huérfano y no representa nada
+    // acá. La barra se deriva del BPM real sobre su rango útil (20-360) y el
+    // número muestra el BPM, no el 0-127 genérico de los demás parámetros.
+    const uint16_t bpm = s.bpm < 20u ? 20u : (s.bpm > 360u ? 360u : s.bpm);
+    const uint16_t val =
+        (uint16_t)(((uint32_t)(bpm - 20u) * 4095u) / (360u - 20u));
+    draw_stepped_bar(187, val, COL_WHITE, nullptr, false, (int16_t)bpm);
   } else {
     draw_stepped_bar(187, s.knob_b, COL_WHITE);
   }
@@ -625,6 +638,9 @@ void gamepi_ui_tick(const GamepiUiState &s) {
     }
     if (s.knob_a != drawn.knob_a) dirty[W_BARA] = true;
     if (s.knob_b != drawn.knob_b) dirty[W_BARB] = true;
+    // Modo 7 Function B (Tempo) dibuja el BPM, no el knob -- sin esto la barra
+    // se quedaría quieta al ajustar el tempo (el knob virtual no se mueve).
+    if (s.bpm != drawn.bpm && s.mode == 7) dirty[W_BARB] = true;
     // Modo 6: encender/apagar el ícono de save/load es un cambio de estado
     // propio, sin movimiento de knob -- sin esto el ícono nunca se refrescaría.
     if (s.state_saved != drawn.state_saved) dirty[W_BARA] = true;
