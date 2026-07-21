@@ -474,30 +474,28 @@ static void draw_function_b(const GamepiUiState &s) {
 
 static void draw_dots(const GamepiUiState &s) {
   clear_zone(kRect[W_DOTS]);
-  // 9 icons (M_0..M_7 + M_SD), 18px pitch starting at x=27 -- matches
-  // MODE_0.txt exactly (M_SD sits right after M_7 at x=27+8*18=171).
-  // Dimming factor is a first-attempt value (~35% brightness), tune on
-  // hardware per the design spec's Riesgos conocidos.
-  constexpr uint8_t kInactiveDim = 90;
+  // Indicadores de modo: un cuadrado sólido de 20x20 por modo. Gris el
+  // inactivo, blanco el seleccionado. Distribución uniforme y centrada: cada
+  // cuadrado va centrado en un "slot" de 240/kIconCount px, así el bloque queda
+  // simétrico respecto al ancho de pantalla sea cual sea el número de modos.
   // Con el modo 8 (Browse SD) aparcado -- PIKO_GAMEPI13_SD=0, ver CMakeLists --
-  // el selector nunca llega al 8, asi que no se dibuja su icono: quedaria uno
-  // muerto que nunca se enciende.
+  // el selector nunca llega al 8, así que no se dibuja su cuadrado.
 #if PIKO_GAMEPI13_SD
   constexpr uint8_t kIconCount = 9;
 #else
   constexpr uint8_t kIconCount = 8;
 #endif
+  constexpr uint16_t kSq = 20;
+  const uint16_t slot = (uint16_t)(240u / kIconCount);
+  const uint16_t off = (uint16_t)((slot - kSq) / 2u);
+  const uint16_t y = 212;
   for (uint8_t i = 0; i < kIconCount; i++) {
-    const ModeIcon &icon = kModeIcons[i];
-    const uint16_t x = (uint16_t)(27 + i * 18);
+    const uint16_t x = (uint16_t)(i * slot + off);
     const bool active = (i < 8) ? (s.mode == i) : (s.mode == 8);
-    if (active) {
-      Paint_DrawImage((const unsigned char *)icon.pixels, x, 212, icon.w,
-                       icon.h);
-    } else {
-      Paint_DrawImageDimmed(icon.pixels, x, 212, icon.w, icon.h,
-                            kInactiveDim);
-    }
+    // -1: Paint_DrawRectangle incluye ambos extremos (20px = x..x+19).
+    Paint_DrawRectangle(x, y, (uint16_t)(x + kSq - 1), (uint16_t)(y + kSq - 1),
+                        active ? COL_WHITE : COL_GRAY, DOT_PIXEL_1X1,
+                        DRAW_FILL_FULL);
   }
 }
 
