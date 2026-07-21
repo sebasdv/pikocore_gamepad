@@ -60,13 +60,19 @@ from the same tree — see the [upstream build instructions](#upstream-pikocore)
 
 ## Loading samples
 
-```
-cd web && npm install && npm run dev
-```
+Use the loader at **[sebasdv.github.io/pikocore_gamepad](https://sebasdv.github.io/pikocore_gamepad/)**
+— no local server needed, just open it in a browser that supports Web Serial
+(Chrome/Edge).
 
 Build a bank from your own samples and either load it straight over USB, or use
 the "Download bank" button to produce a `.pikobank` file for a microSD card (if
 built with SD support).
+
+To run the loader locally instead (e.g. for development):
+
+```
+cd web && npm install && npm run dev
+```
 
 ## Controls
 
