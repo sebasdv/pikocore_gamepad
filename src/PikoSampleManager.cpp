@@ -223,7 +223,8 @@ void handle_info() {
   char info[256];
   uint32_t used = 0;
   int n = snprintf(info + used, sizeof(info) - used,
-                   "PIKO1 FW 2.2 F %lu R %lu S %lu A %lu C %lu U %lu SR %lu N %lu CLOCK_INPUT %s PROTO 1 BANK_VERSION %lu BANK_HEADER_SIZE %lu BANK_MAX_SAMPLES %lu\nEND\n",
+                   "PIKO1 FW %s F %lu R %lu S %lu A %lu C %lu U %lu SR %lu N %lu CLOCK_INPUT %s PROTO 1 BANK_VERSION %lu BANK_HEADER_SIZE %lu BANK_MAX_SAMPLES %lu\nEND\n",
+                   PIKO_FIRMWARE_VERSION,
                    static_cast<unsigned long>(piko_flash_total_bytes()),
                    static_cast<unsigned long>(PIKO_FIRMWARE_RESERVE),
                    static_cast<unsigned long>(piko_settings_flash_offset()),

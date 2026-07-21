@@ -3,6 +3,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+// Versión de firmware, no del formato de banco (ver PIKO_BANK_VERSION abajo).
+// Única fuente de verdad: reusada tanto por el log de debug USB
+// (PikoSampleManager.cpp) como por el splash de arranque en GamePi13
+// (src/gamepi13/ui.cpp), para no repetir el número en dos lugares.
+static constexpr const char *PIKO_FIRMWARE_VERSION = "2.2";
+
 static constexpr uint32_t PIKO_BANK_MAGIC = 0x4f4b4950u;  // "PIKO"
 static constexpr uint32_t PIKO_BANK_VERSION = 2u;
 static constexpr uint32_t PIKO_BANK_HEADER_SIZE = 12288u;

@@ -629,10 +629,38 @@ void gamepi_ui_init() {
   // (no extra SPI redraws).
   // Centrado por cálculo y no con constantes fijas: así sobrevive a un cambio
   // de arte sin quedar corrido (el splash anterior era 167x46, éste 183x92).
+  const uint16_t splash_y = (LCD_1IN3_HEIGHT - SPLASH_LOGO_HEIGHT) / 2;
   Paint_DrawImage((const unsigned char *)kSplashLogoPixels,
-                   (LCD_1IN3_WIDTH - SPLASH_LOGO_WIDTH) / 2,
-                   (LCD_1IN3_HEIGHT - SPLASH_LOGO_HEIGHT) / 2,
+                   (LCD_1IN3_WIDTH - SPLASH_LOGO_WIDTH) / 2, splash_y,
                    SPLASH_LOGO_WIDTH, SPLASH_LOGO_HEIGHT);
+  // Marca de versión debajo del splash: etiqueta "VER" (bitmap) + el número de
+  // PIKO_FIRMWARE_VERSION (PikoAudioBank.h, misma constante que el log de
+  // debug USB) con los dígitos chicos de SPLASH.txt. Se centra el bloque
+  // completo (label + gap + dígitos) como una unidad, no cada parte por
+  // separado, para que quede prolijo sea cual sea el largo del string.
+  {
+    constexpr uint16_t kGap = 6;
+    uint16_t ver_w = 0;
+    for (const char *p = PIKO_FIRMWARE_VERSION; *p; p++) {
+      ver_w = (uint16_t)(ver_w + (*p == '.' ? kVerDotW : kVerDigits[*p - '0'].w));
+    }
+    uint16_t x = (uint16_t)((LCD_1IN3_WIDTH - (kVerLabelW + kGap + ver_w)) / 2);
+    const uint16_t y = (uint16_t)(splash_y + SPLASH_LOGO_HEIGHT + 8);
+    Paint_DrawImage((const unsigned char *)kVerLabel, x, y, kVerLabelW,
+                    kVerLabelH);
+    x = (uint16_t)(x + kVerLabelW + kGap);
+    for (const char *p = PIKO_FIRMWARE_VERSION; *p; p++) {
+      if (*p == '.') {
+        Paint_DrawImage((const unsigned char *)kVerDot, x, y, kVerDotW,
+                        kVerDotH);
+        x = (uint16_t)(x + kVerDotW);
+      } else {
+        const VerDigitGlyph &g = kVerDigits[*p - '0'];
+        Paint_DrawImage((const unsigned char *)g.pixels, x, y, g.w, g.h);
+        x = (uint16_t)(x + g.w);
+      }
+    }
+  }
   LCD_1IN3_Display((UWORD *)fb);
   // Fade the backlight in over ~300ms, then hold at splash brightness for
   // the rest of a ~2s total on-screen time before the dashboard takes over.
