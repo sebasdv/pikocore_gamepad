@@ -151,6 +151,38 @@ sección 5 para un bug real que esto mismo destapó durante las pruebas.
 | 7 | Volumen / distorsión | **Tempo (BPM)** |
 | 8 | Browse SD — ver sección 3.1 | (no aplica) |
 
+### 3.2 Cómo funciona el secuenciador (modo 5)
+
+No graba audio ni notas: graba **qué slice tocaste en cada beat** (un número 0-7, el
+índice del botón musical) y después reproduce esa lista en loop. La memoria es
+`mem[128]` en [`doth/sequencer.h`](doth/sequencer.h) -- 128 pasos como máximo.
+
+**Sólo graba mientras mantenés apretado un botón musical.** En el manejador de beats
+(`src/main.cpp`), `sequencer.Record(select_beat)` se llama únicamente dentro del
+`if (button_on < NUM_BUTTONS)`, o sea un paso por beat y sólo si hay un botón
+presionado. Si no tocás nada no se graba nada, ni siquiera un silencio.
+
+Las dos barras del modo 5 **no son parámetros continuos sino selectores por zonas**, y
+ese es el motivo de que el modo resultara incomprensible: el 0-127 genérico no decía
+nada, y los saltos de comportamiento eran invisibles.
+
+| Barra | Zona | Qué hace |
+|---|---|---|
+| **REC SEQ** (Function A) | knob < 1000 (bloque 6 de 25) | **BORRA** la secuencia (`Reset()`) |
+| | 1000-3500 | Apagado, conserva lo grabado |
+| | knob > 3500 (bloque 21) | **GRABANDO** |
+| **PLAY SEQ** (Function B) | knob < 2200 (bloque 13) | Detenido |
+| | knob > 2200 | **REPRODUCIENDO** en loop |
+
+Grabar y reproducir son mutuamente excluyentes (activar uno apaga el otro). Durante la
+reproducción, `select_beat = mem[beat_num_total % len]`; apretar un botón musical **pisa**
+al secuenciador para ese beat (y lo re-graba, si está grabando).
+
+La UI hoy muestra: los **pasos grabados** en REC SEQ, **paso actual/total** en PLAY SEQ, un
+**ícono de estado** (REC / PLAY / DEL, atenuado cuando no está activo) en la fila de la
+etiqueta, y los **bloques de umbral en gris medio** para que se vea dónde cambia el
+comportamiento.
+
 Las barras de Function A/B tuvieron un color propio por modo durante un tiempo; se
 descartó al pasar el dashboard a monocromático (sección 4). Hoy todas son blancas. Las
 tablas `kModeColorA/B` siguen en `ui.cpp` sin uso, por si alguna vez se quiere volver.
@@ -550,6 +582,13 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   apagados = hay cambios sin guardar. Al no ser un instante, cualquier redibujo posterior
   muestra el valor correcto. **Regla general para este dashboard: la señalización visual
   debe ser de estado, no de evento.**
+
+- **RESUELTO — desborde del secuenciador a los 128 pasos.** `Sequencer::Record()` hacía
+  `mem[len] = v; len++;` sin tope, con `mem[128]` y `len` de 8 bits: grabar más de 128
+  beats seguidos escribía fuera del array y después `len` daba la vuelta. A 120 BPM son
+  ~64 s manteniendo un botón, perfectamente alcanzable. Viene del pikocore original. Ahora
+  frena en el tope conservando lo grabado, y `NextI()` devuelve 0 con la secuencia vacía en
+  vez de dividir por cero.
 
 ## 6. Ideas para mejoras futuras
 
