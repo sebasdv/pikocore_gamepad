@@ -93,6 +93,16 @@
 #define SAVE_PROB_GATE 11
 #define SAVE_PROB_TUNNEL 12
 #define SAVE_CLOCK_INPUT_MODE 13
+// GamePi13: posición de los knobs virtuales de Function A/B por modo.
+// 8 modos x 2 knobs x 2 bytes = 32 bytes, ocupa 14..45. Es zona libre: el
+// secuenciador se queda con 98/99 y 100..227 (ver sequencer.h), y los
+// marcadores de validez viven en FLASH_PAGE_SIZE-1..-4.
+#define SAVE_KNOB_BY_MODE 14
+// Un save anterior a esta versión tiene ceros en 14..45, indistinguible de
+// "todos los knobs guardados en 0". Este byte mágico dice si el bloque es
+// válido; si no lo es, se conservan los valores por defecto.
+#define SAVE_KNOB_MAGIC 46
+#define SAVE_KNOB_MAGIC_VALUE 0xA5
 #define CLOCK_INPUT_CLOCK 0
 #define CLOCK_INPUT_MIDI 1
 #define MIDI_NOTES_AVAILABLE_TOTAL 28
@@ -138,19 +148,24 @@ static uint16_t gamepi_knob_by_mode[8][2] = {
     {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048},
     {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048}};
 
+// El modo 8 (Browse SD) no tiene Function A/B, así que se ignora en ambos
+// sentidos: se sale de él con los knobs del modo destino intactos.
+static void gamepi_store_mode_knobs(uint8_t mode) {
+  if (mode >= 8) return;
+  gamepi_knob_by_mode[mode][0] = input_knob[1].Value();
+  gamepi_knob_by_mode[mode][1] = input_knob[2].Value();
+}
+static void gamepi_restore_mode_knobs(uint8_t mode) {
+  if (mode >= 8) return;
+  input_knob[1].SetQuiet(gamepi_knob_by_mode[mode][0]);
+  input_knob[2].SetQuiet(gamepi_knob_by_mode[mode][1]);
+}
 // Guarda la posición de los knobs del modo que se deja y restaura la del que se
-// entra. El modo 8 (Browse SD) no tiene Function A/B, así que se ignora en
-// ambos sentidos: se sale de él con los knobs del modo destino intactos.
+// entra.
 static void gamepi_switch_mode_knobs(uint8_t from, uint8_t to) {
   if (from == to) return;
-  if (from < 8) {
-    gamepi_knob_by_mode[from][0] = input_knob[1].Value();
-    gamepi_knob_by_mode[from][1] = input_knob[2].Value();
-  }
-  if (to < 8) {
-    input_knob[1].SetQuiet(gamepi_knob_by_mode[to][0]);
-    input_knob[2].SetQuiet(gamepi_knob_by_mode[to][1]);
-  }
+  gamepi_store_mode_knobs(from);
+  gamepi_restore_mode_knobs(to);
 }
 // Real-elapsed-time gating for L/R auto-repeat (Function A/B). See
 // GAMEPI_REPEAT_US's comment in hw_gamepi13.h for why this isn't tick-based
@@ -1697,6 +1712,21 @@ int main(void) {
     save_data[FLASH_PAGE_SIZE - 2] = 0x02;
     save_data[FLASH_PAGE_SIZE - 3] = 0x03;
     save_data[FLASH_PAGE_SIZE - 4] = 0x04;
+#if PIKO_GAMEPI13
+    // El modo actual todavía tiene sus valores "vivos" en input_knob -- la
+    // tabla por modo solo se actualiza al CAMBIAR de modo, así que hay que
+    // volcarlos antes de serializar o se guardaría el valor previo.
+    gamepi_store_mode_knobs(gamepi_selector);
+    for (uint8_t m = 0; m < 8; m++) {
+      for (uint8_t k = 0; k < 2; k++) {
+        const uint16_t v = gamepi_knob_by_mode[m][k];
+        const uint16_t off = (uint16_t)(SAVE_KNOB_BY_MODE + (m * 2 + k) * 2);
+        save_data[off] = (uint8_t)(v >> 8);
+        save_data[off + 1] = (uint8_t)v;
+      }
+    }
+    save_data[SAVE_KNOB_MAGIC] = SAVE_KNOB_MAGIC_VALUE;
+#endif
     sequencer.Save(save_data);
 #ifdef DEBUG_SAVE
     print_buf(save_data, FLASH_PAGE_SIZE);
@@ -1837,6 +1867,26 @@ int main(void) {
         save_data[SAVE_CLOCK_INPUT_MODE] =
             clock_input_ittybittymidi ? CLOCK_INPUT_MIDI : CLOCK_INPUT_CLOCK;
         reset_clock_timing();
+#if PIKO_GAMEPI13
+        // Posición de los knobs de Function A/B por modo. Sin esto, al bootear
+        // la barra de cada modo mostraba el medio (2048) hasta tocarla, porque
+        // no hay forma de deducir la posición de knob a partir del parámetro
+        // cargado (haría falta la inversa de cada mapeo). El byte mágico evita
+        // interpretar un save viejo (ceros en esa zona) como "todo en 0".
+        if (save_data[SAVE_KNOB_MAGIC] == SAVE_KNOB_MAGIC_VALUE) {
+          for (uint8_t m = 0; m < 8; m++) {
+            for (uint8_t k = 0; k < 2; k++) {
+              const uint16_t off =
+                  (uint16_t)(SAVE_KNOB_BY_MODE + (m * 2 + k) * 2);
+              uint16_t v =
+                  (uint16_t)(((uint16_t)save_data[off] << 8) | save_data[off + 1]);
+              if (v > 4095) v = 4095;
+              gamepi_knob_by_mode[m][k] = v;
+            }
+          }
+          gamepi_restore_mode_knobs(gamepi_selector);
+        }
+#endif
         sequencer.Load(save_data);
 #ifdef DEBUG_SAVE
         printf("volume_reduce: %d\n", volume_reduce);
