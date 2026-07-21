@@ -186,6 +186,20 @@ uint64_t gamepi_state_saved_us = 0;
 uint64_t gamepi_state_loaded_us = 0;
 #define GAMEPI_STATE_FLASH_US 1500000ull
 
+// Indicador de los íconos del modo 6: true = lo que está en memoria coincide
+// con lo que hay en flash. Se enciende al guardar y al cargar (ahí memoria y
+// flash coinciden por definición) y se apaga en cuanto se toca un parámetro.
+//
+// Es un ESTADO PERMANENTE y no un flash temporal a propósito. La primera
+// versión encendía el ícono 1,5 s tras guardar, y reproduciendo no se veía: el
+// dashboard dibuja UN widget por ventana de flush, por índice, y si el
+// redibujo de esa zona se pierde en esa ventana el aviso se pierde con él
+// (confirmado en hardware: reproduciendo tampoco volvía a 0 la barra, o sea la
+// zona entera quedaba sin redibujar). Al ser un estado persistente, cualquier
+// redibujo posterior muestra el valor correcto -- no hay instante que perder.
+// Además informa algo más útil: si te falta guardar.
+bool gamepi_state_in_sync = false;
+
 // El modo 6 no controla un "parámetro": sus dos barras son un gesto MOMENTÁNEO
 // (llenar la barra = disparar la acción). Se vacían después de cada acción por
 // dos motivos:
@@ -1857,6 +1871,7 @@ int main(void) {
         save_settings();
 #if PIKO_GAMEPI13
         gamepi_state_saved_us = time_us_64();
+        gamepi_state_in_sync = true;
         gamepi_clear_state_bars();
 #endif
 #ifdef DEBUG_SAVE
@@ -1967,6 +1982,7 @@ int main(void) {
         sequencer.Load(save_data);
 #if PIKO_GAMEPI13
         gamepi_state_loaded_us = time_us_64();
+        gamepi_state_in_sync = true;
         gamepi_clear_state_bars();
 #endif
 #ifdef DEBUG_SAVE
@@ -2209,6 +2225,10 @@ int main(void) {
               input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
             }
+            // Cualquier ajuste de parámetro deja memoria y flash desfasados.
+            // El modo 6 se excluye: sus barras son el control de save/load, no
+            // un parámetro del estado.
+            if (gamepi_selector != 6) gamepi_state_in_sync = false;
             if (gamepi_repeat_count_l < 2) gamepi_repeat_count_l++;
             const uint64_t next_interval_l =
                 (gamepi_repeat_count_l == 1) ? GAMEPI_FIRST_REPEAT_US
@@ -2245,6 +2265,7 @@ int main(void) {
               input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
             }
+            if (gamepi_selector != 6) gamepi_state_in_sync = false;
             if (gamepi_repeat_count_r < 2) gamepi_repeat_count_r++;
             const uint64_t next_interval_r =
                 (gamepi_repeat_count_r == 1) ? GAMEPI_FIRST_REPEAT_US
@@ -2478,20 +2499,12 @@ int main(void) {
         uis.knob_a = input_knob[1].Value();
         uis.knob_b = input_knob[2].Value();
         {
-          const uint64_t now_state_us = time_us_64();
-          // Encendido desde que el guardado se ARMA (debounce_saving > 0, ~0.5s
-          // en los que antes no se mostraba nada) y durante la ventana de
-          // confirmación posterior a la escritura. Que cubra las dos fases hace
-          // el feedback continuo: se enciende al cruzar el umbral y sigue
-          // encendido al concretarse, en vez de un flash aislado y fácil de
-          // perderse.
-          uis.state_saved =
-              debounce_saving > 0 ||
-              (gamepi_state_saved_us != 0 &&
-               now_state_us - gamepi_state_saved_us < GAMEPI_STATE_FLASH_US);
-          uis.state_loaded =
-              gamepi_state_loaded_us != 0 &&
-              now_state_us - gamepi_state_loaded_us < GAMEPI_STATE_FLASH_US;
+          // Ambos íconos reflejan el MISMO hecho: memoria y flash coinciden.
+          // Encendidos tras guardar o cargar, apagados en cuanto se toca un
+          // parámetro. Ver gamepi_state_in_sync para por qué es un estado
+          // permanente y no un flash temporal.
+          uis.state_saved = gamepi_state_in_sync;
+          uis.state_loaded = gamepi_state_in_sync;
         }
         uis.playing = !do_mute;
         gamepi_ui_tick(uis);
