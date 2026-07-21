@@ -1102,6 +1102,10 @@ export function App() {
         <a href="https://github.com/dessertplanet/MLRws-web/" title="Open dessertplanet/MLRws-web on GitHub">
           MLRws-web
         </a>
+        , redesign by{' '}
+        <a href="https://github.com/sebasdv" title="Open sebasdv on GitHub">
+          sebasdv
+        </a>
       </footer>
     </main>
   );
