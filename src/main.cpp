@@ -2251,7 +2251,12 @@ int main(void) {
                 save_data[SAVE_SAMPLE] = sample_change;
               }
             } else {
-              input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
+              // Modo 6: la barra se vacía al concretarse la acción; si el
+              // botón sigue apretado, el auto-repeat la rellenaría y volvería a
+              // disparar la escritura. Ver gamepi_state_bar_latched.
+              if (!(gamepi_selector == 6 && gamepi_state_bar_latched)) {
+                input_knob[active_knob].Adjust(-GAMEPI_KNOB_STEP);
+              }
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
             }
             // Cualquier ajuste de parámetro deja memoria y flash desfasados.
@@ -2268,6 +2273,7 @@ int main(void) {
           gamepi_next_repeat_l_us = 0;
           gamepi_tempo_hold_l_us = 0;
           gamepi_repeat_count_l = 0;
+          gamepi_state_bar_latched = false;
         }
         if (btn_r.On()) {
           if (is_tempo && gamepi_tempo_hold_r_us == 0) {
@@ -2291,7 +2297,12 @@ int main(void) {
                 save_data[SAVE_SAMPLE] = sample_change;
               }
             } else {
-              input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
+              // Modo 6: la barra se vacía al concretarse la acción; si el
+              // botón sigue apretado, el auto-repeat la rellenaría y volvería a
+              // disparar la escritura. Ver gamepi_state_bar_latched.
+              if (!(gamepi_selector == 6 && gamepi_state_bar_latched)) {
+                input_knob[active_knob].Adjust(GAMEPI_KNOB_STEP);
+              }
               if (active_knob == 2) gamepi_start_used_as_modifier = true;
             }
             if (gamepi_selector != 6) gamepi_state_in_sync = false;
@@ -2305,6 +2316,7 @@ int main(void) {
           gamepi_next_repeat_r_us = 0;
           gamepi_tempo_hold_r_us = 0;
           gamepi_repeat_count_r = 0;
+          gamepi_state_bar_latched = false;
         }
       }
 
