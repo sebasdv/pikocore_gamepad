@@ -59,7 +59,6 @@ const firmwareOptions = [
 ] as const;
 
 type StatusKind = 'idle' | 'good' | 'warn' | 'bad';
-type Theme = 'light' | 'dark';
 
 interface Status {
   text: string;
@@ -90,7 +89,6 @@ export function App() {
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [debugOpen, setDebugOpen] = useState(false);
   const [ittybittymidiInfoOpen, setIttybittymidiInfoOpen] = useState(false);
-  const [theme] = useState<Theme>(() => loadTheme());
   const debugOpenRef = useRef(false);
   const debugEntriesRef = useRef<string[]>([]);
   const debugFlushTimerRef = useRef<number | null>(null);
@@ -101,10 +99,6 @@ export function App() {
     startedAt: number;
     frameCount: number;
   } | null>(null);
-
-  useEffect(() => {
-    window.localStorage.setItem('pikocore-theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     debugOpenRef.current = debugOpen;
@@ -676,7 +670,7 @@ export function App() {
       overlayOpacity: 0.62,
       stagePadding: 6,
       stageRadius: 7,
-      popoverClass: `pikocore-tour pikocore-tour-${theme}`,
+      popoverClass: 'pikocore-tour',
       showProgress: true,
       progressText: '{{current}} / {{total}}',
       nextBtnText: 'Next',
@@ -763,7 +757,7 @@ export function App() {
   }
 
   return (
-    <main className="app" data-theme={theme}>
+    <main className="app">
       <header className="topbar">
         <div>
           <h1>pikocore loader</h1>
@@ -1040,7 +1034,6 @@ export function App() {
               index={index}
               playing={playingId === sample.id}
               playheadFrame={playingId === sample.id ? playheadFrame : null}
-              theme={theme}
               onUpdate={(patch) => updateSample(sample.id, patch)}
               onRemove={() => removeSample(sample.id)}
               onMove={(direction) => moveSample(index, direction)}
@@ -1069,7 +1062,6 @@ function SampleRow({
   index,
   playing,
   playheadFrame,
-  theme,
   onUpdate,
   onRemove,
   onMove,
@@ -1079,7 +1071,6 @@ function SampleRow({
   index: number;
   playing: boolean;
   playheadFrame: number | null;
-  theme: Theme;
   onUpdate: (patch: Partial<BankSample>) => void;
   onRemove: () => void;
   onMove: (direction: -1 | 1) => void;
@@ -1123,7 +1114,7 @@ function SampleRow({
           <span>{formatBytes(length)}</span>
         </div>
       </div>
-      <Waveform sample={sample} playheadFrame={playheadFrame} theme={theme} />
+      <Waveform sample={sample} playheadFrame={playheadFrame} />
       <div className="row-actions">
         <button
           onClick={onPreview}
@@ -1154,11 +1145,9 @@ function SampleRow({
 function Waveform({
   sample,
   playheadFrame,
-  theme,
 }: {
   sample: BankSample;
   playheadFrame: number | null;
-  theme: Theme;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -1173,8 +1162,8 @@ function Waveform({
     }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const waveBackground = theme === 'dark' ? '#191918' : '#f7f7f4';
-    const waveLine = theme === 'dark' ? '#f1f0ea' : '#202020';
+    const waveBackground = '#000000';
+    const waveLine = '#ffffff';
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = waveBackground;
     ctx.fillRect(0, 0, width, height);
@@ -1199,14 +1188,14 @@ function Waveform({
 
     if (playheadFrame != null) {
       const playhead = ((sample.cropStart + playheadFrame) / sample.pcm.length) * width;
-      ctx.fillStyle = theme === 'dark' ? '#ff7667' : '#d23b2a';
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(playhead, 0, Math.max(2, 2 * scale), height);
     }
   }
 
   useEffect(() => {
     if (canvasRef.current) draw(canvasRef.current);
-  }, [sample, playheadFrame, theme]);
+  }, [sample, playheadFrame]);
 
   return (
     <canvas
@@ -1266,13 +1255,6 @@ function formatEta(ms: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-}
-
-function loadTheme(): Theme {
-  const stored =
-    window.localStorage.getItem('pikocore-theme') ?? window.localStorage.getItem('pikocore-theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function colorWithAlpha(color: string, alpha: number): string {
