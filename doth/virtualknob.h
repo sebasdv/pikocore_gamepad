@@ -40,6 +40,16 @@ class VirtualKnob {
     }
   }
 
+  // Set the value WITHOUT marking it pending: nothing is applied to the
+  // parameter and no Changed() fires. Used to restore each mode's own stored
+  // knob position when switching modes -- the parameter already holds the
+  // matching value, so re-applying it would be redundant (and, if the two ever
+  // drifted, actively wrong).
+  void SetQuiet(uint16_t v) {
+    if (v > 4095) v = 4095;
+    val = v;
+  }
+
   // Same contract as Knob: Read() latches, Changed() reports one scan cycle.
   void Read() {
     changed = pending;

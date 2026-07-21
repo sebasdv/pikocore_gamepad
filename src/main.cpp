@@ -119,6 +119,39 @@ Button input_button[NUM_BUTTONS];
 VirtualKnob input_knob[NUM_KNOBS];
 Button btn_select, btn_start, btn_l, btn_r;
 uint8_t gamepi_selector = 0;
+
+// Persistencia por modo de los knobs virtuales de Function A/B.
+// En el pikocore original los knobs son potenciómetros FÍSICOS: su posición ES
+// el valor, y al cambiar de modo el pot se queda donde está (el Reset() de allá
+// implementa "pickup" para no aplicar de golpe esa posición vieja al parámetro
+// del modo nuevo). Al portarlo a knobs virtuales quedó UN solo valor por knob
+// compartido entre los 8 modos, así que al cambiar de modo la barra mostraba el
+// valor del modo ANTERIOR y el siguiente toque de L/R saltaba desde ahí.
+// Ojo: los parámetros en sí nunca se corrompían -- al cambiar de modo Changed()
+// queda en false para los knobs 1/2, así que no se re-aplican. Lo único que
+// faltaba era que el knob recordara su posición por modo, que es esto.
+// Arrancan en 2048 (el mismo mid-scale de VirtualKnob::Init) porque al bootear
+// no hay forma de saber a qué posición de knob corresponde cada parámetro
+// cargado de flash: haría falta la función inversa de cada mapeo. Hasta el
+// primer ajuste, la barra de un modo no visitado muestra ese medio.
+static uint16_t gamepi_knob_by_mode[8][2] = {
+    {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048},
+    {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048}};
+
+// Guarda la posición de los knobs del modo que se deja y restaura la del que se
+// entra. El modo 8 (Browse SD) no tiene Function A/B, así que se ignora en
+// ambos sentidos: se sale de él con los knobs del modo destino intactos.
+static void gamepi_switch_mode_knobs(uint8_t from, uint8_t to) {
+  if (from == to) return;
+  if (from < 8) {
+    gamepi_knob_by_mode[from][0] = input_knob[1].Value();
+    gamepi_knob_by_mode[from][1] = input_knob[2].Value();
+  }
+  if (to < 8) {
+    input_knob[1].SetQuiet(gamepi_knob_by_mode[to][0]);
+    input_knob[2].SetQuiet(gamepi_knob_by_mode[to][1]);
+  }
+}
 // Real-elapsed-time gating for L/R auto-repeat (Function A/B). See
 // GAMEPI_REPEAT_US's comment in hw_gamepi13.h for why this isn't tick-based
 // anymore.
@@ -1905,6 +1938,7 @@ int main(void) {
         } else if (btn_select.Falling() && !gamepi_select_used_as_modifier) {
           const uint8_t was = gamepi_selector;
           gamepi_selector = (gamepi_selector + 1) % GAMEPI_MODE_COUNT;
+          gamepi_switch_mode_knobs(was, gamepi_selector);
           if (was == 8) {
             // Leaving Browse SD: unmount, don't leave the card open, and close
             // whatever SD screen was on-screen -- it's a persistent overlay
@@ -1951,6 +1985,7 @@ int main(void) {
               gamepi_ui_sd_close();
             }
             gamepi_selector = i;
+            gamepi_switch_mode_knobs(was, gamepi_selector);
             gamepi_select_used_as_modifier = true;
             input_knob[0].SetBucket(gamepi_selector, 8);
             break;  // first musical button pressed this hold wins
