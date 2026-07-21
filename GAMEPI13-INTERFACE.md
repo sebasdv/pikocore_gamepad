@@ -155,6 +155,21 @@ Las barras de Function A/B tuvieron un color propio por modo durante un tiempo; 
 descartó al pasar el dashboard a monocromático (sección 4). Hoy todas son blancas. Las
 tablas `kModeColorA/B` siguen en `ui.cpp` sin uso, por si alguna vez se quiere volver.
 
+**Cada modo recuerda su propia posición de knob.** En el pikocore original los knobs son
+potenciómetros FÍSICOS: la posición *es* el valor, y al cambiar de modo el pot se queda
+donde está (su `Reset()` implementa "pickup" para no aplicar esa posición vieja al
+parámetro del modo nuevo). Al portarlo a knobs virtuales quedó **un solo valor por knob
+compartido entre los 8 modos**, así que la barra mostraba el valor del modo ANTERIOR y el
+siguiente toque de L/R saltaba desde ahí. Hoy hay una tabla `gamepi_knob_by_mode[8][2]`
+que se guarda/restaura en cada cambio de modo (`gamepi_switch_mode_knobs()` en
+`src/main.cpp`), y se **persiste en flash** junto con el resto de los parámetros (bytes
+14-45 de `save_data`, más un byte mágico en 46 — ver más abajo). El restore usa
+`VirtualKnob::SetQuiet()`, que fija el valor sin marcar `pending`: el parámetro ya vale lo
+que corresponde, así que re-aplicarlo sería redundante. Ojo: los parámetros en sí nunca se
+corrompieron ni antes del fix — al cambiar de modo `Changed()` queda en false para los
+knobs 1/2, así que no se re-aplican; lo único que faltaba era que el knob recordara dónde
+había quedado.
+
 Cada ajuste de L/R mueve el valor virtual del knob en pasos de `GAMEPI_KNOB_STEP` (164,
 ~4% de 4095) cada ~100ms mientras se mantiene presionado
 ([`src/hw_gamepi13.h`](src/hw_gamepi13.h)) — **excepto Tempo** (modo 7, Function B) y
@@ -481,6 +496,24 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   inmediatamente. En el camino se descartaron (y quedaron como mejoras igualmente
   válidas) la sincronización multicore de escrituras a flash y el divisor QSPI a 4.
 
+- **RESUELTO — los knobs virtuales no recordaban su valor por modo.** Al cambiar de modo,
+  la barra de Function A/B mostraba el valor del modo ANTERIOR, y el siguiente toque de
+  L/R saltaba desde ahí. Causa raíz: el pikocore original usa potenciómetros FÍSICOS (la
+  posición del pot ES el valor, y sobrevive al cambio de modo por construcción), así que
+  hay un solo `input_knob[1]`/`[2]` para los 8 modos; al portarlo a knobs virtuales ese
+  "un solo valor" quedó compartido. Los parámetros en sí nunca se corrompieron —
+  `Changed()` queda en false para los knobs 1/2 al cambiar de modo, así que no se
+  re-aplican. Fix: tabla `gamepi_knob_by_mode[8][2]` guardada/restaurada en cada cambio
+  de modo, más `VirtualKnob::SetQuiet()` para restaurar sin disparar una re-aplicación.
+- **RESUELTO — la posición de los knobs por modo ahora se persiste en flash.** Sin esto,
+  al bootear cada modo mostraba el medio (2048) hasta tocarlo: no hay forma de deducir la
+  posición del knob a partir del parámetro cargado sin la función inversa de cada mapeo.
+  Se guardan los 16 valores (8 modos x 2 knobs, 2 bytes c/u) en `save_data[14..45]`, zona
+  libre verificada contra el secuenciador (que ocupa 98/99 y 100..227). Un **byte mágico**
+  en `save_data[46]` distingue "bloque válido" de un save anterior a este cambio (donde
+  esa zona son ceros, indistinguible de "todos los knobs en 0"). El guardado vuelca antes
+  los valores vivos del modo actual, que la tabla solo actualiza al cambiar de modo.
+
 ## 6. Ideas para mejoras futuras
 
 Con las Fases 2 (LCD) y 3 (microSD) funcionando, estas son líneas de trabajo que
@@ -502,7 +535,7 @@ quedaron abiertas o se volvieron obvias durante las pruebas:
   nombre del archivo en flash junto al resto de `save_data`.
 - **IMU (ICM20948, I2C GP2/3)** como modulador de FX — mencionado en el plan original,
   nunca implementado; podría mapear inclinación/movimiento a algún parámetro en vivo.
-- **Ícono de reloj MIDI**: el dashboard con bitmaps de Lopaka (ver sección 4) solo
-  tiene diseñados los íconos de reloj INT/EXT — el reloj en MIDI sigue mostrando
-  "MIDI" en texto hasta que se diseñe ese gráfico. (Las etiquetas de Function A/B de
-  los 8 modos ya están todas resueltas como gráfico.)
+- **RESUELTO — Ícono de reloj MIDI**: ya existe el gráfico (`ICONS.txt`), así que los
+  tres estados de clock (INT/EXT/MIDI) se dibujan como bitmap de 20px. De paso eliminó
+  el texto "MIDI", que arrastraba el bug de colores invertidos de
+  `Paint_DrawString_EN` (ver sección 5).
