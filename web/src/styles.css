@@ -469,7 +469,6 @@
    gap) without needing to compute a discrete segment count in JS. */
 .app .meter div,
 .app .transfer {
-  height: 100%;
   background-color: var(--text);
   background-image: repeating-linear-gradient(
     to right,
@@ -478,6 +477,10 @@
     var(--page) 6px,
     var(--page) 8px
   );
+}
+
+.app .meter div {
+  height: 100%;
 }
 
 .app .meter div.over {
