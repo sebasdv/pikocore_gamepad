@@ -590,6 +590,25 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   frena en el tope conservando lo grabado, y `NextI()` devuelve 0 con la secuencia vacía en
   vez de dividir por cero.
 
+- **RESUELTO — mantener R en el modo 6 encadenaba escrituras de flash.** El auto-repeat
+  llena la barra cada 100ms; al cruzar el umbral se arma el guardado, y al concretarse
+  `gamepi_clear_state_bars()` vacía la barra. Pero si el botón sigue apretado el repeat la
+  vuelve a llenar, cruza el umbral otra vez y **re-dispara la escritura**, en loop hasta
+  soltar. Fix: `gamepi_state_bar_latched` -- tras concretarse la acción el ajuste se ignora
+  hasta soltar L/R (un gesto = una acción).
+
+  **Un solo bug explicaba tres síntomas que parecían separados**: la barra que "no volvía a
+  0" (se rellenaba al instante), el guardado que "tardaba más" (guardaba varias veces) y el
+  stutter (cada escritura son ~100ms con interrupciones deshabilitadas). Sumaba uno no
+  detectado: desgaste de flash, que tiene ciclos de borrado finitos.
+
+  **Lección de método**: el síntoma "sólo falla con el audio sonando" mandó la
+  investigación al lazo de render durante toda una sesión, y el bug estaba en el **input**.
+  Reproduciendo, el debounce del guardado avanza más lento (la ISR de audio se lleva el
+  CPU), así que era casi seguro que el botón siguiera apretado cuando la escritura ocurría
+  -- la reproducción sólo cambiaba la PROBABILIDAD de exponerlo, no era la causa. Cuando
+  una correlación no explica un mecanismo, conviene dudar de la correlación.
+
 ## 6. Ideas para mejoras futuras
 
 Con las Fases 2 (LCD) y 3 (microSD) funcionando, estas son líneas de trabajo que
