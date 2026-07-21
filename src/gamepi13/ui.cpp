@@ -82,7 +82,7 @@ static const Rect kRect[W_COUNT] = {
     {0, 36, 240, 20},   // W_NAME  (filename + NN/NN y36-55)
     {0, 112, 240, 42},  // W_BARA  (label y112-131, barra y134-153)
     {0, 162, 240, 42},  // W_BARB  (label y162-181, barra y184-203)
-    {0, 212, 240, 21},  // W_DOTS  (9 iconos 21px, y212-232)
+    {0, 212, 240, 20},  // W_DOTS  (cuadrados de 20px, y212-231)
     {0, 64, 240, 40},   // W_WAVE  (2U, banda y64-103)
 };
 
@@ -216,7 +216,7 @@ static void draw_name(const GamepiUiState &s) {
   clear_zone(kRect[W_NAME]);
 
   // Contador NN/NN, alineado a la DERECHA en x238 (es un contador; el nombre
-  // ocupa la izquierda de la fila). Cada glifo de kCondDigits mide 10px, y el
+  // ocupa la izquierda de la fila). Los glifos de kCondDigits son proporcionales (ver abajo), y el
   // glifo de 20px llena la fila W_NAME (y36-55).
   char idx[8];
   if (s.sample_count > 0) {
@@ -344,9 +344,8 @@ static void draw_wave(const GamepiUiState &s) {
 static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
                                 const char *text, UWORD text_col) {
   if (bmp) {
-    // x=8: mismo riel izquierdo que el BPM, el nombre, las barras y los valores
-    // -- la etiqueta era la única en x0 y sobresalía 8px. La más ancha (STRETCH,
-    // 228px) llega a x236, dentro de la pantalla.
+    // x0: el riel izquierdo, igual que el BPM, el nombre y las barras. La
+    // etiqueta más ancha (STRETCH, 120px) llega a x119, con margen de sobra.
     Paint_DrawImage((const unsigned char *)bmp->pixels, 0, y, bmp->w, bmp->h);
   } else {
     Paint_DrawString_EN(0, y, text, &Font16, text_col, COL_BG);
@@ -360,23 +359,27 @@ static void draw_function_label(uint16_t y, const ModeLabelBitmap *bmp,
 // control es discreto porque no hay knobs, sólo L/R. El número da la magnitud
 // precisa, normalizada a 0-127 igual para todos los parámetros (mismo rango
 // que usa Elektron/MIDI), que es lo que los segmentos por sí solos no dicen.
-// Geometría: 25 bloques de 6px con 1px de aire = 174px (x8..182), y el valor
-// alineado a la derecha en x=231, dejando ~25px de separación.
+// Geometría: 25 bloques de 6px con 1px de aire desde x0 (el último termina en
+// x173), y el valor alineado a la derecha en x237.
 // El valor usa los dígitos condensados de 20px (kCondDigits), monoespaciados,
 // y la BARRA comparte esa misma banda de 20px: mismo top y mismo bottom que el
 // número, para que se lean como una sola unidad (barra + magnitud). El caller
 // pasa bar_y como la "línea base" histórica de la barra de 14px; restamos
 // kBarBandUp para subir la banda de 20px y centrarla ahí. La banda entra en
-// W_BARA (y129..148) y W_BARB (y179..198) sin pisar la etiqueta de arriba.
+// W_BARA (y134-153) y W_BARB (y184-203) sin pisar la etiqueta de arriba.
 static constexpr uint16_t kBarBandUp = 3;
 static constexpr uint16_t kBarBandH = 20;
 static inline uint16_t bar_top(uint16_t bar_y) {
   return (uint16_t)(bar_y - kBarBandUp);
 }
 static inline uint16_t bar_bot(uint16_t bar_y) {
-  // -1: Paint_DrawRectangle incluye ambos extremos, así que top..bot son
-  // (bot-top+1) px. top + kBarBandH - 1 => exactamente kBarBandH filas.
-  return (uint16_t)(bar_top(bar_y) + kBarBandH - 1);
+  // OJO: Paint_DrawRectangle es ASIMÉTRICO -- inclusivo en X (Paint_DrawLine
+  // pinta su extremo antes de cortar) pero EXCLUSIVO en Y
+  // (`for (Y = Ystart; Y < Yend; Y++)`, ver GUI_Paint.c). Así que en Y el borde
+  // va SIN -1: top..top+kBarBandH pinta exactamente kBarBandH filas. Con el -1
+  // que había, las barras medían 19px en vez de 20 -- invisible a simple vista,
+  // pero rompía el grid que el resto del dashboard respeta.
+  return (uint16_t)(bar_top(bar_y) + kBarBandH);
 }
 
 // icon != nullptr (modo 6, Save/Load state): en vez del valor 0-127 se dibuja
@@ -470,9 +473,10 @@ static void draw_sample_bar(uint16_t bar_y, uint16_t sample_idx,
   // La barra ocupa x0..x231 (232px) desde que el riel izquierdo pasó a x0.
   uint16_t seg_w = (uint16_t)((232u - (n_segments - 1)) / n_segments);
   uint16_t x = (uint16_t)(active_segment * (seg_w + 1));
-  // Clamp: grouping arithmetic can push the LAST segment 1px past the right
-  // edge (231). Confirmed via exhaustive brute-force check over every valid
-  // sample_count/sample_idx combination up to 128.
+  // Clamp defensivo del borde derecho (231). Con la fórmula actual (ancho 232
+  // desde x0) un barrido exhaustivo de sample_count/sample_idx hasta 128 nunca
+  // lo dispara; sí lo hacía con la fórmula previa (ancho 224 desde x8). Se deja
+  // como red de seguridad si la agrupación vuelve a cambiar.
   if ((uint16_t)(x + seg_w) > 231) {
     seg_w = (uint16_t)(231 - x);
   }
@@ -562,8 +566,9 @@ static void draw_dots(const GamepiUiState &s) {
   clear_zone(kRect[W_DOTS]);
   // Indicadores de modo: un cuadrado sólido de 20x20 por modo. Gris el
   // inactivo, blanco el seleccionado. Distribución uniforme y centrada: cada
-  // cuadrado va centrado en un "slot" de 240/kIconCount px, así el bloque queda
-  // simétrico respecto al ancho de pantalla sea cual sea el número de modos.
+  // cuadrado va centrado en un "slot" de 240/kIconCount px. Con 8 modos (240/8
+  // =30) queda simétrico: márgenes de 5px a cada lado. Con 9 (SD activo) la
+  // división trunca y quedan 3px/9px -- levemente corrido en ese build.
   // Con el modo 8 (Browse SD) aparcado -- PIKO_GAMEPI13_SD=0, ver CMakeLists --
   // el selector nunca llega al 8, así que no se dibuja su cuadrado.
 #if PIKO_GAMEPI13_SD
@@ -578,8 +583,9 @@ static void draw_dots(const GamepiUiState &s) {
   for (uint8_t i = 0; i < kIconCount; i++) {
     const uint16_t x = (uint16_t)(i * slot + off);
     const bool active = (i < 8) ? (s.mode == i) : (s.mode == 8);
-    // -1: Paint_DrawRectangle incluye ambos extremos (20px = x..x+19).
-    Paint_DrawRectangle(x, y, (uint16_t)(x + kSq - 1), (uint16_t)(y + kSq - 1),
+    // X inclusivo => x+kSq-1 da kSq columnas. Y exclusivo => y+kSq da kSq
+    // filas (ver la nota en bar_bot()).
+    Paint_DrawRectangle(x, y, (uint16_t)(x + kSq - 1), (uint16_t)(y + kSq),
                         active ? COL_WHITE : COL_GRAY, DOT_PIXEL_1X1,
                         DRAW_FILL_FULL);
   }

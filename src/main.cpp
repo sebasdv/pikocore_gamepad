@@ -2273,7 +2273,6 @@ int main(void) {
           gamepi_next_repeat_l_us = 0;
           gamepi_tempo_hold_l_us = 0;
           gamepi_repeat_count_l = 0;
-          gamepi_state_bar_latched = false;
         }
         if (btn_r.On()) {
           if (is_tempo && gamepi_tempo_hold_r_us == 0) {
@@ -2316,8 +2315,15 @@ int main(void) {
           gamepi_next_repeat_r_us = 0;
           gamepi_tempo_hold_r_us = 0;
           gamepi_repeat_count_r = 0;
-          gamepi_state_bar_latched = false;
         }
+        // El latch de "un gesto = una acción" se libera sólo cuando NINGUNO de
+        // los dos botones está apretado. Liberarlo dentro del else de cada uno
+        // por separado lo volvía inerte: en el gesto normal (mantener sólo R)
+        // el else de L corre en el tick siguiente -- ~16us -- y lo borraba
+        // mucho antes de que el repeat de R (100-350ms) llegara a mirarlo, así
+        // que la guarda nunca bloqueaba nada y las escrituras se encadenaban
+        // igual.
+        if (!btn_l.On() && !btn_r.On()) gamepi_state_bar_latched = false;
       }
 
       if (gamepi_selector == 8) {
