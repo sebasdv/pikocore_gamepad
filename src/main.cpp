@@ -1928,11 +1928,22 @@ int main(void) {
         probability_retrig = save_data[SAVE_PROB_RETRIG];
         probability_gate = save_data[SAVE_PROB_GATE];
         probability_tunnel = save_data[SAVE_PROB_TUNNEL];
+        const bool clock_mode_was = clock_input_ittybittymidi;
         clock_input_ittybittymidi =
             save_data[SAVE_CLOCK_INPUT_MODE] == CLOCK_INPUT_MIDI;
         save_data[SAVE_CLOCK_INPUT_MODE] =
             clock_input_ittybittymidi ? CLOCK_INPUT_MIDI : CLOCK_INPUT_CLOCK;
-        reset_clock_timing();
+        // reset_clock_timing() reinicializa el detector de clock EXTERNO, pero
+        // de paso deja btn_reset=true, y el próximo beat onset hace
+        // beat_num_total=0 -- o sea manda el loop al slice 0, el inicio de la
+        // muestra. Eso era lo que hacía "saltar al inicio" al cargar un estado,
+        // incluso con el mismo sample. En un load del usuario solo se
+        // reinicializa si el modo de clock realmente cambió (ahí sí hay que
+        // resincronizar); si no, el loop sigue donde venía y el recall entra
+        // sin corte.
+        if (load_is_boot || clock_mode_was != clock_input_ittybittymidi) {
+          reset_clock_timing();
+        }
 #if PIKO_GAMEPI13
         // Posición de los knobs de Function A/B por modo. Sin esto, al bootear
         // la barra de cada modo mostraba el medio (2048) hasta tocarla, porque
