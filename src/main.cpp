@@ -2085,6 +2085,14 @@ int main(void) {
                           probability_retrig, probability_gate,
                           probability_direction, probability_tunnel,
                           save_data);
+#if PIKO_GAMEPI13
+          // Este combo cambia filtro, distorsión y las 5 probabilidades, todas
+          // parte del save state, pero no pasa por el ajuste de L/R -- que es
+          // donde se marca el desfase. Sin esto los íconos del modo 6 seguirían
+          // diciendo "guardado" con los parámetros ya cambiados, que es
+          // exactamente lo que ese indicador existe para evitar.
+          gamepi_state_in_sync = false;
+#endif
         }
       }
       if (button_rising[0] || button_rising[3] || button_rising[4] ||
