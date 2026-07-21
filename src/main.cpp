@@ -161,6 +161,18 @@ static uint16_t gamepi_knob_by_mode[8][2] = {
     {2048, 2048}, {2048, 0},    {2048, 2048}, {2048, 2048},
     {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048}};
 
+// Definidas más abajo (dependen de LPF_MAX/gate_default_thresh/etc.);
+// re-declaradas acá para que gamepi_restore_mode_knobs() pueda llamarlas.
+void set_timestretch_knob(uint16_t knob);
+void set_filter_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_noise_gate_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_jump_prob_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_tunnel_prob_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_gate_prob_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_retrig_prob_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_reverse_prob_from_knob(uint16_t knob_val, uint16_t knob_max, uint8_t *save_data_);
+void set_volume_from_knob(uint16_t knob_val, uint8_t *save_data_);
+
 // El modo 8 (Browse SD) no tiene Function A/B, así que se ignora en ambos
 // sentidos: se sale de él con los knobs del modo destino intactos.
 static void gamepi_store_mode_knobs(uint8_t mode) {
@@ -168,17 +180,58 @@ static void gamepi_store_mode_knobs(uint8_t mode) {
   gamepi_knob_by_mode[mode][0] = input_knob[1].Value();
   gamepi_knob_by_mode[mode][1] = input_knob[2].Value();
 }
-static void gamepi_restore_mode_knobs(uint8_t mode) {
+static void gamepi_restore_mode_knobs(uint8_t mode, uint8_t *save_data_) {
   if (mode >= 8) return;
   input_knob[1].SetQuiet(gamepi_knob_by_mode[mode][0]);
   input_knob[2].SetQuiet(gamepi_knob_by_mode[mode][1]);
+  // SetQuiet() sólo mueve la posición de la barra; NO recalcula el parámetro
+  // real que ese knob controla. filter_fc/noise_gate_thresh/probability_* son
+  // GLOBALES compartidas entre modos -- en particular, el macro "Intensity of
+  // break FX" del modo 0 Function B escribe siete de ellas de una sola vez
+  // (param_set_break). Sin este re-cálculo, la barra de otro modo podía
+  // mostrar su posición correcta mientras el audio seguía usando el valor que
+  // dejó ESE macro. Bug real reportado: "P. Gate no funciona" (modo 2
+  // Function B) -- mismo mecanismo que ya habíamos visto y arreglado sólo
+  // para timestretch (modo 1 Function B).
+  // Excluido a propósito: el modo 0 Function B (el macro en sí). Reaplicarlo
+  // al sólo ENTRAR a mirar el modo 0 pisaría de golpe lo que cualquier otro
+  // modo hubiera ajustado con más precisión, sin que el usuario tocara nada
+  // -- el macro debe aplicarse sólo cuando se mueve activamente su propio
+  // knob, igual que antes.
+  const uint16_t a = gamepi_knob_by_mode[mode][0];
+  const uint16_t b = gamepi_knob_by_mode[mode][1];
+  constexpr uint16_t kMax = 4095;  // VirtualKnob::ValueMax(), fijo en GamePi13
+  switch (mode) {
+    case 1:
+      set_filter_from_knob(a, kMax, save_data_);
+      set_timestretch_knob(b);
+      break;
+    case 2:
+      set_noise_gate_from_knob(a, kMax, save_data_);
+      set_gate_prob_from_knob(b, kMax, save_data_);
+      break;
+    case 3:
+      set_jump_prob_from_knob(a, kMax, save_data_);
+      set_retrig_prob_from_knob(b, kMax, save_data_);
+      break;
+    case 4:
+      set_tunnel_prob_from_knob(a, kMax, save_data_);
+      set_reverse_prob_from_knob(b, kMax, save_data_);
+      break;
+    case 7:
+      set_volume_from_knob(a, save_data_);
+      break;
+    default:
+      break;
+  }
 }
 // Guarda la posición de los knobs del modo que se deja y restaura la del que se
 // entra.
-static void gamepi_switch_mode_knobs(uint8_t from, uint8_t to) {
+static void gamepi_switch_mode_knobs(uint8_t from, uint8_t to,
+                                     uint8_t *save_data_) {
   if (from == to) return;
   gamepi_store_mode_knobs(from);
-  gamepi_restore_mode_knobs(to);
+  gamepi_restore_mode_knobs(to, save_data_);
 }
 
 // Modo 6 (Save/Load state): instante en que la escritura/lectura de flash
@@ -591,6 +644,87 @@ uint32_t stretch_from_knob_q8(uint16_t knob) {
 
 void set_timestretch_knob(uint16_t knob) {
   stretch_q8 = stretch_from_knob_q8(knob);
+}
+
+// Extraídas del switch de aplicación de knobs (antes duplicadas inline) para
+// poder llamarlas TAMBIÉN al restaurar la posición de un knob por modo -- ver
+// gamepi_restore_mode_knobs() más abajo. Mismo motivo que set_timestretch_knob:
+// filter_fc/noise_gate_thresh/probability_* son variables GLOBALES compartidas
+// entre modos, y SetQuiet() sólo mueve la barra sin recalcular el parámetro
+// real. Sin esto, la barra podía mostrar la posición correcta mientras el
+// audio seguía usando el valor que dejó OTRO modo (bug real reportado: "P.
+// Gate no funciona", modo 2 Function B).
+void set_filter_from_knob(uint16_t knob_val, uint16_t knob_max,
+                          uint8_t *save_data_) {
+  filter_fc = knob_val * (LPF_MAX + 10) / knob_max;
+  save_data_[SAVE_FILTER] = filter_fc;
+}
+
+void set_noise_gate_from_knob(uint16_t knob_val, uint16_t knob_max,
+                              uint8_t *save_data_) {
+  if (knob_val > 3700) {
+    noise_gate_thresh = gate_default_thresh();
+  } else {
+    noise_gate_thresh = gate_scaled_thresh(knob_val, knob_max);
+  }
+  save_data_[SAVE_GATE] = (uint8_t)(noise_gate_thresh >> 8);
+  save_data_[SAVE_GATE + 1] = (uint8_t)noise_gate_thresh;
+}
+
+void set_jump_prob_from_knob(uint16_t knob_val, uint16_t knob_max,
+                             uint8_t *save_data_) {
+  if (knob_val < 200) {
+    probability_jump = 0;
+  } else {
+    probability_jump = (knob_val * 254 / knob_max);
+  }
+  save_data_[SAVE_PROB_JUMP] = probability_jump;
+}
+
+void set_tunnel_prob_from_knob(uint16_t knob_val, uint16_t knob_max,
+                               uint8_t *save_data_) {
+  if (knob_val < 200) {
+    probability_tunnel = 0;
+  } else {
+    probability_tunnel = (knob_val * 254 / knob_max);
+  }
+  save_data_[SAVE_PROB_TUNNEL] = probability_tunnel;
+}
+
+void set_gate_prob_from_knob(uint16_t knob_val, uint16_t knob_max,
+                             uint8_t *save_data_) {
+  if (knob_val < 200) {
+    probability_gate = 0;
+  } else {
+    probability_gate = (knob_val * 254 / knob_max);
+  }
+  save_data_[SAVE_PROB_GATE] = probability_gate;
+}
+
+void set_retrig_prob_from_knob(uint16_t knob_val, uint16_t knob_max,
+                               uint8_t *save_data_) {
+  if (knob_val < 200) {
+    probability_retrig = 0;
+  } else {
+    probability_retrig = (knob_val * 254 / knob_max);
+  }
+  save_data_[SAVE_PROB_RETRIG] = probability_retrig;
+}
+
+void set_reverse_prob_from_knob(uint16_t knob_val, uint16_t knob_max,
+                                uint8_t *save_data_) {
+  if (knob_val < 200) {
+    probability_direction = 0;
+  } else {
+    probability_direction = (knob_val * 254 / knob_max);
+  }
+  save_data_[SAVE_PROB_DIRECTION] = probability_direction;
+}
+
+void set_volume_from_knob(uint16_t knob_val, uint8_t *save_data_) {
+  save_data_[SAVE_VOLUME] = (uint8_t)(knob_val >> 8);
+  save_data_[SAVE_VOLUME + 1] = (uint8_t)knob_val;
+  param_set_volume(knob_val, distortion, volume_reduce);
 }
 
 uint64_t wrap_stretch_phase(uint64_t phase_q32, uint32_t frame_count) {
@@ -1999,13 +2133,10 @@ int main(void) {
               gamepi_knob_by_mode[m][k] = v;
             }
           }
-          gamepi_restore_mode_knobs(gamepi_selector);
-          // Timestretch (modo 1, Function B): su parámetro se deriva del knob
-          // (set_timestretch_knob), y el knob ya viaja en la tabla de arriba --
-          // pero restaurar la tabla NO re-aplica el efecto, así que hasta ahora
-          // el stretch se perdía al cargar un estado aunque la barra mostrara
-          // el valor correcto. Se re-aplica desde la misma fuente de verdad.
-          set_timestretch_knob(gamepi_knob_by_mode[1][1]);
+          // gamepi_restore_mode_knobs() reaplica también el parámetro derivado
+          // del modo actual (filtro, probabilidades, timestretch, volumen --
+          // ver su comentario), no sólo la posición de la barra.
+          gamepi_restore_mode_knobs(gamepi_selector, save_data);
         }
 #endif
         sequencer.Load(save_data);
@@ -2122,7 +2253,7 @@ int main(void) {
         } else if (btn_select.Falling() && !gamepi_select_used_as_modifier) {
           const uint8_t was = gamepi_selector;
           gamepi_selector = (gamepi_selector + 1) % GAMEPI_MODE_COUNT;
-          gamepi_switch_mode_knobs(was, gamepi_selector);
+          gamepi_switch_mode_knobs(was, gamepi_selector, save_data);
           if (was == 8) {
             // Leaving Browse SD: unmount, don't leave the card open, and close
             // whatever SD screen was on-screen -- it's a persistent overlay
@@ -2169,7 +2300,7 @@ int main(void) {
               gamepi_ui_sd_close();
             }
             gamepi_selector = i;
-            gamepi_switch_mode_knobs(was, gamepi_selector);
+            gamepi_switch_mode_knobs(was, gamepi_selector, save_data);
             gamepi_select_used_as_modifier = true;
             input_knob[0].SetBucket(gamepi_selector, 8);
             break;  // first musical button pressed this hold wins
@@ -2632,41 +2763,23 @@ int main(void) {
                   }
                   break;
                 case 1:
-                  filter_fc = input_knob[i].Value() * (LPF_MAX + 10) /
-                              input_knob[i].ValueMax();
-                  save_data[SAVE_FILTER] = filter_fc;
+                  set_filter_from_knob(input_knob[i].Value(),
+                                      input_knob[i].ValueMax(), save_data);
                   break;
                 case 2:
                   // gate
-                  if (input_knob[i].Value() > 3700) {
-                    noise_gate_thresh = gate_default_thresh();
-                  } else {
-                    noise_gate_thresh =
-                        gate_scaled_thresh(input_knob[i].Value(),
-                                           input_knob[i].ValueMax());
-                  }
-                  save_data[SAVE_GATE] = (uint8_t)(noise_gate_thresh >> 8);
-                  save_data[SAVE_GATE + 1] = (uint8_t)noise_gate_thresh;
+                  set_noise_gate_from_knob(input_knob[i].Value(),
+                                          input_knob[i].ValueMax(), save_data);
                   break;
                 case 3:
                   // jump probability
-                  if (input_knob[i].Value() < 200) {
-                    probability_jump = 0;
-                  } else {
-                    probability_jump = (input_knob[i].Value() * 254 /
-                                        input_knob[i].ValueMax());
-                  }
-                  save_data[SAVE_PROB_JUMP] = probability_jump;
+                  set_jump_prob_from_knob(input_knob[i].Value(),
+                                         input_knob[i].ValueMax(), save_data);
                   break;
                 case 4:
                   // tunnel probability
-                  if (input_knob[i].Value() < 200) {
-                    probability_tunnel = 0;
-                  } else {
-                    probability_tunnel = (input_knob[i].Value() * 254 /
-                                          input_knob[i].ValueMax());
-                  }
-                  save_data[SAVE_PROB_TUNNEL] = probability_tunnel;
+                  set_tunnel_prob_from_knob(input_knob[i].Value(),
+                                           input_knob[i].ValueMax(), save_data);
                   break;
                 case 5:
                   // sequencer rec
@@ -2693,11 +2806,7 @@ int main(void) {
                   break;
                 case 7:
                   // volume
-                  save_data[SAVE_VOLUME] =
-                      (uint8_t)(input_knob[i].Value() >> 8);
-                  save_data[SAVE_VOLUME + 1] = (uint8_t)input_knob[i].Value();
-                  param_set_volume(input_knob[i].Value(), distortion,
-                                   volume_reduce);
+                  set_volume_from_knob(input_knob[i].Value(), save_data);
 #ifdef DEBUG_KNOB
                   printf("%d: %d; \n", i, input_knob[i].Value());
 #endif
@@ -2726,33 +2835,19 @@ int main(void) {
                   break;
                 case 2:
                   // gate probability
-                  if (input_knob[i].Value() < 200) {
-                    probability_gate = 0;
-                  } else {
-                    probability_gate = (input_knob[i].Value() * 254 /
-                                        input_knob[i].ValueMax());
-                  }
-                  save_data[SAVE_PROB_GATE] = probability_gate;
+                  set_gate_prob_from_knob(input_knob[i].Value(),
+                                         input_knob[i].ValueMax(), save_data);
                   break;
                 case 3:
                   // retrig probability
-                  if (input_knob[i].Value() < 200) {
-                    probability_retrig = 0;
-                  } else {
-                    probability_retrig = (input_knob[i].Value() * 254 /
-                                          input_knob[i].ValueMax());
-                  }
-                  save_data[SAVE_PROB_RETRIG] = probability_retrig;
+                  set_retrig_prob_from_knob(input_knob[i].Value(),
+                                           input_knob[i].ValueMax(), save_data);
                   break;
                 case 4:
                   // reverse probability
-                  if (input_knob[i].Value() < 200) {
-                    probability_direction = 0;
-                  } else {
-                    probability_direction = (input_knob[i].Value() * 254 /
-                                             input_knob[i].ValueMax());
-                  }
-                  save_data[SAVE_PROB_DIRECTION] = probability_direction;
+                  set_reverse_prob_from_knob(input_knob[i].Value(),
+                                            input_knob[i].ValueMax(),
+                                            save_data);
                   break;
                 case 5:
                   // sequencer on
