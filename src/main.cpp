@@ -216,6 +216,23 @@ bool gamepi_state_in_sync = false;
 //     guardar), mostrando el modo 6 como si ya se hubiera disparado.
 // Si el usuario ya cambió de modo (el guardado tiene debounce), se limpia solo
 // la entrada de la tabla: el knob vivo ya pertenece a otro modo.
+// "Un gesto = una acción" en el modo 6. Se arma al concretarse un save/load y
+// se libera al soltar L/R. Mientras está armado, el auto-repeat NO mueve la
+// barra.
+//
+// Sin esto, mantener R apretado encadenaba escrituras: la barra se vacía al
+// guardar, el repeat la vuelve a llenar en ~100ms, cruza el umbral otra vez y
+// RE-DISPARA el guardado, en loop mientras no sueltes. Confirmado como causa de
+// tres síntomas que parecían distintos -- la barra que nunca se veía en 0, el
+// guardado que "tardaba" (guardaba varias veces seguidas) y el stutter (cada
+// escritura son ~100ms con interrupciones deshabilitadas). Y encima desgasta la
+// flash, que tiene ciclos de borrado finitos.
+//
+// Se notaba mucho más con el audio sonando porque ahí el debounce del guardado
+// avanza más lento (la ISR de audio se lleva el CPU), así que es casi seguro
+// que el botón siga apretado cuando la escritura por fin ocurre.
+bool gamepi_state_bar_latched = false;
+
 static void gamepi_clear_state_bars() {
   gamepi_knob_by_mode[6][0] = 0;
   gamepi_knob_by_mode[6][1] = 0;
@@ -223,6 +240,7 @@ static void gamepi_clear_state_bars() {
     input_knob[1].SetQuiet(0);
     input_knob[2].SetQuiet(0);
   }
+  gamepi_state_bar_latched = true;
 }
 // Real-elapsed-time gating for L/R auto-repeat (Function A/B). See
 // GAMEPI_REPEAT_US's comment in hw_gamepi13.h for why this isn't tick-based
