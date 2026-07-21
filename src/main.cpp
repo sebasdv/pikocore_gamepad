@@ -2479,9 +2479,16 @@ int main(void) {
         uis.knob_b = input_knob[2].Value();
         {
           const uint64_t now_state_us = time_us_64();
+          // Encendido desde que el guardado se ARMA (debounce_saving > 0, ~0.5s
+          // en los que antes no se mostraba nada) y durante la ventana de
+          // confirmación posterior a la escritura. Que cubra las dos fases hace
+          // el feedback continuo: se enciende al cruzar el umbral y sigue
+          // encendido al concretarse, en vez de un flash aislado y fácil de
+          // perderse.
           uis.state_saved =
-              gamepi_state_saved_us != 0 &&
-              now_state_us - gamepi_state_saved_us < GAMEPI_STATE_FLASH_US;
+              debounce_saving > 0 ||
+              (gamepi_state_saved_us != 0 &&
+               now_state_us - gamepi_state_saved_us < GAMEPI_STATE_FLASH_US);
           uis.state_loaded =
               gamepi_state_loaded_us != 0 &&
               now_state_us - gamepi_state_loaded_us < GAMEPI_STATE_FLASH_US;
