@@ -5,6 +5,7 @@ import {
   Download,
   Eraser,
   FolderOpen,
+  Gamepad2,
   HardDrive,
   Pause,
   Play,
@@ -89,6 +90,7 @@ export function App() {
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [debugOpen, setDebugOpen] = useState(false);
   const [ittybittymidiInfoOpen, setIttybittymidiInfoOpen] = useState(false);
+  const [controlsInfoOpen, setControlsInfoOpen] = useState(false);
   const debugOpenRef = useRef(false);
   const debugEntriesRef = useRef<string[]>([]);
   const debugFlushTimerRef = useRef<number | null>(null);
@@ -876,6 +878,14 @@ export function App() {
             <HelpCircle size={18} />
           </button>
           <button
+            className="icon-button"
+            onClick={() => setControlsInfoOpen(true)}
+            title="Show pikocore gamepad controls"
+            aria-label="Show pikocore gamepad controls"
+          >
+            <Gamepad2 size={18} />
+          </button>
+          <button
             className="icon-button debug-toggle"
             onClick={toggleDebug}
             title={debugOpen ? 'Hide serial debug messages' : 'Show serial debug messages'}
@@ -957,6 +967,46 @@ export function App() {
               onClick={() => setIttybittymidiInfoOpen(false)}
               title="Close ittybittymidi info"
               aria-label="Close ittybittymidi info"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {controlsInfoOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setControlsInfoOpen(false)}>
+          <div
+            className="info-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="pikocore gamepad controls"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="info-modal-copy">
+              <h2>pikocore gamepad controls</h2>
+              <dl className="controls-table">
+                <dt>D-pad + Y/X/B/A</dt>
+                <dd>pikocore's 8 music buttons</dd>
+                <dt>Select</dt>
+                <dd>cycle parameter mode (tap), or hold + a music button to jump directly to that mode</dd>
+                <dt>L / R</dt>
+                <dd>decrease/increase the active parameter (Function A); hold to repeat</dd>
+                <dt>Start (tap)</dt>
+                <dd>mute / start-stop</dd>
+                <dt>Start (hold) + L/R</dt>
+                <dd>edit Function B instead of Function A</dd>
+                <dt>Up+Down+B+A</dt>
+                <dd>reset FX (filter, distortion, all probabilities)</dd>
+                <dt>Down+Left+X+B</dt>
+                <dd>toggle clock lock</dd>
+              </dl>
+            </div>
+            <button
+              className="modal-close"
+              onClick={() => setControlsInfoOpen(false)}
+              title="Close controls reference"
+              aria-label="Close controls reference"
             >
               Close
             </button>
