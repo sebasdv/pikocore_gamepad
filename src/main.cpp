@@ -185,6 +185,26 @@ static void gamepi_switch_mode_knobs(uint8_t from, uint8_t to) {
 uint64_t gamepi_state_saved_us = 0;
 uint64_t gamepi_state_loaded_us = 0;
 #define GAMEPI_STATE_FLASH_US 1500000ull
+
+// El modo 6 no controla un "parámetro": sus dos barras son un gesto MOMENTÁNEO
+// (llenar la barra = disparar la acción). Se vacían después de cada acción por
+// dos motivos:
+//  1. El latch del original (has_saved / has_loaded) solo se re-arma cuando el
+//     valor vuelve a bajar del umbral. Con un pot físico eso pasaba solo al
+//     mover la mano; con knob virtual la barra quedaba clavada arriba y había
+//     que bajarla a mano con L para poder volver a guardar.
+//  2. Al cargar un estado se restauraría la barra en el tope (donde quedó al
+//     guardar), mostrando el modo 6 como si ya se hubiera disparado.
+// Si el usuario ya cambió de modo (el guardado tiene debounce), se limpia solo
+// la entrada de la tabla: el knob vivo ya pertenece a otro modo.
+static void gamepi_clear_state_bars() {
+  gamepi_knob_by_mode[6][0] = 0;
+  gamepi_knob_by_mode[6][1] = 0;
+  if (gamepi_selector == 6) {
+    input_knob[1].SetQuiet(0);
+    input_knob[2].SetQuiet(0);
+  }
+}
 // Real-elapsed-time gating for L/R auto-repeat (Function A/B). See
 // GAMEPI_REPEAT_US's comment in hw_gamepi13.h for why this isn't tick-based
 // anymore.
@@ -1833,6 +1853,7 @@ int main(void) {
         save_settings();
 #if PIKO_GAMEPI13
         gamepi_state_saved_us = time_us_64();
+        gamepi_clear_state_bars();
 #endif
 #ifdef DEBUG_SAVE
         printf("saved!\n");
@@ -1921,6 +1942,7 @@ int main(void) {
         sequencer.Load(save_data);
 #if PIKO_GAMEPI13
         gamepi_state_loaded_us = time_us_64();
+        gamepi_clear_state_bars();
 #endif
 #ifdef DEBUG_SAVE
         printf("volume_reduce: %d\n", volume_reduce);
