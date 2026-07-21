@@ -1732,6 +1732,10 @@ int main(void) {
   uint8_t last_button_on = NUM_BUTTONS;
   bool has_saved = false;
   bool do_load = false;
+  // El load al bootear y el load del usuario (modo 6) comparten el mismo
+  // bloque, pero no pueden aplicar el sample igual: ver el comentario en el
+  // bloque de carga.
+  bool load_is_boot = false;
   bool first_time = false;
   bool has_loaded = false;
   RunningAverage ra;
@@ -1862,6 +1866,7 @@ int main(void) {
     }
     if (clock_ms == 100) {
       do_load = true;
+      load_is_boot = true;
       first_time = true;
     }
     if (do_load) {
@@ -1898,8 +1903,17 @@ int main(void) {
         sample_change = save_data[SAVE_SAMPLE];
         if (piko_audio_sample_count() > 0) {
           sample_change %= piko_audio_sample_count();
-          sample = sample_change;
-          refresh_sample_timing(sample);
+          if (load_is_boot) {
+            // Al bootear no hay nada sonando y la ISR necesita timing válido
+            // desde el primer sample, así que se aplica directo.
+            sample = sample_change;
+            refresh_sample_timing(sample);
+          }
+          // Load del usuario: NO se toca `sample` ni su timing. Dejar sólo
+          // sample_change hace que la ISR lo adopte en el próximo beat onset
+          // -- el mismo camino que un cambio de sample manual, que por eso no
+          // corta. Asignarlo acá, a mitad de reproducción, era lo que hacía
+          // "reiniciar el playback" al cargar un estado.
         } else {
           sample_change = 0;
           sample = 0;
@@ -2661,6 +2675,7 @@ int main(void) {
                   // load
                   if (input_knob[i].Value() > 4000 && !has_loaded) {
                     do_load = true;
+                    load_is_boot = false;
                     debounce_led_load = 255;
                     has_loaded = true;
                   } else {
