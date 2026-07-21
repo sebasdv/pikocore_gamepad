@@ -152,8 +152,13 @@ uint8_t gamepi_selector = 0;
 // no hay forma de saber a qué posición de knob corresponde cada parámetro
 // cargado de flash: haría falta la función inversa de cada mapeo. Hasta el
 // primer ajuste, la barra de un modo no visitado muestra ese medio.
+// Excepción del modo 1 Function B (timestretch): arranca en 0, no en el medio.
+// stretch_q8 arranca en kStretchQ8One (= sin stretch), y stretch_from_knob_q8(0)
+// da exactamente eso, así que knob y parámetro quedan consistentes desde el
+// boot. Con 2048 el knob mentía (barra a media asta sin stretch aplicado) y, al
+// restaurarlo en la carga, habría metido stretch donde no había.
 static uint16_t gamepi_knob_by_mode[8][2] = {
-    {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048},
+    {2048, 2048}, {2048, 0},    {2048, 2048}, {2048, 2048},
     {2048, 2048}, {2048, 2048}, {2048, 2048}, {2048, 2048}};
 
 // El modo 8 (Browse SD) no tiene Function A/B, así que se ignora en ambos
@@ -1977,6 +1982,12 @@ int main(void) {
             }
           }
           gamepi_restore_mode_knobs(gamepi_selector);
+          // Timestretch (modo 1, Function B): su parámetro se deriva del knob
+          // (set_timestretch_knob), y el knob ya viaja en la tabla de arriba --
+          // pero restaurar la tabla NO re-aplica el efecto, así que hasta ahora
+          // el stretch se perdía al cargar un estado aunque la barra mostrara
+          // el valor correcto. Se re-aplica desde la misma fuente de verdad.
+          set_timestretch_knob(gamepi_knob_by_mode[1][1]);
         }
 #endif
         sequencer.Load(save_data);
