@@ -379,7 +379,12 @@ static inline uint16_t bar_bot(uint16_t bar_y) {
   return (uint16_t)(bar_top(bar_y) + kBarBandH - 1);
 }
 
-static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
+// icon != nullptr (modo 6, Save/Load state): en vez del valor 0-127 se dibuja
+// ese ícono de 15x16. icon_lit lo enciende (blanco) cuando la acción se
+// concretó; apagado queda gris.
+static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col,
+                             const unsigned char *icon = nullptr,
+                             bool icon_lit = false) {
   constexpr uint16_t kX0 = 0;
   constexpr uint8_t kSegs = 25;
   constexpr uint16_t kSegW = 6;
@@ -397,6 +402,13 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col) {
     Paint_DrawRectangle(x, top, (uint16_t)(x + kSegW - 1), bot,
                         i < lit ? col : COL_DARK, DOT_PIXEL_1X1,
                         DRAW_FILL_FULL);
+  }
+  if (icon) {
+    // Mismo riel derecho (x237): el ícono de 15px ocupa x223..x237. 16px de
+    // alto centrados en la banda de 20px => +2 arriba y +2 abajo.
+    Paint_DrawMonoBitmap(223, (uint16_t)(top + 2), icon, 15, 16,
+                         icon_lit ? COL_WHITE : COL_GRAY);
+    return;
   }
   char v[4];
   snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
@@ -460,6 +472,10 @@ static void draw_function_a(const GamepiUiState &s) {
     // Excepción: selección de sample es una lista discreta, no un parámetro
     // continuo -- sigue siendo el paginador con su propio índice.
     draw_sample_bar(137, s.sample_idx, s.sample_count, COL_WHITE);
+  } else if (m == 6) {
+    // Save state: la barra sube hasta disparar el guardado; el ícono reemplaza
+    // al número y se enciende cuando el estado quedó grabado.
+    draw_stepped_bar(137, s.knob_a, COL_WHITE, kFileSavedBits, s.state_saved);
   } else {
     draw_stepped_bar(137, s.knob_a, COL_WHITE);
   }
@@ -469,7 +485,12 @@ static void draw_function_b(const GamepiUiState &s) {
   clear_zone(kRect[W_BARB]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
   draw_function_label(162, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
-  draw_stepped_bar(187, s.knob_b, COL_WHITE);
+  if (m == 6) {
+    // Load state: mismo criterio que Save en draw_function_a().
+    draw_stepped_bar(187, s.knob_b, COL_WHITE, kFileLoadedBits, s.state_loaded);
+  } else {
+    draw_stepped_bar(187, s.knob_b, COL_WHITE);
+  }
 }
 
 static void draw_dots(const GamepiUiState &s) {
@@ -604,6 +625,10 @@ void gamepi_ui_tick(const GamepiUiState &s) {
     }
     if (s.knob_a != drawn.knob_a) dirty[W_BARA] = true;
     if (s.knob_b != drawn.knob_b) dirty[W_BARB] = true;
+    // Modo 6: encender/apagar el ícono de save/load es un cambio de estado
+    // propio, sin movimiento de knob -- sin esto el ícono nunca se refrescaría.
+    if (s.state_saved != drawn.state_saved) dirty[W_BARA] = true;
+    if (s.state_loaded != drawn.state_loaded) dirty[W_BARB] = true;
     // Modo 0 Function A depende de sample_idx/sample_count (barra
     // segmentada), no directamente de knob_a -- un cambio de sample sin
     // cambio de knob_a bruto (redondeo de la división entera) igual debe

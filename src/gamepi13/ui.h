@@ -26,6 +26,13 @@ struct GamepiUiState {
   uint16_t knob_a;       // 0-4095
   uint16_t knob_b;       // 0-4095
   bool playing;          // !do_mute -- drives the play/stop icon pair
+  // Modo 6 (Save/Load state): en vez del valor numérico 0-127 se dibuja un
+  // ícono, que se ENCIENDE (blanco) durante un rato al concretarse la acción y
+  // queda apagado (gris) el resto del tiempo. Se marcan cuando la escritura /
+  // lectura de flash realmente ocurrió, no cuando se armó -- el guardado tiene
+  // un debounce de por medio, así que "armado" y "grabado" no son lo mismo.
+  bool state_saved;
+  bool state_loaded;
 };
 
 void gamepi_ui_init();                      // LCD init + splash (blocking ~2 s, call before audio IRQ is enabled)

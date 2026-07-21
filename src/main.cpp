@@ -103,6 +103,14 @@
 // válido; si no lo es, se conservan los valores por defecto.
 #define SAVE_KNOB_MAGIC 46
 #define SAVE_KNOB_MAGIC_VALUE 0xA5
+// El filtro (SAVE_FILTER, byte 4) tenía slot reservado desde el pikocore
+// original pero nunca se escribía, y la línea que lo restauraba estaba
+// comentada -- o sea, el LPF no sobrevivía al apagado. Ahora sí se persiste,
+// con su PROPIO byte mágico (no reusa el de los knobs) porque un save escrito
+// antes de este cambio tiene 0 en SAVE_FILTER, y restaurar filter_fc=0 dejaría
+// el filtro cerrado del todo -- audio apagado al bootear.
+#define SAVE_FILTER_MAGIC 47
+#define SAVE_FILTER_MAGIC_VALUE 0x5A
 #define CLOCK_INPUT_CLOCK 0
 #define CLOCK_INPUT_MIDI 1
 #define MIDI_NOTES_AVAILABLE_TOTAL 28
@@ -167,6 +175,16 @@ static void gamepi_switch_mode_knobs(uint8_t from, uint8_t to) {
   gamepi_store_mode_knobs(from);
   gamepi_restore_mode_knobs(to);
 }
+
+// Modo 6 (Save/Load state): instante en que la escritura/lectura de flash
+// REALMENTE ocurrió. El ícono del dashboard se enciende durante
+// GAMEPI_STATE_FLASH_US a partir de ahí. Se usa el momento de concreción y no
+// el de "armado" porque el guardado tiene un debounce de por medio: armar no
+// es haber grabado. El 0 inicial se trata como "nunca pasó" para que el ícono
+// no se encienda solo al bootear.
+uint64_t gamepi_state_saved_us = 0;
+uint64_t gamepi_state_loaded_us = 0;
+#define GAMEPI_STATE_FLASH_US 1500000ull
 // Real-elapsed-time gating for L/R auto-repeat (Function A/B). See
 // GAMEPI_REPEAT_US's comment in hw_gamepi13.h for why this isn't tick-based
 // anymore.
@@ -1727,6 +1745,10 @@ int main(void) {
     }
     save_data[SAVE_KNOB_MAGIC] = SAVE_KNOB_MAGIC_VALUE;
 #endif
+    // El filtro ya se escribe en SAVE_FILTER cada vez que cambia; el mágico
+    // marca que este save lo trae de verdad (los anteriores tienen 0 ahí).
+    save_data[SAVE_FILTER] = filter_fc;
+    save_data[SAVE_FILTER_MAGIC] = SAVE_FILTER_MAGIC_VALUE;
     sequencer.Save(save_data);
 #ifdef DEBUG_SAVE
     print_buf(save_data, FLASH_PAGE_SIZE);
@@ -1809,6 +1831,9 @@ int main(void) {
         printf("\nsaving:\n");
 #endif
         save_settings();
+#if PIKO_GAMEPI13
+        gamepi_state_saved_us = time_us_64();
+#endif
 #ifdef DEBUG_SAVE
         printf("saved!\n");
 #endif
@@ -1842,7 +1867,13 @@ int main(void) {
         param_set_volume((uint16_t)(save_data[SAVE_VOLUME] << 8) +
                              save_data[SAVE_VOLUME + 1],
                          distortion, volume_reduce);
-        // filter_fc = flash_target_contents[SAVE_FILTER];
+        // Filtro: solo si el save lo trae (ver SAVE_FILTER_MAGIC). Clamp al
+        // rango válido por si la flash quedó corrupta -- un filter_fc fuera de
+        // rango indexaría mal la tabla de coeficientes del biquad.
+        if (save_data[SAVE_FILTER_MAGIC] == SAVE_FILTER_MAGIC_VALUE) {
+          filter_fc = save_data[SAVE_FILTER];
+          if (filter_fc > LPF_MAX + 10) filter_fc = LPF_MAX + 10;
+        }
         sample_change = save_data[SAVE_SAMPLE];
         if (piko_audio_sample_count() > 0) {
           sample_change %= piko_audio_sample_count();
@@ -1888,6 +1919,9 @@ int main(void) {
         }
 #endif
         sequencer.Load(save_data);
+#if PIKO_GAMEPI13
+        gamepi_state_loaded_us = time_us_64();
+#endif
 #ifdef DEBUG_SAVE
         printf("volume_reduce: %d\n", volume_reduce);
         printf("distortion: %d\n", distortion);
@@ -2396,6 +2430,15 @@ int main(void) {
         uis.active_bank_name[sizeof(uis.active_bank_name) - 1] = '\0';
         uis.knob_a = input_knob[1].Value();
         uis.knob_b = input_knob[2].Value();
+        {
+          const uint64_t now_state_us = time_us_64();
+          uis.state_saved =
+              gamepi_state_saved_us != 0 &&
+              now_state_us - gamepi_state_saved_us < GAMEPI_STATE_FLASH_US;
+          uis.state_loaded =
+              gamepi_state_loaded_us != 0 &&
+              now_state_us - gamepi_state_loaded_us < GAMEPI_STATE_FLASH_US;
+        }
         uis.playing = !do_mute;
         gamepi_ui_tick(uis);
       }
@@ -2465,6 +2508,7 @@ int main(void) {
                 case 1:
                   filter_fc = input_knob[i].Value() * (LPF_MAX + 10) /
                               input_knob[i].ValueMax();
+                  save_data[SAVE_FILTER] = filter_fc;
                   break;
                 case 2:
                   // gate
