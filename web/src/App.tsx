@@ -964,7 +964,7 @@ export function App() {
         </div>
       ) : null}
 
-      <section className="capacity">
+      <section className={overCapacity ? 'capacity over-capacity' : 'capacity'}>
         <div className="capacity-line">
           <span>{formatBytes(used)} used</span>
           <span>{capacity == null ? 'Capacity unknown' : `${formatBytes(Math.max(0, capacity - used))} free`}</span>
