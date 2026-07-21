@@ -151,16 +151,9 @@ sección 5 para un bug real que esto mismo destapó durante las pruebas.
 | 7 | Volumen / distorsión | **Tempo (BPM)** |
 | 8 | Browse SD — ver sección 3.1 | (no aplica) |
 
-| Modo | Color Function A | Color Function B |
-|---|---|---|
-| 0 | Rojo | Azul |
-| 1 | Naranja | Violeta |
-| 2 | Amarillo | Rosa |
-| 3 | Verde | Rojo |
-| 4 | Cian | Naranja |
-| 5 | Azul | Amarillo |
-| 6 | Violeta | Verde |
-| 7 | Rosa | Cian |
+Las barras de Function A/B tuvieron un color propio por modo durante un tiempo; se
+descartó al pasar el dashboard a monocromático (sección 4). Hoy todas son blancas. Las
+tablas `kModeColorA/B` siguen en `ui.cpp` sin uso, por si alguna vez se quiere volver.
 
 Cada ajuste de L/R mueve el valor virtual del knob en pasos de `GAMEPI_KNOB_STEP` (164,
 ~4% de 4095) cada ~100ms mientras se mantiene presionado
@@ -215,29 +208,50 @@ Detalles de la mecánica de botones (`src/main.cpp`, `GamepiSdState`):
 
 ## 4. Qué muestra el LCD
 
-**Dashboard** (siempre visible, diseñado en Lopaka — `src/gamepi13/ui_bitmaps.h`): BPM
-con dígitos propios (ancho real por dígito, sin grilla fija) + ícono de fuente de clock
-(INT/EXT como gráfico; MIDI todavía en texto, ver sección 6) + par de íconos play/stop
-(el activo a full brillo, el otro atenuado); nombre del sample + índice/total de
-samples con el mismo sistema de dígitos (`NN/NN`, reemplaza el antiguo texto "NN/MM");
-**zona de waveform** (contenido dinámico sin cambios, ver detalle abajo); etiquetas de
-Function A/B como gráfico para los 8 modos (0-7), cada una sobre su propia barra y con
-un color propio por modo (ver tabla más abajo); y una fila de 9 íconos de modo
-(reemplaza los 8 puntos + el caso especial de texto "SD") — el
-activo se dibuja a full color, los otros 8 se atenúan calculando su brillo en tiempo de
-dibujo (`dim_rgb565()`), sin necesitar variantes de imagen "apagadas". Los marcos que
-Lopaka mostraba alrededor del nombre de sample y de la waveform eran solo guías de
-layout (la cavidad donde va el contenido dinámico), no assets pensados para dibujarse
-en tiempo real -- no se renderizan.
+### Lenguaje visual (versión final)
+
+Tres reglas gobiernan todo el dashboard:
+
+1. **Monocromático.** Nada de color: blanco / grises / negro. El color por modo que hubo
+   antes se descartó — el contraste (blanco = activo, gris = inactivo) comunica mejor y
+   se lee más rápido en un panel chico. Las únicas "escalas" son grises.
+2. **Retícula vertical de 20px.** 20px es la unidad base (altura de un glifo condensado,
+   de una barra, de un cuadrado de modo). Todo mide 1U salvo la waveform, que es el
+   elemento héroe a 2U=40px (el máximo). Ritmo: 8px entre bloques, 2px dentro de un par
+   label+barra, 8px de margen arriba/abajo. Ver el mapa exacto en `kRect[]` de `ui.cpp`.
+3. **Dos rieles.** Todo lo alineado a la izquierda arranca en **x0** (el mismo borde donde
+   arranca la waveform); todo lo alineado a la derecha termina en **x237** (borde del
+   ícono stop). Nada flota en el medio.
+
+**Dashboard** (siempre visible, assets diseñados en Lopaka — `src/gamepi13/ui_bitmaps.h`):
+BPM con dígitos condensados propios (proporcionales: 12px, salvo `1` y `/` a 9px) + ícono
+de fuente de clock (INT/EXT/MIDI, los tres como gráfico de 20px) + par de íconos
+play/stop de 20x20 (el activo en blanco, el otro en gris); nombre del sample en Font20
+blanco (máx. 10 chars + "...", recortado dinámicamente para no pisar el contador) +
+índice/total con los mismos dígitos condensados (`NN/NN`); **zona de waveform** (ver
+abajo); etiquetas de Function A/B como gráfico para los 8 modos, cada una sobre su barra;
+y una fila de **cuadrados sólidos de 20x20, uno por modo** — gris el inactivo, blanco el
+seleccionado. Los cuadrados se distribuyen centrando cada uno en un slot de
+`240/n_modos` px, así el bloque queda simétrico sea cual sea el número de modos
+(reemplazan a los íconos de modo dibujados que había antes). Los marcos que Lopaka
+mostraba alrededor del nombre de sample y de la waveform eran solo guías de layout, no
+assets para dibujarse en tiempo real -- no se renderizan.
 
 **Zona de waveform** (`src/gamepi13/ui.cpp`, `draw_wave()`): muestra la forma de onda del
 sample que está **sonando** (`sample` en `main.cpp` — con el FX de túnel activo, puede
 diferir del sample *seleccionado* por compás; la waveform sigue al que suena, así que con
 túnel activo se VE saltar de sample en sample). 7 líneas tenues dividen la franja en 8
-slices (los 8 botones musicales son, literalmente, esos 8 slices). El slice que está
-sonando se ilumina en naranja (hereda la amplitud que antes prendía el LED físico
-equivalente); un retrigger activo tiñe de cian los 2 slices involucrados (ver sección 6).
-Una línea blanca vertical (el **playhead**) recorre la franja al ritmo de la reproducción.
+slices (los 8 botones musicales son, literalmente, esos 8 slices). Al ser monocromática,
+usa **tres niveles de gris** en vez de los colores que tenía antes: fondo gris tenue
+(#404040, la forma de onda siempre visible), slice sonando en gris medio (#808080,
+hereda la amplitud que antes prendía el LED físico equivalente), y **retrigger en blanco**
+sobre los 2 slices involucrados — el indicador de stutter "gana" y es el más brillante,
+que es exactamente lo que hay que ver de un vistazo. Una línea blanca vertical (el
+**playhead**) recorre la franja al ritmo de la reproducción.
+
+La waveform es el único elemento que ocupa el ancho completo (x0-x239): los 8 slices son
+exactamente 30 columnas cada uno (8×30=240), así que meterla en un riel rompería ese
+mapeo 1-botón-por-slice.
 El caché de 240 columnas (min/max, 480 bytes) se recalcula de forma bloqueante (~1-4 ms)
 cada vez que cambia el sample que suena o cuando el banco termina de mutar (carga
 SD/USB) — la ISR de audio preempta este cálculo, así que el audio nunca lo nota. Esta
@@ -313,8 +327,8 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   Card Detect (`use_card_detect = false` en su `hw_config.c`), así que no es una
   configuración nuestra incompleta — es una limitación real del socket.
 - **RESUELTO — indicador visual de qué botón(es) están generando el retrigger actual.**
-  Los 2 LEDs virtuales correspondientes a `button_on`/`button_on2` se pintan en cian
-  sólido (en vez del naranja normal por amplitud) mientras `btn_retrig` esté activo por
+  Los 2 LEDs virtuales correspondientes a `button_on`/`button_on2` se pintan en blanco
+  sólido (en vez del gris medio normal por amplitud) mientras `btn_retrig` esté activo por
   la combinación de 2 botones (`src/gamepi13/ui.cpp`, `draw_leds()`;
   `src/main.cpp`, campo `retrig_leds_mask` de `GamepiUiState`). Nota de alcance: solo
   cubre el retrigger disparado por combo de 2 botones — el retrigger que a veces se
