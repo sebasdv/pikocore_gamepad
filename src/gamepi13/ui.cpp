@@ -382,11 +382,16 @@ static inline uint16_t bar_bot(uint16_t bar_y) {
 // icon != nullptr (modo 6, Save/Load state): en vez del valor 0-127 se dibuja
 // ese ícono de 15x16. icon_lit lo enciende (blanco) cuando la acción se
 // concretó; apagado queda gris.
-// print_value >= 0 reemplaza el número por ese valor crudo, en vez del 0-127
-// derivado de val (lo usa Tempo, que muestra BPM).
+// print_text != nullptr reemplaza el número 0-127 por ese texto (dígitos y '/'
+// solamente): lo usa Tempo para el BPM y el modo 5 para pasos y "paso/total".
+// th1/th2 (0 = ninguno) marcan en gris los bloques donde caen los umbrales de
+// un control por zonas, para que se vea DÓNDE cambia el comportamiento: el modo
+// 5 no es un parámetro continuo sino un selector de zonas.
 static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col,
                              const unsigned char *icon = nullptr,
-                             bool icon_lit = false, int16_t print_value = -1) {
+                             bool icon_lit = false,
+                             const char *print_text = nullptr,
+                             uint16_t th1 = 0, uint16_t th2 = 0) {
   constexpr uint16_t kX0 = 0;
   constexpr uint8_t kSegs = 25;
   constexpr uint16_t kSegW = 6;
@@ -401,8 +406,14 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col,
     // -1: Paint_DrawRectangle incluye AMBOS extremos, así que x..x+kSegW son
     // kSegW+1 px. Sin esto el bloque medía 7px con pitch 7 -- se tocaban entre
     // sí y la barra se veía sólida (confirmado en hardware).
+    // Un bloque apagado que coincide con un umbral se pinta en gris medio en
+    // vez de casi negro: marca la frontera sin competir con los encendidos.
+    const bool is_threshold =
+        (th1 && i == (uint8_t)(((uint32_t)th1 * kSegs) / 4096u)) ||
+        (th2 && i == (uint8_t)(((uint32_t)th2 * kSegs) / 4096u));
+    const UWORD off_col = is_threshold ? COL_GRAY_MID : COL_DARK;
     Paint_DrawRectangle(x, top, (uint16_t)(x + kSegW - 1), bot,
-                        i < lit ? col : COL_DARK, DOT_PIXEL_1X1,
+                        i < lit ? col : off_col, DOT_PIXEL_1X1,
                         DRAW_FILL_FULL);
   }
   if (icon) {
@@ -412,14 +423,15 @@ static void draw_stepped_bar(uint16_t bar_y, uint16_t val, UWORD col,
                          icon_lit ? COL_WHITE : COL_GRAY);
     return;
   }
-  char v[6];
-  snprintf(v, sizeof(v), "%u",
-           print_value >= 0 ? (unsigned)print_value
-                            : (unsigned)((uint32_t)val * 127u / 4095u));
+  char v[10];
+  if (!print_text) {
+    snprintf(v, sizeof(v), "%u", (unsigned)((uint32_t)val * 127u / 4095u));
+    print_text = v;
+  }
   // Alineado a la DERECHA con borde en x237, el mismo riel derecho que los
   // iconos de play/stop (stop termina en x237). El número crece hacia la
   // izquierda desde ahí; "127" (33px) llega a x204, sin pisar la barra (x181).
-  draw_digit_string(237, top, v, kCondDigits, nullptr, 0, 0, true);
+  draw_digit_string(237, top, print_text, kCondDigits, kCondSlash, 9, 20, true);
 }
 
 // Un color por modo para la barra de Function A/B (y el fallback de texto de
@@ -476,6 +488,15 @@ static void draw_function_a(const GamepiUiState &s) {
     // Excepción: selección de sample es una lista discreta, no un parámetro
     // continuo -- sigue siendo el paginador con su propio índice.
     draw_sample_bar(137, s.sample_idx, s.sample_count, COL_WHITE);
+  } else if (m == 5) {
+    // REC SEQ: no es un parámetro continuo sino un selector de 3 zonas
+    // (main.cpp, case 5 del knob 1): <1000 BORRA la secuencia, 1000-3500
+    // apagado conservando lo grabado, >3500 grabando. Se marcan los dos
+    // umbrales y el número muestra los PASOS GRABADOS, que es el dato útil
+    // -- el 0-127 genérico no significaba nada acá.
+    char t[6];
+    snprintf(t, sizeof(t), "%u", (unsigned)s.seq_len);
+    draw_stepped_bar(137, s.knob_a, COL_WHITE, nullptr, false, t, 1000, 3500);
   } else if (m == 6) {
     // Save state: la barra sube hasta disparar el guardado; el ícono reemplaza
     // al número y se enciende cuando el estado quedó grabado.
@@ -489,7 +510,19 @@ static void draw_function_b(const GamepiUiState &s) {
   clear_zone(kRect[W_BARB]);
   const uint8_t m = (s.mode < 8) ? s.mode : 0;
   draw_function_label(162, kModeBBitmap[m], kModeB[m], kModeColorB[m]);
-  if (m == 6) {
+  if (m == 5) {
+    // PLAY SEQ: umbral único en 2200 (main.cpp, case 5 del knob 2). El número
+    // muestra "paso actual/total" mientras reproduce, y sólo el total cuando
+    // está detenido -- sin secuencia grabada, "0".
+    char t[10];
+    if (s.seq_playing && s.seq_len > 0) {
+      snprintf(t, sizeof(t), "%u/%u", (unsigned)(s.seq_step + 1),
+               (unsigned)s.seq_len);
+    } else {
+      snprintf(t, sizeof(t), "%u", (unsigned)s.seq_len);
+    }
+    draw_stepped_bar(187, s.knob_b, COL_WHITE, nullptr, false, t, 2200, 0);
+  } else if (m == 6) {
     // Load state: mismo criterio que Save en draw_function_a().
     draw_stepped_bar(187, s.knob_b, COL_WHITE, kFileLoadedBits, s.state_loaded);
   } else if (m == 7) {
@@ -500,7 +533,9 @@ static void draw_function_b(const GamepiUiState &s) {
     const uint16_t bpm = s.bpm < 20u ? 20u : (s.bpm > 360u ? 360u : s.bpm);
     const uint16_t val =
         (uint16_t)(((uint32_t)(bpm - 20u) * 4095u) / (360u - 20u));
-    draw_stepped_bar(187, val, COL_WHITE, nullptr, false, (int16_t)bpm);
+    char t[6];
+    snprintf(t, sizeof(t), "%u", (unsigned)bpm);
+    draw_stepped_bar(187, val, COL_WHITE, nullptr, false, t);
   } else {
     draw_stepped_bar(187, s.knob_b, COL_WHITE);
   }
@@ -641,6 +676,17 @@ void gamepi_ui_tick(const GamepiUiState &s) {
     // Modo 7 Function B (Tempo) dibuja el BPM, no el knob -- sin esto la barra
     // se quedaría quieta al ajustar el tempo (el knob virtual no se mueve).
     if (s.bpm != drawn.bpm && s.mode == 7) dirty[W_BARB] = true;
+    // Modo 5: los pasos grabados y el paso en curso cambian solos, sin que se
+    // mueva ningún knob -- hay que pedir el redibujo explícitamente.
+    if (s.mode == 5) {
+      if (s.seq_len != drawn.seq_len) {
+        dirty[W_BARA] = true;
+        dirty[W_BARB] = true;
+      }
+      if (s.seq_step != drawn.seq_step || s.seq_playing != drawn.seq_playing) {
+        dirty[W_BARB] = true;
+      }
+    }
     // Modo 6: encender/apagar el ícono de save/load es un cambio de estado
     // propio, sin movimiento de knob -- sin esto el ícono nunca se refrescaría.
     if (s.state_saved != drawn.state_saved) dirty[W_BARA] = true;

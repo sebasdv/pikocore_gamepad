@@ -42,12 +42,20 @@ class Sequencer {
     }
   }
 
+  // mem tiene 128 bytes y len es uint8_t: sin este tope, grabar mas de 128
+  // beats seguidos escribia fuera del array (a 120 BPM son ~64 s manteniendo un
+  // boton, perfectamente alcanzable) y luego len daba la vuelta. Al llegar al
+  // tope se deja de grabar y se conserva lo ya capturado.
   void Record(uint8_t v) {
-    if (isRecording) {
+    if (isRecording && len < kMaxSteps) {
       mem[len] = v;
       len++;
     }
   }
+
+  uint8_t Len() { return len; }
+  static constexpr uint8_t kMaxSteps = 128;
+  bool IsFull() { return len >= kMaxSteps; }
 
   bool IsPlaying() { return isPlaying && len > 0; }
   bool IsRecording() { return isRecording; }
@@ -78,5 +86,6 @@ class Sequencer {
       return 0;
     }
   }
-  uint8_t NextI(uint32_t beat) { return beat % len; }
+  // len == 0 daria division por cero; devolvemos 0 (no hay paso actual).
+  uint8_t NextI(uint32_t beat) { return len ? (uint8_t)(beat % len) : 0; }
 };

@@ -33,6 +33,14 @@ struct GamepiUiState {
   // un debounce de por medio, así que "armado" y "grabado" no son lo mismo.
   bool state_saved;
   bool state_loaded;
+  // Modo 5 (Rec/Play seq). El 0-127 genérico no dice nada acá: lo que importa
+  // es cuántos pasos hay grabados y en cuál va la reproducción. Las dos barras
+  // son en realidad selectores por zonas (ver los umbrales en ui.cpp), no
+  // parámetros continuos.
+  uint8_t seq_len;   // pasos grabados (0..128)
+  uint8_t seq_step;  // paso actual mientras reproduce
+  bool seq_recording;
+  bool seq_playing;
 };
 
 void gamepi_ui_init();                      // LCD init + splash (blocking ~2 s, call before audio IRQ is enabled)

@@ -2517,6 +2517,10 @@ int main(void) {
           uis.state_saved = gamepi_state_in_sync;
           uis.state_loaded = gamepi_state_in_sync;
         }
+        uis.seq_len = sequencer.Len();
+        uis.seq_step = sequencer.NextI(beat_num_total);
+        uis.seq_recording = sequencer.IsRecording();
+        uis.seq_playing = sequencer.IsPlaying();
         uis.playing = !do_mute;
         gamepi_ui_tick(uis);
       }
