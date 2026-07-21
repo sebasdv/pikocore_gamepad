@@ -494,6 +494,17 @@ static void draw_function_a(const GamepiUiState &s) {
     // apagado conservando lo grabado, >3500 grabando. Se marcan los dos
     // umbrales y el número muestra los PASOS GRABADOS, que es el dato útil
     // -- el 0-127 genérico no significaba nada acá.
+    // Ícono de estado en la fila de la ETIQUETA, alineado al riel derecho: ahí
+    // sobra lugar al lado de "REC SEQ", y así la barra conserva su número (los
+    // dos juntos no entrarían a la derecha de la barra). 16px centrados en la
+    // fila de 20px => y114.
+    if (s.knob_a < 1000u) {
+      Paint_DrawImage((const unsigned char *)kSeqDelIcon, 212, 114, 26, 16);
+    } else if (s.seq_recording) {
+      Paint_DrawImage((const unsigned char *)kSeqRecIcon, 209, 114, 29, 16);
+    } else {
+      Paint_DrawImageDimmed(kSeqRecIcon, 209, 114, 29, 16, 90);
+    }
     char t[6];
     snprintf(t, sizeof(t), "%u", (unsigned)s.seq_len);
     draw_stepped_bar(137, s.knob_a, COL_WHITE, nullptr, false, t, 1000, 3500);
@@ -514,6 +525,12 @@ static void draw_function_b(const GamepiUiState &s) {
     // PLAY SEQ: umbral único en 2200 (main.cpp, case 5 del knob 2). El número
     // muestra "paso actual/total" mientras reproduce, y sólo el total cuando
     // está detenido -- sin secuencia grabada, "0".
+    // Ícono de estado en la fila de la etiqueta (mismo criterio que REC).
+    if (s.seq_playing) {
+      Paint_DrawImage((const unsigned char *)kSeqPlayIcon, 209, 164, 29, 16);
+    } else {
+      Paint_DrawImageDimmed(kSeqPlayIcon, 209, 164, 29, 16, 90);
+    }
     char t[10];
     if (s.seq_playing && s.seq_len > 0) {
       snprintf(t, sizeof(t), "%u/%u", (unsigned)(s.seq_step + 1),
@@ -686,6 +703,7 @@ void gamepi_ui_tick(const GamepiUiState &s) {
       if (s.seq_step != drawn.seq_step || s.seq_playing != drawn.seq_playing) {
         dirty[W_BARB] = true;
       }
+      if (s.seq_recording != drawn.seq_recording) dirty[W_BARA] = true;
     }
     // Modo 6: encender/apagar el ícono de save/load es un cambio de estado
     // propio, sin movimiento de knob -- sin esto el ícono nunca se refrescaría.
