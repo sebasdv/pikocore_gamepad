@@ -2,10 +2,9 @@
 pico-sdk/
 *.d
 
-# CMake/build output. Keep the released UF2 artifact trackable.
-build/*
-!build/
-!build/pikocore.uf2
+# CMake/build output. This fork's release artifact is the GamePi13 build
+# (build-gamepi/, below); the stock-hardware build isn't published here.
+build/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -48,5 +47,15 @@ web/.vite/
 # macOS
 .DS_Store
 
-build-gamepi/
+# GamePi13 build output. Keep the released UF2 artifact trackable -- this is
+# the binary someone can grab straight off the repo without compiling.
+build-gamepi/*
+!build-gamepi/
+!build-gamepi/pikocore.uf2
+
 .superpowers/
+
+# Raw Lopaka (lopaka.app) tool exports dropped into src/gamepi13/ while
+# designing LCD UI assets. Scratch material only -- the parsed/renamed data
+# that's actually compiled lives in ui_bitmaps.h and splash_logo.h.
+src/gamepi13/*.txt
