@@ -514,6 +514,43 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
   esa zona son ceros, indistinguible de "todos los knobs en 0"). El guardado vuelca antes
   los valores vivos del modo actual, que la tabla solo actualiza al cambiar de modo.
 
+- **RESUELTO — el modo 6 es un "save state / load state" completo, y ahora incluye el
+  filtro.** Guardar escribe una página de 256 bytes con volumen/distorsión, BPM, filtro,
+  sample, noise gate, las 5 probabilidades, modo de clock, el secuenciador entero y la
+  posición de knobs por modo. Cargar aplica esa misma página; al bootear se carga sola.
+  El filtro tenía slot reservado (`SAVE_FILTER`, byte 4) desde el pikocore original pero
+  nunca se escribía y su restauración estaba comentada -- no sobrevivía al apagado. Se
+  persiste con un byte mágico PROPIO (47): un save anterior tiene 0 ahí, y restaurar
+  `filter_fc = 0` dejaría el filtro cerrado del todo.
+- **RESUELTO — cargar un estado ya no corta ni reinicia la reproducción.** Eran dos
+  causas encadenadas. (1) El bloque de carga asignaba `sample` directo a mitad de
+  reproducción; ahora sólo setea `sample_change` y deja que la ISR lo adopte en el próximo
+  **beat onset** -- el mismo camino que un cambio de sample manual, que por eso nunca
+  cortó. El load de arranque conserva la asignación directa (no hay nada sonando y la ISR
+  necesita timing válido). (2) Más escondida: `reset_clock_timing()` llama a
+  `reset_clock_input_state()`, que deja `btn_reset = true`, y el siguiente beat hace
+  `beat_num_total = 0` -- o sea manda el loop al slice 0, el inicio de la muestra. Por eso
+  saltaba al inicio incluso cargando el mismo sample. Ahora sólo se reinicializa si el
+  modo de clock realmente cambió.
+- **El guardado tarda más con el audio sonando.** `debounce_saving` cuenta 32000
+  iteraciones del lazo de control antes de escribir, y reproduciendo la ISR de audio se
+  lleva la mayor parte del CPU, así que ese contador avanza más lento. La escritura en sí
+  corre con interrupciones deshabilitadas (`flash_range_erase`/`program`), lo que produce
+  un stutter breve inevitable sin mover la escritura al otro core.
+- **RESUELTO — un aviso visual de duración fija es frágil en este dashboard.** Los íconos
+  del modo 6 empezaron encendiéndose 1,5 s tras guardar; con el audio detenido se veían,
+  reproduciendo no. Diagnóstico en hardware: forzando el redibujo el ícono SÍ encendía (o
+  sea flag y pintado estaban bien), pero reproduciendo la barra **tampoco volvía a 0** --
+  la zona entera se quedaba sin redibujar. La causa es estructural: `gamepi_ui_tick()`
+  dibuja **un solo widget por ventana de flush**, eligiendo por índice, así que un aviso
+  que depende de atrapar una ventana puntual se puede perder por completo. La misma prueba
+  lo mostró al revés: al dejar W_BARA permanentemente sucio desapareció Function B, porque
+  se quedaba con todos los slots. Solución: los íconos pasaron a ser un **estado
+  permanente** (`gamepi_state_in_sync`) -- encendidos = memoria y flash coinciden,
+  apagados = hay cambios sin guardar. Al no ser un instante, cualquier redibujo posterior
+  muestra el valor correcto. **Regla general para este dashboard: la señalización visual
+  debe ser de estado, no de evento.**
+
 ## 6. Ideas para mejoras futuras
 
 Con las Fases 2 (LCD) y 3 (microSD) funcionando, estas son líneas de trabajo que
