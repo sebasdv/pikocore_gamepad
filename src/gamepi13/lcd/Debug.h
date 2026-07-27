@@ -1,7 +1,7 @@
 /*****************************************************************************
 * | File      	:	Debug.h
 * | Author      :   
-* | Function    :	debug with printf
+* | Function    :	legacy debug hook
 * | Info        :
 *   Image scanning
 *      Please use progressive scanning to generate images or fonts
@@ -9,8 +9,7 @@
 * |	This version:   V2.0
 * | Date        :   2018-10-30
 * | Info        :   
-*   1.USE_DEBUG -> DEBUG, If you need to see the debug information, 
-*    clear the execution: make DEBUG=-DDEBUG
+*   Runtime diagnostics are served only through the request/response USB API.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documnetation files (the "Software"), to deal
@@ -35,13 +34,6 @@
 #ifndef __DEBUG_H
 #define __DEBUG_H
 
-#include <stdio.h>
-
-#if DEBUG
-	#define Debug(__info,...) printf("Debug: " __info,##__VA_ARGS__)
-#else
-	#define Debug(__info,...)  
-#endif
+#define Debug(__info,...) ((void)0)
 
 #endif
-

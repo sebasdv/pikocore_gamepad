@@ -5,7 +5,6 @@ import {
   Download,
   Eraser,
   FolderOpen,
-  Gamepad2,
   HardDrive,
   Pause,
   Play,
@@ -23,9 +22,11 @@ import { decodeAndEncodeFile, makePreviewBuffer } from './audio';
 import {
   BANK_MAX_SAMPLES,
   BANK_SAMPLE_RATE,
+  BANK_WAVEFORM_COLUMNS,
   BankSample,
   buildBankBlob,
   croppedPcm,
+  generateWaveformPeaks,
   parseBankBlob,
   usedAudioBytes,
 } from './bank';
@@ -34,32 +35,19 @@ import ittybittymidiConnection from './assets/ittybittymidi_connection.jpg';
 import pikocoreInstructions from './assets/pikocore_instructions.png';
 
 const serial = new PikocoreSerial();
-const requiredFirmwareLabel = '2.2 or newer';
+const requiredFirmwareLabel = '2.3 or newer';
 const firmwareOptions = [
   {
     file: 'pikocore-16mb.uf2',
     name: 'pikocore-16mb.uf2',
-    label: '16 MB pikocore',
-    title: 'Download the default 16 MB pikocore UF2 firmware',
+    label: 'GamePi13 firmware',
+    title: 'Download the RP2350-PiZero + GamePi13 UF2 firmware',
     default: true,
-  },
-  {
-    file: 'pikocore-4mb.uf2',
-    name: 'pikocore-4mb.uf2',
-    label: '4 MB',
-    title: 'Download the 4 MB UF2 firmware',
-    default: false,
-  },
-  {
-    file: 'pikocore-2mb.uf2',
-    name: 'pikocore-2mb.uf2',
-    label: '2 MB',
-    title: 'Download the 2 MB UF2 firmware',
-    default: false,
   },
 ] as const;
 
 type StatusKind = 'idle' | 'good' | 'warn' | 'bad';
+type Theme = 'light' | 'dark';
 
 interface Status {
   text: string;
@@ -90,7 +78,7 @@ export function App() {
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [debugOpen, setDebugOpen] = useState(false);
   const [ittybittymidiInfoOpen, setIttybittymidiInfoOpen] = useState(false);
-  const [controlsInfoOpen, setControlsInfoOpen] = useState(false);
+  const [theme] = useState<Theme>(() => loadTheme());
   const debugOpenRef = useRef(false);
   const debugEntriesRef = useRef<string[]>([]);
   const debugFlushTimerRef = useRef<number | null>(null);
@@ -101,6 +89,10 @@ export function App() {
     startedAt: number;
     frameCount: number;
   } | null>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem('pikocore-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     debugOpenRef.current = debugOpen;
@@ -198,29 +190,16 @@ export function App() {
       setDevice(info);
       setConnected(true);
       setStatus({ text: 'Downloading', kind: 'idle' });
-      try {
-        const bank = await readBankWithProgress();
-        if (bank) {
-          const parsed = parseBankBlob(bank);
-          setSamples(parsed.samples);
-          setBankDirty(false);
-          setStatus({ text: `Loaded ${parsed.samples.length} samples from device`, kind: 'good' });
-        } else {
-          setSamples([]);
-          setBankDirty(false);
-          setStatus({ text: 'Connected: device bank is empty', kind: 'good' });
-        }
-      } catch (bankError) {
-        // The USB/serial link itself is fine here — only the stored bank
-        // failed to read or parse. Stay connected so the user can still
-        // Erase a corrupt bank instead of being silently disconnected with
-        // no way to recover from the UI.
+      const bank = await readBankWithProgress();
+      if (bank) {
+        const parsed = parseBankBlob(bank);
+        setSamples(parsed.samples);
+        setBankDirty(false);
+        setStatus({ text: `Loaded ${parsed.samples.length} samples from device`, kind: 'good' });
+      } else {
         setSamples([]);
         setBankDirty(false);
-        setStatus({
-          text: `Connected, but device bank is unreadable: ${errorMessage(bankError)}. Use Erase to reset it.`,
-          kind: 'warn',
-        });
+        setStatus({ text: 'Connected: device bank is empty', kind: 'good' });
       }
       setProgress(0);
       setDownloadDetail(null);
@@ -474,33 +453,6 @@ export function App() {
     }
   }
 
-  function downloadBankFile() {
-    if (samples.length === 0) return;
-    // The downloaded .pikobank targets an SD card, not the connected device's
-    // flash -- so it must NOT be constrained by device?.capacityBytes (which
-    // is 0 when offline, the primary use case, and would spuriously throw).
-    // The header's capacityBytes field is informational (never validated on
-    // parse; the firmware validates against its own flash capacity at load),
-    // so we build against the largest platform capacity (16 MB) and only a
-    // genuine >16MB bank throws -- surfaced to the user instead of swallowed.
-    const SD_BANK_CAPACITY_BYTES = 16 * 1024 * 1024;
-    try {
-      const bankBytes = buildBankBlob(samples, SD_BANK_CAPACITY_BYTES);
-      const blob = new Blob([bankBytes as BlobPart], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'bank.pikobank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      setStatus({ text: `Downloaded bank.pikobank (${samples.length} samples)`, kind: 'good' });
-    } catch (error) {
-      setStatus({ text: errorMessage(error), kind: 'bad' });
-    }
-  }
-
   async function uploadBank() {
     if (!connected || incompatibleDevice) {
       setStatus({ text: 'Connect to a pikocore before uploading', kind: 'warn' });
@@ -672,7 +624,7 @@ export function App() {
       overlayOpacity: 0.62,
       stagePadding: 6,
       stageRadius: 7,
-      popoverClass: 'pikocore-tour',
+      popoverClass: `pikocore-tour pikocore-tour-${theme}`,
       showProgress: true,
       progressText: '{{current}} / {{total}}',
       nextBtnText: 'Next',
@@ -693,7 +645,7 @@ export function App() {
           popover: {
             title: 'Download firmware',
             description:
-              "Download the latest v2 UF2 firmware if you haven't already. Use Boot to put pikocore in drive mode, then copy the UF2 to it.",
+              "Download the latest GamePi13 UF2 firmware if you haven't already. Use Boot to put pikocore in drive mode, then copy the UF2 to it.",
             side: 'bottom',
             align: 'center',
           },
@@ -759,7 +711,7 @@ export function App() {
   }
 
   return (
-    <main className="app">
+    <main className="app" data-theme={theme}>
       <header className="topbar">
         <div>
           <h1>pikocore loader</h1>
@@ -806,14 +758,6 @@ export function App() {
           >
             <Upload size={18} />
             Upload
-          </button>
-          <button
-            onClick={downloadBankFile}
-            disabled={samples.length === 0}
-            title="Download the current bank as a .pikobank file to copy to an SD card"
-          >
-            <Download size={18} />
-            Download bank
           </button>
           <button
             data-tour="read"
@@ -876,14 +820,6 @@ export function App() {
             aria-label="Show pikocore tour"
           >
             <HelpCircle size={18} />
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => setControlsInfoOpen(true)}
-            title="Show pikocore gamepad controls"
-            aria-label="Show pikocore gamepad controls"
-          >
-            <Gamepad2 size={18} />
           </button>
           <button
             className="icon-button debug-toggle"
@@ -974,47 +910,7 @@ export function App() {
         </div>
       ) : null}
 
-      {controlsInfoOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setControlsInfoOpen(false)}>
-          <div
-            className="info-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="pikocore gamepad controls"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="info-modal-copy">
-              <h2>pikocore gamepad controls</h2>
-              <dl className="controls-table">
-                <dt>D-pad + Y/X/B/A</dt>
-                <dd>pikocore's 8 music buttons</dd>
-                <dt>Select</dt>
-                <dd>cycle parameter mode (tap), or hold + a music button to jump directly to that mode</dd>
-                <dt>L / R</dt>
-                <dd>decrease/increase the active parameter (Function A); hold to repeat</dd>
-                <dt>Start (tap)</dt>
-                <dd>mute / start-stop</dd>
-                <dt>Start (hold) + L/R</dt>
-                <dd>edit Function B instead of Function A</dd>
-                <dt>Up+Down+B+A</dt>
-                <dd>reset FX (filter, distortion, all probabilities)</dd>
-                <dt>Down+Left+X+B</dt>
-                <dd>toggle clock lock</dd>
-              </dl>
-            </div>
-            <button
-              className="modal-close"
-              onClick={() => setControlsInfoOpen(false)}
-              title="Close controls reference"
-              aria-label="Close controls reference"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <section className={overCapacity ? 'capacity over-capacity' : 'capacity'}>
+      <section className="capacity">
         <div className="capacity-line">
           <span>{formatBytes(used)} used</span>
           <span>{capacity == null ? 'Capacity unknown' : `${formatBytes(Math.max(0, capacity - used))} free`}</span>
@@ -1084,6 +980,7 @@ export function App() {
               index={index}
               playing={playingId === sample.id}
               playheadFrame={playingId === sample.id ? playheadFrame : null}
+              theme={theme}
               onUpdate={(patch) => updateSample(sample.id, patch)}
               onRemove={() => removeSample(sample.id)}
               onMove={(direction) => moveSample(index, direction)}
@@ -1102,10 +999,6 @@ export function App() {
         <a href="https://github.com/dessertplanet/MLRws-web/" title="Open dessertplanet/MLRws-web on GitHub">
           MLRws-web
         </a>
-        , redesign by{' '}
-        <a href="https://github.com/sebasdv" title="Open sebasdv on GitHub">
-          sebasdv
-        </a>
       </footer>
     </main>
   );
@@ -1116,6 +1009,7 @@ function SampleRow({
   index,
   playing,
   playheadFrame,
+  theme,
   onUpdate,
   onRemove,
   onMove,
@@ -1125,6 +1019,7 @@ function SampleRow({
   index: number;
   playing: boolean;
   playheadFrame: number | null;
+  theme: Theme;
   onUpdate: (patch: Partial<BankSample>) => void;
   onRemove: () => void;
   onMove: (direction: -1 | 1) => void;
@@ -1168,7 +1063,7 @@ function SampleRow({
           <span>{formatBytes(length)}</span>
         </div>
       </div>
-      <Waveform sample={sample} playheadFrame={playheadFrame} />
+      <Waveform sample={sample} playheadFrame={playheadFrame} theme={theme} />
       <div className="row-actions">
         <button
           onClick={onPreview}
@@ -1199,11 +1094,15 @@ function SampleRow({
 function Waveform({
   sample,
   playheadFrame,
+  theme,
 }: {
   sample: BankSample;
   playheadFrame: number | null;
+  theme: Theme;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pcm = useMemo(() => croppedPcm(sample), [sample]);
+  const waveform = useMemo(() => generateWaveformPeaks(pcm), [pcm]);
 
   function draw(canvas: HTMLCanvasElement) {
     const rect = canvas.getBoundingClientRect();
@@ -1216,8 +1115,8 @@ function Waveform({
     }
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const waveBackground = '#000000';
-    const waveLine = '#ffffff';
+    const waveBackground = theme === 'dark' ? '#191918' : '#f7f7f4';
+    const waveLine = theme === 'dark' ? '#f1f0ea' : '#202020';
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = waveBackground;
     ctx.fillRect(0, 0, width, height);
@@ -1226,30 +1125,27 @@ function Waveform({
     ctx.beginPath();
     const mid = height / 2;
     for (let x = 0; x < width; x++) {
-      const start = Math.floor((x / width) * sample.pcm.length);
-      const end = Math.max(start + 1, Math.floor(((x + 1) / width) * sample.pcm.length));
-      let min = 0;
-      let max = 0;
-      for (let i = start; i < end; i++) {
-        const value = (sample.pcm[i] - 128) / 128;
-        min = Math.min(min, value);
-        max = Math.max(max, value);
-      }
-      ctx.moveTo(x, mid + min * mid * 0.9);
-      ctx.lineTo(x, mid + max * mid * 0.9);
+      const column = Math.min(
+        BANK_WAVEFORM_COLUMNS - 1,
+        Math.floor((x * BANK_WAVEFORM_COLUMNS) / width),
+      );
+      const minimum = (waveform[column] - 128) / 128;
+      const maximum = (waveform[BANK_WAVEFORM_COLUMNS + column] - 128) / 128;
+      ctx.moveTo(x, mid + minimum * mid * 0.9);
+      ctx.lineTo(x, mid + maximum * mid * 0.9);
     }
     ctx.stroke();
 
-    if (playheadFrame != null) {
-      const playhead = ((sample.cropStart + playheadFrame) / sample.pcm.length) * width;
-      ctx.fillStyle = '#ffffff';
+    if (playheadFrame != null && pcm.length > 0) {
+      const playhead = (playheadFrame / pcm.length) * width;
+      ctx.fillStyle = theme === 'dark' ? '#ff7667' : '#d23b2a';
       ctx.fillRect(playhead, 0, Math.max(2, 2 * scale), height);
     }
   }
 
   useEffect(() => {
     if (canvasRef.current) draw(canvasRef.current);
-  }, [sample, playheadFrame]);
+  }, [sample, playheadFrame, theme]);
 
   return (
     <canvas
@@ -1309,6 +1205,13 @@ function formatEta(ms: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function loadTheme(): Theme {
+  const stored =
+    window.localStorage.getItem('pikocore-theme') ?? window.localStorage.getItem('pikocore-theme');
+  if (stored === 'light' || stored === 'dark') return stored;
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function colorWithAlpha(color: string, alpha: number): string {

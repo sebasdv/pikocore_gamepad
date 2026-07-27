@@ -1,5 +1,4 @@
 // c++ include
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -19,6 +18,7 @@
 
 #include "PikoAudioBank.h"
 #include "PikoSampleManager.h"
+#include "PikoUsbDebug.h"
 // pikocore files
 #include "doth/button.h"
 #include "doth/delay.h"
@@ -560,10 +560,6 @@ void param_set_bpm(uint16_t bpm, uint16_t &bpm_set_, uint32_t &beat_thresh_,
   if (beat_thresh_ == 0) {
     beat_thresh_ = 1;
   }
-#ifdef DEBUG_BPM
-  printf("new bpm: %d\n", bpm_set_);
-  printf("new bpm fudge: %2.3f\n", bpm_fudge);
-#endif
 }
 
 void param_set_volume(uint16_t knobval, uint8_t &distortion_,
@@ -953,12 +949,10 @@ void pwm_interrupt_handler() {
   // clocking when to change beats
   beat_counter++;
   if ((!is_syncing && beat_counter >= beat_thresh) || btn_reset || soft_sync) {
-#ifdef DEBUG_CLOCK
+    piko_debug_note_event(PikoDebugEvent::kBeat);
     if (soft_sync) {
-      printf("softsync; beat_counter: %d, beat_thresh: %d\n", beat_counter,
-             beat_thresh);
+      piko_debug_note_event(PikoDebugEvent::kSoftSync);
     }
-#endif
     soft_sync = false;
     beat_num_total++;
     beat_counter = 0;
@@ -1012,10 +1006,7 @@ void pwm_interrupt_handler() {
             }
             button_on = i;
 
-// select new beat
-#ifdef DEBUG_BUTTONS
-            printf("%d on\n", button_on);
-#endif
+            // select new beat
             break;
           }
         }
@@ -1052,9 +1043,6 @@ void pwm_interrupt_handler() {
                 continue;
               }
               if (input_button[i].On()) {
-#ifdef DEBUG_BUTTONS
-                printf("%d + %d\n", button_on, i);
-#endif
                 btn_retrig = true;
                 button_on2 = i;
               }
@@ -1075,16 +1063,9 @@ void pwm_interrupt_handler() {
       reset_retrig_fx();
     }
     if (!fx_retrig) {
-#ifdef DEBUG_PWM
-      printf("[%d bpm / %d thresh / beat_num: %d] ", bpm_set, beat_thresh,
-             beat_num_total);
-#endif
-
       // check for fx
       if (btn_retrig && !fx_retrig) {
-#ifdef DEBUG_PWM
-        printf("\n");
-#endif
+        piko_debug_note_event(PikoDebugEvent::kRetriggerStart);
         fx_retrig = true;
         uint8_t r1 = randint(0, 100);
         uint8_t r2 = randint(0, 100);
@@ -1199,6 +1180,7 @@ void pwm_interrupt_handler() {
     return;
   }
 
+  const uint32_t debug_render_start_us = piko_debug_audio_begin();
   update_timestretch_state();
 
   if (audio_tick || beat_onset) {
@@ -1289,17 +1271,9 @@ void pwm_interrupt_handler() {
           btn_reset = 0;
           select_beat = 0;
         }
-        // printf("button_on: %d\n", button_on);
-        // printf("button_on2: %d\n", button_on2);
-        // printf("select_beat: %d\n", select_beat);
-
         // get beat from sequencer
         if (sequencer.IsPlaying()) {
           select_beat = sequencer.Next(beat_num_total);
-#ifdef DEBUG_SEQUENCER
-          printf("sequencer: [%d] %d\n", sequencer.NextI(beat_num_total),
-                 select_beat);
-#endif
         }
 
         // hold button down to play that beat
@@ -1308,10 +1282,6 @@ void pwm_interrupt_handler() {
           // record the current beat
           sequencer.Record(select_beat);
         }
-#ifdef DEBUG_PWM
-        printf("select_beat:%d for %d samples\n", select_beat,
-               retrig_len(retrig_sel) << flag_half_time);
-#endif
         MidiOut_on(midiout, midi_notes_set[(select_beat % 8)], 127);
 
         if (do_switch_heads) {
@@ -1374,6 +1344,7 @@ void pwm_interrupt_handler() {
         noise_gate_val = 0;
 
         if (phase_retrig % (retrig_len(retrig_sel) << flag_half_time) == 0) {
+          piko_debug_note_event(PikoDebugEvent::kRetriggerCycle);
           retrig_count++;
           if (retrig_filter > 0) {
             retrig_filter--;
@@ -1381,10 +1352,6 @@ void pwm_interrupt_handler() {
 
           MidiOut_on(midiout, midi_notes_set[(select_beat % 8)],
                      120 * retrig_count / retrig_max);
-
-          // printf("retrig_volume_reduce_change: %d\n",
-          //        retrig_volume_reduce_change);
-          // printf("retrig_volume_reduce: %d\n", retrig_volume_reduce);
 
           if (retrig_volume_reduce_change == 1 && retrig_volume_reduce > 0) {
             if (retrig_sel > 11) {
@@ -1412,15 +1379,6 @@ void pwm_interrupt_handler() {
           if (retrig_count >= retrig_max) {
             reset_retrig_fx();
           }
-#ifdef DEBUG_PWM
-          printf(
-              "[retrig %d/%d] select_beat:%d for %d samples, beat_counter: %d, "
-              "\n\tphase_sample[phase_head]: %d%%%d==0\n",
-              retrig_count, retrig_max, select_beat,
-              retrig_len(retrig_sel) << flag_half_time, beat_counter,
-              phase_sample[phase_head],
-              (retrig_len(retrig_sel) << flag_half_time));
-#endif
           // setup
           phase_head = 1 - phase_head;  // switch heads
           phase_xfade = 1 << HEAD_SHIFT;
@@ -1454,9 +1412,6 @@ void pwm_interrupt_handler() {
 
       // set to audio now
       audio_now = (uint8_t)u;
-      // if (phase_xfade == 1 << HEAD_SHIFT - 1) {
-      //   // printf("\nphase_head: %d; audio_now=%d\n", phase_head, u);
-      // }
     }
   }
 
@@ -1535,16 +1490,7 @@ void pwm_interrupt_handler() {
     // audio_now = ditherer.Update(audio_now);
     // </dither>
   pwm_set_gpio_level(AUDIO_PIN, audio_now);
-}
-
-void print_buf(const uint8_t *buf, size_t len) {
-  for (size_t i = 0; i < len; ++i) {
-    printf("%02x", buf[i]);
-    if (i % 24 == 23)
-      printf("\n");
-    else
-      printf(" ");
-  }
+  piko_debug_audio_end(debug_render_start_us);
 }
 
 void do_stop_everything() { do_mute = true; }
@@ -1618,9 +1564,7 @@ uint32_t midi_timing_count = 0;
 const uint8_t midi_timing_modulus = 24;
 
 void midi_note_off(uint8_t note) {
-#ifdef DEBUG_MIDI
-  printf("note_off: %d\n", note);
-#endif
+  piko_debug_note_event(PikoDebugEvent::kMidiNoteOff);
 #if MIDI_NOTE_KEY == 1
   input_button[note % NUM_BUTTONS].Set(false);
   if (midi_button2 > -1) {
@@ -1632,9 +1576,7 @@ void midi_note_off(uint8_t note) {
 }
 
 void midi_note_on(uint8_t note, uint8_t velocity) {
-#ifdef DEBUG_MIDI
-  printf("note_on: %d\n", note);
-#endif
+  piko_debug_note_event(PikoDebugEvent::kMidiNoteOn);
 #if MIDI_NOTE_KEY == 1
   if (midi_button1 > -1) {
     midi_button2 = note % NUM_BUTTONS;
@@ -1646,39 +1588,31 @@ void midi_note_on(uint8_t note, uint8_t velocity) {
 }
 
 void midi_start() {
-#ifdef DEBUG_MIDI
-  printf("midi start\n");
-#endif
+  piko_debug_note_event(PikoDebugEvent::kMidiStart);
   do_start_everything();
   soft_sync = false;
   btn_reset = false;
   midi_timing_count = 24 * MIDI_RESET_EVERY_BEAT - 1;
 }
 void midi_continue() {
-#ifdef DEBUG_MIDI
-  printf("midi continue (starting)\n");
-#endif
+  piko_debug_note_event(PikoDebugEvent::kMidiContinue);
   do_start_everything();
   soft_sync = false;
   btn_reset = false;
   midi_timing_count = 24 * MIDI_RESET_EVERY_BEAT - 1;
 }
 void midi_stop() {
-#ifdef DEBUG_MIDI
-  printf("midi stop\n");
-#endif
+  piko_debug_note_event(PikoDebugEvent::kMidiStop);
   do_stop_everything();
   soft_sync = false;
   btn_reset = false;
   midi_timing_count = 24 * MIDI_RESET_EVERY_BEAT - 1;
 }
 void midi_timing() {
+  piko_debug_note_event(PikoDebugEvent::kMidiClock);
   midi_timing_count++;
   if (midi_timing_count % (24 * MIDI_RESET_EVERY_BEAT) == 0) {
     btn_reset = true;
-#ifdef DEBUG_MIDI
-    printf("midi resetting");
-#endif
   } else if (midi_timing_count %
                  (midi_timing_modulus / MIDI_CLOCK_MULTIPLIER) ==
              0) {
@@ -1692,13 +1626,7 @@ void midi_timing() {
       uint32_t bpm_input =
           (int)round(1250000.0 * MIDI_CLOCK_MULTIPLIER * MIDI_DELTA_COUNT_MAX /
                      (float)(midi_delta_sum));
-#ifdef DEBUG_MIDI
-      printf("midi bpm\t%d\n", bpm_input);
-#endif
       if (bpm_input - 7 != bpm_set) {
-        // #ifdef DEBUG_CLOCK
-        //         printf("%d, %d\n", clock_sync_ms, bpm_input);
-        // #endif
         // REDUCE THE BPM INPUT TO ELIMINATE OVERSTEPPING
         param_set_bpm(bpm_input - 7, bpm_set, beat_thresh, audio_clk_thresh);
       }
@@ -1745,7 +1673,6 @@ int main(void) {
   tusb_init();
   irq_set_priority(USBCTRL_IRQ, 0x00);
   piko_audio_bank_init();
-  stdio_init_all();
 
   // sleep needed to make sure it can start on battery
   // not sure why
@@ -1883,6 +1810,7 @@ int main(void) {
   uint32_t bpm_input = 165;
   uint32_t clock_hits = 0;
   uint32_t clock_sync_ms = 0;
+  uint32_t debug_external_clock_last_ticks = 0;
   uint16_t alpha0 = 500;
   uint8_t selector_knob = 0;
   uint16_t ledarray_sel = 0;
@@ -1945,13 +1873,11 @@ int main(void) {
     save_data[SAVE_FILTER] = filter_fc;
     save_data[SAVE_FILTER_MAGIC] = SAVE_FILTER_MAGIC_VALUE;
     sequencer.Save(save_data);
-#ifdef DEBUG_SAVE
-    print_buf(save_data, FLASH_PAGE_SIZE);
-#endif
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(PIKO_SETTINGS_FLASH_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(PIKO_SETTINGS_FLASH_OFFSET, save_data, FLASH_PAGE_SIZE);
     restore_interrupts(ints);
+    piko_debug_note_event(PikoDebugEvent::kSettingsSave);
   };
 
   // initialize one wire midi
@@ -2022,17 +1948,11 @@ int main(void) {
     if (debounce_saving > 0 && clock_ms > 64000) {
       debounce_saving--;
       if (debounce_saving == 0) {
-#ifdef DEBUG_SAVE
-        printf("\nsaving:\n");
-#endif
         save_settings();
 #if PIKO_GAMEPI13
         gamepi_state_saved_us = time_us_64();
         gamepi_state_in_sync = true;
         gamepi_clear_state_bars();
-#endif
-#ifdef DEBUG_SAVE
-        printf("saved!\n");
 #endif
       }
     }
@@ -2045,16 +1965,6 @@ int main(void) {
       do_load = false;
       ledarray_load = 16000;
       debounce_saving = 0;
-#ifdef DEBUG_SAVE
-      printf("\n\n\nPICO_FLASH_SIZE_BYTES: \t%d\n", PICO_FLASH_SIZE_BYTES);
-      printf("PIKO_SETTINGS_FLASH_OFFSET: \t%d\n", PIKO_SETTINGS_FLASH_OFFSET);
-      printf("FLASH_PAGE_SIZE: \t%d\n", FLASH_PAGE_SIZE);
-      printf("FLASH_SECTOR_SIZE: \t%d\n", FLASH_SECTOR_SIZE);
-      printf("XIP_BASE: \t%d\n", XIP_BASE);
-      printf("save data:\n");
-      print_buf(flash_target_contents, FLASH_PAGE_SIZE);
-      printf("\nloading saved data: \n");
-#endif
       if (flash_target_contents[FLASH_PAGE_SIZE - 1] == 0x01 &&
           flash_target_contents[FLASH_PAGE_SIZE - 2] == 0x02 &&
           flash_target_contents[FLASH_PAGE_SIZE - 3] == 0x03 &&
@@ -2140,22 +2050,11 @@ int main(void) {
         }
 #endif
         sequencer.Load(save_data);
+        piko_debug_note_event(PikoDebugEvent::kSettingsLoad);
 #if PIKO_GAMEPI13
         gamepi_state_loaded_us = time_us_64();
         gamepi_state_in_sync = true;
         gamepi_clear_state_bars();
-#endif
-#ifdef DEBUG_SAVE
-        printf("volume_reduce: %d\n", volume_reduce);
-        printf("distortion: %d\n", distortion);
-        printf("bpm_set: %d\n", bpm_set);
-        printf("filter_fc: %d\n", filter_fc);
-        printf("sample_change: %d\n", sample_change);
-        printf("noise_gate_thresh: %d\n", noise_gate_thresh);
-        printf("probability_direction: %d\n", probability_direction);
-        printf("probability_jump: %d\n", probability_jump);
-        printf("probability_retrig: %d\n", probability_retrig);
-        printf("probability_gate: %d\n", probability_gate);
 #endif
       }
     }
@@ -2166,21 +2065,12 @@ int main(void) {
         if (midi_button1 != i && midi_button2 != i) {
           input_button[i].Read();
         }
+        if (input_button[i].Changed(false)) {
+          piko_debug_note_event(PikoDebugEvent::kButtonChange);
+        }
         // if (input_button[i].ChangedHigh(false)) {
         //   MidiOut_on(midiout, midi_notes[(i % 8)], 127);
         // }
-#ifdef DEBUG_BUTTONS
-        if (input_button[i].Changed(false)) {
-          printf("[%6d] %d: %d", clock_ms, i, input_button[i].On());
-          if (input_button[i].Rising()) {
-            printf("rising");
-          }
-          if (input_button[i].Falling()) {
-            printf("falling");
-          }
-          printf("\n");
-        }
-#endif
       }
       // Capture each button's rising edge ONCE per tick, after all 8 have
       // been read above. Button::ChangedHigh(true) consumes the edge (see
@@ -2236,7 +2126,6 @@ int main(void) {
           } else {
             do_stop_everything();
           }
-          // printf("switching do mute: %d\n", do_mute);
         }
       }
 
@@ -2652,7 +2541,9 @@ int main(void) {
           }
           uis.sample_name[n] = '\0';
         } else {
-          snprintf(uis.sample_name, sizeof(uis.sample_name), "(no samples)");
+          strncpy(uis.sample_name, "(no samples)",
+                  sizeof(uis.sample_name) - 1u);
+          uis.sample_name[sizeof(uis.sample_name) - 1u] = '\0';
         }
         for (uint8_t j = 0; j < 8; j++) uis.leds[j] = ledarray.Get(j);
         uis.retrig_leds_mask = 0;
@@ -2705,9 +2596,13 @@ int main(void) {
       if (!btn_retrig) {
         for (uint8_t i = 0; i < NUM_KNOBS; i++) {
           input_knob[i].Read();
+          const bool knob_changed = input_knob[i].Changed();
+          if (knob_changed) {
+            piko_debug_note_event(PikoDebugEvent::kKnobChange);
+          }
 
           // set the current midi note if a button is held down
-          if (input_knob[i].Changed() && i == 0) {
+          if (knob_changed && i == 0) {
             // midi_notes_set
             for (uint8_t j = 0; j < NUM_BUTTONS; j++) {
               if (input_button[j].On()) {
@@ -2718,14 +2613,11 @@ int main(void) {
             }
           }
 
-          if (input_knob[i].Changed() || first_time) {
+          if (knob_changed || first_time) {
             if (i == 0) {
               uint8_t selector_knob_before = selector_knob;
               selector_knob =
                   (input_knob[i].Value() * 8 / input_knob[i].ValueMax());
-#ifdef DEBUG_KNOB
-              printf("%d: %d; \n", i, input_knob[i].Value());
-#endif
               if (selector_knob != selector_knob_before) {
                 has_saved = false;
                 for (uint8_t j = 1; j < NUM_KNOBS; j++) {
@@ -2742,9 +2634,6 @@ int main(void) {
               }
             } else if (i == 1) {
               ledarray_sel_debounce = 0;
-#ifdef DEBUG_KNOB
-              printf("%d: %d; \n", i, input_knob[i].Value());
-#endif
               /////////////
               // KNOB A //
               ////////////
@@ -2807,20 +2696,12 @@ int main(void) {
                 case 7:
                   // volume
                   set_volume_from_knob(input_knob[i].Value(), save_data);
-#ifdef DEBUG_KNOB
-                  printf("%d: %d; \n", i, input_knob[i].Value());
-#endif
                   break;
                 default:
                   break;
               }
             } else if (i == 2) {
               ledarray_sel_debounce = 0;
-#ifdef DEBUG_KNOB
-              printf("%d: %d; \n", i, input_knob[i].Value());
-              printf("[%d] %d: %d; \n", selector_knob, i,
-                     input_knob[i].Value());
-#endif
 
               switch (selector_knob) {
                 case 0:
@@ -2881,9 +2762,6 @@ int main(void) {
                       bpm_set_new = 360;
                     }
                     if (bpm_set_new != bpm_set) {
-#ifdef DEBUG_KNOB
-                      printf("%d: %d; \n", i, input_knob[i].Value());
-#endif
                       save_data[SAVE_BPM] = (uint8_t)(bpm_set_new >> 8);
                       save_data[SAVE_BPM + 1] = (uint8_t)bpm_set_new;
 
@@ -2906,20 +2784,9 @@ int main(void) {
     if (!clock_input_ittybittymidi) {
       // trigger in
       uint8_t clock_pin = 1 - gpio_get(CLOCK_PIN);
-      // code to verify polarity -KEEP
-      // if (clock_pin == 1 && clock_pin_last == 0) {
-      //   printf("[%d] on\n", clock_sync_ms);
-      //   clock_sync_ms = 0;
-      // }
-      // if (clock_pin == 0 && clock_pin_last == 1) {
-      //   printf("[%d] off\n", clock_sync_ms);
-      //   clock_sync_ms = 0;
-      // }
       if (clock_pin == 1 && clock_pin_last == 0) {
-#ifdef DEBUG_CALIBRATE_PO
-        // this is used for calibration
-        printf("%d\n", clock_sync_ms);
-#endif
+        debug_external_clock_last_ticks = clock_sync_ms;
+        piko_debug_note_event(PikoDebugEvent::kExternalClock);
         if (syncing_clicks < 10) {
           syncing_clicks++;
           is_syncing = true;
@@ -2935,9 +2802,6 @@ int main(void) {
           ra.Update(bpm_input);
           bpm_input = ra.Value();
           if (bpm_input != bpm_set) {
-#ifdef DEBUG_CLOCK
-            printf("%d, %d\n", clock_sync_ms, bpm_input);
-#endif
             // REDUCE THE BPM INPUT TO ELIMINATE OVERSTEPPING
             param_set_bpm(bpm_input - 7, bpm_set, beat_thresh,
                           audio_clk_thresh);
@@ -2954,6 +2818,60 @@ int main(void) {
         do_sync_play = false;
       }
       clock_pin_last = clock_pin;
+    }
+
+    if ((clock_ms & 0x3ffu) == 0u) {
+      uint32_t buttons_mask = 0;
+      for (uint8_t i = 0; i < NUM_BUTTONS; ++i) {
+        if (input_button[i].On()) {
+          buttons_mask |= 1u << i;
+        }
+      }
+      PikoDebugRuntimeState debug_state{};
+      debug_state.current_sample = sample;
+      debug_state.sample_count = piko_audio_sample_count();
+      debug_state.bpm = bpm_set;
+      debug_state.beat_number = beat_num_total;
+      debug_state.selected_beat = select_beat;
+#if PIKO_GAMEPI13
+      debug_state.mode = gamepi_selector;
+#else
+      debug_state.mode = selector_knob;
+#endif
+      debug_state.audio_clock_threshold = audio_clk_thresh;
+      debug_state.sample_source_bpm = sample_source_bpm;
+      debug_state.stretch_q8 = stretch_q8;
+      debug_state.knob_0 = input_knob[0].Value();
+      debug_state.knob_1 = input_knob[1].Value();
+      debug_state.knob_2 = input_knob[2].Value();
+      debug_state.buttons_mask = buttons_mask;
+      debug_state.external_clock_last_ticks =
+          debug_external_clock_last_ticks;
+      debug_state.external_clock_bpm = bpm_input;
+      debug_state.audio_value = audio_now;
+      debug_state.volume_reduce = volume_reduce;
+      debug_state.distortion = distortion;
+      debug_state.filter_fc = filter_fc;
+      debug_state.noise_gate_threshold = noise_gate_thresh;
+      debug_state.probability_direction = probability_direction;
+      debug_state.probability_jump = probability_jump;
+      debug_state.probability_retrigger = probability_retrig;
+      debug_state.probability_gate = probability_gate;
+      debug_state.probability_tunnel = probability_tunnel;
+      debug_state.retrigger_selection = retrig_sel;
+      debug_state.retrigger_count = retrig_count;
+      debug_state.retrigger_max = retrig_max;
+      debug_state.sequencer_length = sequencer.Len();
+      debug_state.sequencer_step = sequencer.NextI(beat_num_total);
+      debug_state.timestretch_active = timestretch_active;
+      debug_state.retrigger_active = fx_retrig;
+      debug_state.muted = do_mute;
+      debug_state.syncing = is_syncing;
+      debug_state.clock_input_midi = clock_input_ittybittymidi;
+      debug_state.clock_locked = do_lock_clock;
+      debug_state.sequencer_playing = sequencer.IsPlaying();
+      debug_state.sequencer_recording = sequencer.IsRecording();
+      piko_debug_publish_runtime(debug_state);
     }
 
     // trig out

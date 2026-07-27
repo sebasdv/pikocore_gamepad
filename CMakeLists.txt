@@ -37,6 +37,7 @@ add_executable(${PROJECT_NAME}
 	${CMAKE_CURRENT_LIST_DIR}/src/main.cpp
 	${CMAKE_CURRENT_LIST_DIR}/src/PikoAudioBank.cpp
 	${CMAKE_CURRENT_LIST_DIR}/src/PikoSampleManager.cpp
+	${CMAKE_CURRENT_LIST_DIR}/src/PikoUsbDebug.cpp
 	${CMAKE_CURRENT_LIST_DIR}/doth/WS2812.cpp 
 	${CMAKE_CURRENT_LIST_DIR}/doth/usb_descriptors.c
 )
@@ -72,7 +73,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 include(target_compile_definitions.cmake)
 
 if(PIKO_GAMEPI13)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13=1)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE
+		PIKO_GAMEPI13=1
+		USE_PRINTF=0
+		USE_DBG_PRINTF=0
+	)
 	if(PIKO_GAMEPI13_SD)
 		target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13_SD=1)
 	else()

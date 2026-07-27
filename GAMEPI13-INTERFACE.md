@@ -299,12 +299,14 @@ que es exactamente lo que hay que ver de un vistazo. Una línea blanca vertical 
 La waveform es el único elemento que ocupa el ancho completo (x0-x239): los 8 slices son
 exactamente 30 columnas cada uno (8×30=240), así que meterla en un riel rompería ese
 mapeo 1-botón-por-slice.
-El caché de 240 columnas (min/max, 480 bytes) se recalcula de forma bloqueante (~1-4 ms)
-cada vez que cambia el sample que suena o cuando el banco termina de mutar (carga
-SD/USB) — la ISR de audio preempta este cálculo, así que el audio nunca lo nota. Esta
-zona tiene la prioridad de redibujo más baja del dashboard (para no competir con el resto
-de widgets por los slots de flush) y el movimiento del playhead está throttleado a ~25 Hz,
-alineado con el límite global de refresco.
+Desde el formato de banco v3, el cliente web calcula las 240 columnas min/max (480 bytes)
+al construir el banco y las guarda inmediatamente antes del PCM de cada sample. Cada vez
+que cambia el sample que suena o termina una carga SD/USB, el firmware sólo copia esos
+480 bytes desde flash al caché de pantalla: no recorre ni reduce el PCM. Esta zona tiene
+la prioridad de redibujo más baja del dashboard (para no competir con el resto de widgets
+por los slots de flush) y el movimiento del playhead está throttleado a ~25 Hz, alineado
+con el límite global de refresco. El layout binario está documentado en
+`docs/bank-format-v3.md`.
 
 **Sin overlay temporal**: existió hasta la Fase 5 (nombre de modo al presionar Select,
 parámetro con valor y barra de progreso al ajustar L/R) y se quitó — los shortcuts
@@ -385,11 +387,12 @@ cualquier ajuste fino que se quiera hacer a la sensibilidad de los controles:
 - **RESUELTO — waveform con playhead en el dashboard.** Estaba en el spec original como
   "Fase 2.1" (fuera de alcance) y se había reclasificado como "riesgo alto" — un estudio
   posterior (`docs/superpowers/specs/2026-07-16-waveform-playhead-design.md`) mostró que
-  la decimación por XIP es barata (~1-4 ms una vez por cambio de sample, la ISR de audio
-  preempta el cálculo) y que el DMA era innecesario. Implementado fusionado con la
-  antigua barra de LEDs (sección 4). Único hallazgo real en hardware: el throttle inicial
-  del playhead (100 ms) generaba una demora perceptible entre el audio y el cursor —
-  bajado a 40 ms (alineado con el flush global de 25 Hz) para resolverlo.
+  la primera implementación podía decimar por XIP sin cortar el audio. El formato de
+  banco v3 eliminó después incluso ese trabajo: ahora el navegador guarda min/max ya
+  calculados y el firmware hace dos copias de 240 bytes. Sigue fusionado con la antigua
+  barra de LEDs (sección 4). Único hallazgo real en hardware: el throttle inicial del
+  playhead (100 ms) generaba una demora perceptible entre el audio y el cursor — bajado
+  a 40 ms (alineado con el flush global de 25 Hz) para resolverlo.
 - **RESUELTO — Select + botón musical para saltar directo de modo.** Ver sección 3 para
   el uso. Durante el diseño se encontró una fragilidad latente ya existente: los 3 combos
   de 4 botones (clock lock, reset FX, mute/start-stop heredado) compartían índices entre

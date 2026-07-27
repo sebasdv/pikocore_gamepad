@@ -1,4 +1,9 @@
-import { BANK_HEADER_SIZE, BANK_MAX_SAMPLES, BANK_VERSION } from './bank';
+import {
+  BANK_HEADER_SIZE,
+  BANK_MAX_SAMPLES,
+  BANK_VERSION,
+  BANK_WAVEFORM_COLUMNS,
+} from './bank';
 
 export interface DeviceInfo {
   firmware: string;
@@ -15,6 +20,7 @@ export interface DeviceInfo {
   bankVersion?: number;
   bankHeaderSize?: number;
   bankMaxSamples?: number;
+  bankWaveformColumns?: number;
   raw: string;
 }
 
@@ -25,7 +31,8 @@ export function isCompatibleFirmware(info: DeviceInfo): boolean {
     info.bankVersion === BANK_VERSION &&
     info.bankHeaderSize === BANK_HEADER_SIZE &&
     info.bankMaxSamples != null &&
-    info.bankMaxSamples >= BANK_MAX_SAMPLES
+    info.bankMaxSamples >= BANK_MAX_SAMPLES &&
+    info.bankWaveformColumns === BANK_WAVEFORM_COLUMNS
   );
 }
 
@@ -444,6 +451,7 @@ export function parseInfo(text: string): DeviceInfo {
     bankVersion: numberToken('BANK_VERSION'),
     bankHeaderSize: numberToken('BANK_HEADER_SIZE'),
     bankMaxSamples: numberToken('BANK_MAX_SAMPLES'),
+    bankWaveformColumns: numberToken('BANK_WAVEFORM_COLUMNS'),
     raw: text,
   };
 }

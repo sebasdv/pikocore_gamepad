@@ -1,9 +1,9 @@
 #include "PikoSampleManager.h"
 
-#include <stdio.h>
 #include <string.h>
 
 #include "PikoAudioBank.h"
+#include "PikoUsbDebug.h"
 #include "hardware/flash.h"
 #include "pico/bootrom.h"
 #include "pico/multicore.h"
@@ -43,9 +43,11 @@ static constexpr uint32_t kWriteTimeoutMs = 5000u;
 static constexpr uint8_t kCdcInterface = 0;
 static constexpr uint32_t kCdcPacketBytes = 64u;
 static constexpr uint32_t kCdcSmallWriteThreshold = 512u;
+static constexpr uint32_t kDebugProtocolVersion = 1u;
 
 uint8_t header_staging[PIKO_BANK_HEADER_SIZE] __attribute__((aligned(4)));
 uint8_t page_buf[kFlashPageSize] __attribute__((aligned(4)));
+char response_buffer[2048];
 volatile bool command_interface_ready = false;
 
 struct ScopedPlaybackMute {
@@ -152,6 +154,18 @@ void send_sync() {
   flush_serial();
 }
 
+void send_length_prefixed(const PikoUsbResponse& response) {
+  if (response.truncated()) {
+    static constexpr char kError[] = "ERR response_too_long\n";
+    write_u32(sizeof(kError) - 1u);
+    write_bytes(kError, sizeof(kError) - 1u);
+  } else {
+    write_u32(static_cast<uint32_t>(response.size()));
+    write_bytes(response.data(), static_cast<uint32_t>(response.size()));
+  }
+  flush_serial();
+}
+
 [[noreturn]] void handle_bootloader_reset() {
   do_stop_everything();
   write_str("OK\n");
@@ -182,7 +196,9 @@ bool validate_header(const PikoBankHeader& header, uint32_t total_len) {
   for (uint32_t i = 0; i < header.sample_count; ++i) {
     const PikoBankSampleRecord& record = header.samples[i];
     if (record.frame_count == 0 || record.source_bpm == 0 ||
-        record.beat_count == 0 || record.offset > header.audio_bytes ||
+        record.beat_count == 0 ||
+        record.offset < PIKO_BANK_WAVEFORM_BYTES ||
+        record.offset > header.audio_bytes ||
         record.frame_count > header.audio_bytes - record.offset) {
       return false;
     }
@@ -220,31 +236,45 @@ void handle_info() {
     piko_audio_bank_rescan();
     piko_audio_bank_set_mutating(false);
   }
-  char info[256];
-  uint32_t used = 0;
-  int n = snprintf(info + used, sizeof(info) - used,
-                   "PIKO1 FW %s F %lu R %lu S %lu A %lu C %lu U %lu SR %lu N %lu CLOCK_INPUT %s PROTO 1 BANK_VERSION %lu BANK_HEADER_SIZE %lu BANK_MAX_SAMPLES %lu\nEND\n",
-                   PIKO_FIRMWARE_VERSION,
-                   static_cast<unsigned long>(piko_flash_total_bytes()),
-                   static_cast<unsigned long>(PIKO_FIRMWARE_RESERVE),
-                   static_cast<unsigned long>(piko_settings_flash_offset()),
-                   static_cast<unsigned long>(piko_audio_flash_offset()),
-                   static_cast<unsigned long>(piko_audio_capacity_bytes()),
-                   static_cast<unsigned long>(piko_audio_audio_bytes()),
-                   static_cast<unsigned long>(PIKO_BANK_SAMPLE_RATE),
-                   static_cast<unsigned long>(piko_audio_sample_count()),
-                   piko_clock_input_ittybittymidi() ? "MIDI" : "CLOCK",
-                   static_cast<unsigned long>(PIKO_BANK_VERSION),
-                   static_cast<unsigned long>(PIKO_BANK_HEADER_SIZE),
-                   static_cast<unsigned long>(PIKO_BANK_MAX_SAMPLES));
-  if (n < 0 || static_cast<uint32_t>(n) >= sizeof(info) - used) {
-    return;
-  }
-  used += static_cast<uint32_t>(n);
+  PikoUsbResponse response(response_buffer, sizeof(response_buffer));
+  response.append("PIKO1 FW ");
+  response.append(PIKO_FIRMWARE_VERSION);
+  response.append(" F ");
+  response.append_uint(piko_flash_total_bytes());
+  response.append(" R ");
+  response.append_uint(PIKO_FIRMWARE_RESERVE);
+  response.append(" S ");
+  response.append_uint(piko_settings_flash_offset());
+  response.append(" A ");
+  response.append_uint(piko_audio_flash_offset());
+  response.append(" C ");
+  response.append_uint(piko_audio_capacity_bytes());
+  response.append(" U ");
+  response.append_uint(piko_audio_audio_bytes());
+  response.append(" SR ");
+  response.append_uint(PIKO_BANK_SAMPLE_RATE);
+  response.append(" N ");
+  response.append_uint(piko_audio_sample_count());
+  response.append(" CLOCK_INPUT ");
+  response.append(piko_clock_input_ittybittymidi() ? "MIDI" : "CLOCK");
+  response.append(" PROTO 1 DEBUG_PROTO ");
+  response.append_uint(kDebugProtocolVersion);
+  response.append(" BANK_VERSION ");
+  response.append_uint(PIKO_BANK_VERSION);
+  response.append(" BANK_HEADER_SIZE ");
+  response.append_uint(PIKO_BANK_HEADER_SIZE);
+  response.append(" BANK_MAX_SAMPLES ");
+  response.append_uint(PIKO_BANK_MAX_SAMPLES);
+  response.append(" BANK_WAVEFORM_COLUMNS ");
+  response.append_uint(PIKO_BANK_WAVEFORM_COLUMNS);
+  response.append("\nEND\n");
+  send_length_prefixed(response);
+}
 
-  write_u32(used);
-  write_bytes(info, used);
-  flush_serial();
+void handle_debug_status() {
+  PikoUsbResponse response(response_buffer, sizeof(response_buffer));
+  piko_debug_append_status(response);
+  send_length_prefixed(response);
 }
 
 void handle_read() {
@@ -594,6 +624,22 @@ void piko_sample_manager_core() {
         break;
       case 'I':
         handle_info();
+        break;
+      case 'P':
+        write_str("OK pikocore-usb-debug-v1\n");
+        flush_serial();
+        break;
+      case 'H':
+        write_str("OK debug_commands=P(ping)|D(status)|Z(stats_reset)\n");
+        flush_serial();
+        break;
+      case 'D':
+        handle_debug_status();
+        break;
+      case 'Z':
+        piko_debug_reset_stats();
+        write_str("OK stats_reset\n");
+        flush_serial();
         break;
       case 'R':
         handle_read();

@@ -1,6 +1,7 @@
 #include "GUI_Paint.h"
 #include "DEV_Config.h"
 #include "Debug.h"
+#include "PikoDebugC.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h> //memset()
@@ -28,8 +29,6 @@ void Paint_NewImage(UBYTE *image, UWORD Width, UWORD Height, UWORD Rotate, UWORD
 		
     Paint.WidthByte = (Width % 8 == 0)? (Width / 8 ): (Width / 8 + 1);
     Paint.HeightByte = Height;    
-//    printf("WidthByte = %d, HeightByte = %d\r\n", Paint.WidthByte, Paint.HeightByte);
-//    printf(" EPD_WIDTH / 8 = %d\r\n",  122 / 8);
    
     Paint.Rotate = Rotate;
     Paint.Mirror = MIRROR_NONE;
@@ -256,8 +255,7 @@ void Paint_DrawPoint(UWORD Xpoint, UWORD Ypoint, UWORD Color,
 {
     if (Xpoint > Paint.Width || Ypoint > Paint.Height) {
         Debug("Paint_DrawPoint Input exceeds the normal display range\r\n");
-        printf("Xpoint = %d , Paint.Width = %d  \r\n ",Xpoint,Paint.Width);
-        printf("Ypoint = %d , Paint.Height = %d  \r\n ",Ypoint,Paint.Height);
+        piko_debug_note_lcd_bounds_error();
         return;
     }
 
@@ -267,7 +265,6 @@ void Paint_DrawPoint(UWORD Xpoint, UWORD Ypoint, UWORD Color,
             for (YDir_Num = 0; YDir_Num < 2 * Dot_Pixel - 1; YDir_Num++) {
                 if(Xpoint + XDir_Num - Dot_Pixel < 0 || Ypoint + YDir_Num - Dot_Pixel < 0)
                     break;
-                // printf("x = %d, y = %d\r\n", Xpoint + XDir_Num - Dot_Pixel, Ypoint + YDir_Num - Dot_Pixel);
                 Paint_SetPixel(Xpoint + XDir_Num - Dot_Pixel, Ypoint + YDir_Num - Dot_Pixel, Color);
             }
         }
@@ -788,4 +785,3 @@ void Paint_DrawBitMap_Block(const unsigned char* image_buffer, UBYTE Region)
     }
 }
          
-

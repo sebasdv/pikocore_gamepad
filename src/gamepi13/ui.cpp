@@ -262,44 +262,24 @@ static void draw_name(const GamepiUiState &s) {
 }
 
 // ---- waveform cache (W_WAVE) ----
-// 240 columns of min/max over the PLAYING sample (s.wave_sample_idx), 8-bit
-// unsigned PCM (128 = center). 480 bytes of RAM; recomputed synchronously on
-// sample change -- ~7.7k XIP reads = ~1-4 ms once, and the audio ISR preempts
-// this loop, so playback never notices. Full cost study in the design spec
-// (docs/superpowers/specs/2026-07-16-waveform-playhead-design.md).
-static uint8_t wave_min[240];
-static uint8_t wave_max[240];
+// Bank v3 carries the browser-precomputed 240-column min/max waveform directly
+// before each sample's PCM. The device only copies those two 240-byte planes
+// into RAM when the playing sample changes; it never scans or reduces PCM.
+static uint8_t wave_min[PIKO_BANK_WAVEFORM_COLUMNS];
+static uint8_t wave_max[PIKO_BANK_WAVEFORM_COLUMNS];
 static uint16_t wave_cached_sample = 0xffff;
 static bool wave_cache_valid = false;
 static uint64_t wave_playhead_mark_us = 0;
 
-static void wave_recompute(uint16_t sample_idx) {
-  const uint32_t len = piko_raw_len(sample_idx);
-  if (piko_audio_sample_count() == 0 || len <= 1) {
-    for (uint16_t c = 0; c < 240; c++) {
-      wave_min[c] = 128;
-      wave_max[c] = 128;
-    }
+static void wave_load(uint16_t sample_idx) {
+  const uint8_t* waveform = piko_audio_waveform_data(sample_idx);
+  if (waveform == nullptr) {
+    memset(wave_min, 128, sizeof(wave_min));
+    memset(wave_max, 128, sizeof(wave_max));
     return;
   }
-  for (uint32_t c = 0; c < 240; c++) {
-    const uint32_t start = (uint32_t)(((uint64_t)len * c) / 240u);
-    uint32_t end = (uint32_t)(((uint64_t)len * (c + 1)) / 240u);
-    if (end <= start) end = start + 1;
-    // Up to ~32 evenly spaced probes per column: plenty for a 240px lo-fi
-    // outline, and caps the whole recompute at ~7.7k flash reads.
-    uint32_t step = (end - start) / 32u;
-    if (step == 0) step = 1;
-    uint8_t mn = 255;
-    uint8_t mx = 0;
-    for (uint32_t f = start; f < end; f += step) {
-      const uint8_t v = piko_raw_val(sample_idx, f);
-      if (v < mn) mn = v;
-      if (v > mx) mx = v;
-    }
-    wave_min[c] = mn;
-    wave_max[c] = mx;
-  }
+  memcpy(wave_min, waveform, sizeof(wave_min));
+  memcpy(wave_max, waveform + PIKO_BANK_WAVEFORM_COLUMNS, sizeof(wave_max));
 }
 
 static void draw_wave(const GamepiUiState &s) {
@@ -313,7 +293,7 @@ static void draw_wave(const GamepiUiState &s) {
     Paint_DrawLine(x, kTop, x, kBot, COL_DARK, DOT_PIXEL_1X1,
                    LINE_STYLE_SOLID);
   }
-  for (uint16_t c = 0; c < 240; c++) {
+  for (uint16_t c = 0; c < PIKO_BANK_WAVEFORM_COLUMNS; c++) {
     const uint8_t slice = (uint8_t)(c / 30);
     // Monocromático: 3 niveles de gris en vez de naranja/cian. Fondo tenue
     // (waveform siempre visible), slice activo gris medio, retrigger blanco
@@ -330,7 +310,7 @@ static void draw_wave(const GamepiUiState &s) {
         (uint16_t)(kBot - ((uint16_t)wave_min[c] * (kBot - kTop)) / 255u);
     Paint_DrawLine(c, y0, c, y1, col, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
   }
-  if (s.wave_playhead_col < 240) {
+  if (s.wave_playhead_col < PIKO_BANK_WAVEFORM_COLUMNS) {
     Paint_DrawLine(s.wave_playhead_col, kTop, s.wave_playhead_col, kBot,
                    COL_WHITE, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
   }
@@ -679,14 +659,13 @@ void gamepi_ui_init() {
 
 void gamepi_ui_tick(const GamepiUiState &s) {
   // Waveform cache upkeep: invalidate while the bank is being rewritten
-  // (covers SD/USB reloads even when the new sample keeps the same index
-  // and length), recompute synchronously once it settles or the playing
-  // sample changes. Blocking ~1-4 ms worst case, once per change -- the
-  // audio ISR preempts this loop, so playback never notices.
+  // (covers SD/USB reloads even when the new sample keeps the same index),
+  // then copy the browser-precomputed 480-byte waveform once it settles or
+  // the playing sample changes.
   if (piko_audio_bank_mutating()) {
     wave_cache_valid = false;
   } else if (!wave_cache_valid || s.wave_sample_idx != wave_cached_sample) {
-    wave_recompute(s.wave_sample_idx);
+    wave_load(s.wave_sample_idx);
     wave_cached_sample = s.wave_sample_idx;
     wave_cache_valid = true;
     dirty[W_WAVE] = true;

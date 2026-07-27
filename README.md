@@ -27,6 +27,9 @@ project or with Waveshare.
   blind knob.
 - **USB bank-loader web app** (React + Vite, in `web/`) to build `.pikobank` files
   from your own samples and load them straight over USB.
+- **Browser-precomputed LCD waveforms** — bank format v3 stores 240-column
+  min/max peaks beside each sample, so the RP2350 only copies display data and
+  never scans PCM to construct a waveform.
 - microSD `.pikobank` browsing exists in the codebase but ships **disabled by
   default** behind a build flag (`PIKO_GAMEPI13_SD`) — see
   [GAMEPI13-INTERFACE.md](GAMEPI13-INTERFACE.md) for why.
@@ -55,6 +58,19 @@ make -j4
 
 Flash `build-gamepi/pikocore.uf2` (hold BOOTSEL while plugging in USB).
 
+For the usual GamePi13 development loop, the root Makefile provides:
+
+```
+make upload  # build, enter BOOTSEL over USB, and flash the GamePi13 firmware
+make web     # install web dependencies and serve the loader locally
+```
+
+`make web` listens on `127.0.0.1:5173` by default. Override `WEB_HOST` or
+`WEB_PORT` when needed.
+
+The GamePi13 waveform extension and its binary layout are documented in
+[docs/bank-format-v3.md](docs/bank-format-v3.md).
+
 The original, unmodified stock-hardware build (potentiometers, no LCD) still works
 from the same tree — see the [upstream build instructions](#upstream-pikocore) below.
 
@@ -73,6 +89,33 @@ To run the loader locally instead (e.g. for development):
 ```
 cd web && npm install && npm run dev
 ```
+
+## Silent USB diagnostics
+
+The firmware does not print or stream debug output during normal operation.
+Audio timing and runtime state are accumulated in bounded counters and are sent
+over the existing USB CDC connection only when the host requests them. This
+keeps formatting, blocking writes, and continuous USB traffic out of the audio
+path.
+
+Use the dependency-free host tool on macOS or Linux:
+
+```
+python3 scripts/pikocore_usb.py ping
+python3 scripts/pikocore_usb.py stats-reset
+python3 scripts/pikocore_usb.py status
+python3 scripts/pikocore_usb.py profile --duration 2
+python3 scripts/pikocore_usb.py watch --interval 1
+```
+
+`status` includes rendered-frame count, total/last/maximum render time, the
+number of renders over the 41.667 µs sample budget, render interval timing,
+current sample/BPM/beat/mode/knobs/buttons, clock and transport state, and event
+counters for retriggers, MIDI, external clock, settings operations, and LCD
+bounds errors. `stats-reset` starts an isolated measurement. `watch` is still
+host-polled request/response traffic; it never enables unsolicited device
+logging. Do not run the diagnostic tool and the browser bank loader against the
+same serial port at the same time.
 
 ## Controls
 

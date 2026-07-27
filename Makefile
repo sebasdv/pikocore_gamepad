@@ -8,8 +8,13 @@ export PICO_SDK_PATH
 JOBS ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 WEB_PUBLIC_DIR := web/public
 WEB_UF2 := $(WEB_PUBLIC_DIR)/pikocore.uf2
+WEB_GAMEPI_UF2 := $(WEB_PUBLIC_DIR)/pikocore-16mb.uf2
+GAMEPI_BUILD_DIR ?= build-gamepi
+GAMEPI_UF2 := $(GAMEPI_BUILD_DIR)/pikocore.uf2
+WEB_HOST ?= 127.0.0.1
+WEB_PORT ?= 5173
 
-.PHONY: build buildit justbuild quick publish-web-uf2 webapp-build test clean prereqs easing.h filter.h
+.PHONY: build buildit justbuild quick ensure-pico-sdk gamepi-build upload web publish-web-uf2 publish-gamepi-web-uf2 webapp-build test clean prereqs easing.h filter.h
 
 buildit: quick
 
@@ -45,7 +50,30 @@ quick: target_compile_definitions.cmake doth/easing.h doth/filter.h
 	cd build && make -j$(JOBS)
 	echo "BUILD SUCCESS"
 
-webapp-build: publish-web-uf2
+ensure-pico-sdk:
+	@if [ -z "$(PICO_SDK_PATH)" ]; then $(MAKE) pico-sdk; fi
+
+gamepi-build: ensure-pico-sdk target_compile_definitions.cmake doth/easing.h doth/filter.h
+	@test -n "$(PICO_SDK_PATH)" || (echo "PICO_SDK_PATH not found. Set PICO_SDK_PATH or run 'make pico-sdk'."; exit 1)
+	cmake -S . -B "$(GAMEPI_BUILD_DIR)" \
+		-DPICO_SDK_PATH="$(PICO_SDK_PATH)" \
+		-DPIKO_GAMEPI13=ON \
+		-DPIKO_GAMEPI13_SD=OFF
+	cmake --build "$(GAMEPI_BUILD_DIR)" --parallel "$(JOBS)"
+	@du -sh "$(GAMEPI_UF2)"
+
+publish-gamepi-web-uf2: gamepi-build
+	mkdir -p "$(WEB_PUBLIC_DIR)"
+	cp "$(GAMEPI_UF2)" "$(WEB_GAMEPI_UF2)"
+
+upload: publish-gamepi-web-uf2
+	./scripts/upload_firmware.sh "$(GAMEPI_UF2)"
+
+web:
+	cd web && npm install --no-audit --no-fund
+	cd web && npm run dev -- --host "$(WEB_HOST)" --port "$(WEB_PORT)"
+
+webapp-build: publish-gamepi-web-uf2
 	cd web && npm install
 	cd web && npm run build
 

@@ -7,13 +7,18 @@
 // Única fuente de verdad: reusada tanto por el log de debug USB
 // (PikoSampleManager.cpp) como por el splash de arranque en GamePi13
 // (src/gamepi13/ui.cpp), para no repetir el número en dos lugares.
-static constexpr const char *PIKO_FIRMWARE_VERSION = "2.2";
+static constexpr const char *PIKO_FIRMWARE_VERSION = "2.3";
 
 static constexpr uint32_t PIKO_BANK_MAGIC = 0x4f4b4950u;  // "PIKO"
-static constexpr uint32_t PIKO_BANK_VERSION = 2u;
+static constexpr uint32_t PIKO_BANK_VERSION = 3u;
 static constexpr uint32_t PIKO_BANK_HEADER_SIZE = 12288u;
 static constexpr uint32_t PIKO_BANK_SAMPLE_RATE = 24000u;
 static constexpr uint32_t PIKO_BANK_MAX_SAMPLES = 128u;
+static constexpr uint32_t PIKO_BANK_WAVEFORM_COLUMNS = 240u;
+// Planar unsigned PCM peaks: 240 minima followed by 240 maxima. In bank v3
+// this block lives immediately before each sample's PCM payload.
+static constexpr uint32_t PIKO_BANK_WAVEFORM_BYTES =
+    PIKO_BANK_WAVEFORM_COLUMNS * 2u;
 static constexpr uint32_t PIKO_FLASH_SECTOR_SIZE = 4096u;
 
 #ifndef PICO_FLASH_SIZE_BYTES
@@ -64,6 +69,8 @@ struct PikoBankHeader {
 
 static_assert(sizeof(PikoBankSampleRecord) == 64u,
               "Pikocore bank sample records must stay 64 bytes");
+static_assert(PIKO_BANK_WAVEFORM_BYTES == 480u,
+              "GamePi13 waveforms must remain two 240-byte planes");
 static_assert(sizeof(PikoBankHeader) <= PIKO_BANK_HEADER_SIZE,
               "Pikocore bank header must fit in the reserved header space");
 static_assert(PIKO_BANK_HEADER_SIZE % PIKO_FLASH_SECTOR_SIZE == 0u,
@@ -84,6 +91,7 @@ uint32_t piko_audio_flash_offset();
 uint32_t piko_settings_flash_offset();
 const PikoAudioSample& piko_audio_sample(uint32_t index);
 uint8_t piko_audio_read_byte(uint32_t offset);
+const uint8_t* piko_audio_waveform_data(uint32_t sample_index);
 
 uint8_t piko_raw_val(uint32_t sample_index, uint32_t frame_index);
 uint32_t piko_raw_len(uint32_t sample_index);

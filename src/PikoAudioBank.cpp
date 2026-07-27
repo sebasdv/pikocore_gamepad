@@ -47,7 +47,8 @@ bool record_valid(const PikoBankSampleRecord& record, uint32_t total_audio_bytes
   if (record.frame_count == 0 || record.source_bpm == 0 || record.beat_count == 0) {
     return false;
   }
-  if (record.offset > total_audio_bytes) {
+  if (record.offset < PIKO_BANK_WAVEFORM_BYTES ||
+      record.offset > total_audio_bytes) {
     return false;
   }
   return record.frame_count <= total_audio_bytes - record.offset;
@@ -187,6 +188,19 @@ uint8_t piko_audio_read_byte(uint32_t offset) {
       reinterpret_cast<const uint8_t*>(XIP_BASE + PIKO_AUDIO_FLASH_OFFSET +
                                        PIKO_BANK_HEADER_SIZE);
   return data[offset];
+}
+
+const uint8_t* piko_audio_waveform_data(uint32_t sample_index) {
+  if (!bank_valid || sample_count == 0 || sample_index >= sample_count) {
+    return nullptr;
+  }
+  const PikoAudioSample& sample = samples[sample_index];
+  if (sample.offset < PIKO_BANK_WAVEFORM_BYTES) {
+    return nullptr;
+  }
+  return reinterpret_cast<const uint8_t*>(
+      XIP_BASE + PIKO_AUDIO_FLASH_OFFSET + PIKO_BANK_HEADER_SIZE +
+      sample.offset - PIKO_BANK_WAVEFORM_BYTES);
 }
 
 uint8_t piko_raw_val(uint32_t sample_index, uint32_t frame_index) {
