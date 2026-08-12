@@ -1,0 +1,28 @@
+__pycache__/
+
+# Todo lo que se genere en logs/, sin importar la extension: el proyecto
+# escribe ahi .log, .rpt (ERC), .json (DRC) y .dxf de prueba. Una regla por
+# extension deja pasar el resto — asi quedo NEWSETUP/pcb/drc_dac.json sin
+# trackear en V1. El .gitkeep se versiona para que el directorio sobreviva
+# a un clone: sin el, todos los comandos que redirigen a logs/ fallan.
+logs/*
+!logs/.gitkeep
+
+# Backups de KiCad 9. NO es "~*": los backups reales son ZIPs en un
+# directorio propio (verificado contra NEWSETUP/pcb/newsetup-backups/, donde
+# no existe ningun archivo ~*).
+gamesetup-backups/
+*.bak
+_autosave-*
+*.kicad_prl
+
+# Archivos de fabricacion: 100% derivados del .kicad_pcb y regenerados en
+# cada corrida de gen_fab.py. El set exacto que se mando a fabricar queda
+# identificado por el SHA del commit del .kicad_pcb, que si se versiona.
+fab/
+
+fp-info-cache
+
+# Intermedios del ciclo de ruteo con freerouting.
+*.dsn
+*.ses

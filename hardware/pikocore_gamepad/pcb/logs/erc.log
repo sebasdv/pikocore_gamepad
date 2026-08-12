@@ -1,0 +1,11 @@
+Informe de ERC (2026-08-12T00:18:48-0400, codificación UTF8)
+
+***** Hoja /
+[global_label_dangling]: Etiqueta global no conectada en ningún otro lugar del esquema
+    ; warning
+    @(77,47 mm, 50,80 mm): Etiqueta global «EXP_GP28»
+[global_label_dangling]: Etiqueta global no conectada en ningún otro lugar del esquema
+    ; warning
+    @(77,47 mm, 55,88 mm): Etiqueta global «EXP_GP27»
+
+**Mensajes ERC: 2. Errores0, Avisos 2
