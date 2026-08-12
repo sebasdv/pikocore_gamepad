@@ -226,11 +226,11 @@ def build_sch():
              f'  (uuid "{ROOT_UUID}")',
              '  (paper "A2")',
              '  (title_block',
-             '    (title "GAMESETUP V2 - panel principal")',
+             '    (title "pikocore_gamepad - panel principal")',
              '    (date "2026-07-31")',
              '    (rev "A")',
              '    (comment 1 "MCU: Waveshare RP2350-Plus 16MB en socket | LiPo al PH1.25 del modulo")',
-             '    (comment 2 "Pinout: GAMESETUP/pcb/pinmap.py, verificado contra boards/rp2350plus_v2/config.h")',
+             '    (comment 2 "Pinout: hardware/pikocore_gamepad/pcb/pinmap.py, cross-checked contra firmware_pin_stub/config.h (stub)")',
              '  )',
              '  (lib_symbols']
     for name, d in SYMS.items():
