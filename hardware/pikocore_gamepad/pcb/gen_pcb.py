@@ -392,7 +392,7 @@ def agregar_zonas(board, nets):
 
     - In2.Cu NO se parte en bandas por riel. Una banda cortada por las vias
       queda en islas y vuelve el mismo problema. In2.Cu es 3V3 entero —el riel
-      mas repartido: display, DAC, expansores, microSD y MIDI— y VSYS y 5V van
+      mas repartido: display, DAC, microSD y MIDI— y VSYS y 5V van
       como PISTAS de la netclass Power (0.4mm). Alcanza de sobra: 5V alimenta
       solo al op-amp (~10mA) y VSYS al class-D, cuyos picos de cientos de mA
       entran comodos en 0.4mm.

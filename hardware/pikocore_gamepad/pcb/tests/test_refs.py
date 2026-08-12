@@ -40,9 +40,8 @@ class TestHuecos(unittest.TestCase):
         self.assertEqual(check_refs.huecos(["R1", "R2", "C1", "C3"]), ["C2"])
 
     def test_una_serie_que_no_arranca_en_uno_no_es_un_hueco(self):
-        # U10/U11/U12 son los expansores; que no exista U1..U9 en ese rango no
-        # es un hueco, porque los huecos se miden entre el minimo y el maximo
-        # de cada prefijo.
+        # Que no exista U1..U9 en ese rango no es un hueco, porque los huecos
+        # se miden entre el minimo y el maximo de cada prefijo.
         self.assertEqual(check_refs.huecos(["U10", "U11", "U12"]), [])
 
     def test_detecta_varios_huecos_seguidos(self):
