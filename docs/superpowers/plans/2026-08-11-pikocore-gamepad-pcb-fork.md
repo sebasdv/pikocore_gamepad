@@ -62,7 +62,7 @@ button/LCD/audio component choices and footprints untouched.
   superseded plan — this task updates it to match the fork's actual pin map, see
   Task 2)
 
-- [ ] **Step 1: Copy the pipeline, excluding generated/cache artifacts**
+- [x] **Step 1: Copy the pipeline, excluding generated/cache artifacts**
 
 ```bash
 mkdir -p hardware/pikocore_gamepad/pcb
@@ -83,7 +83,7 @@ by `gen_pcb.py`/`gen_template_dxf.py`/`route_io.py`/freerouting — this fork
 regenerates its own once `gen_pcb.py` runs (out of scope for this plan, which stops
 at the schematic).
 
-- [ ] **Step 2: Rename the KiCad project files**
+- [x] **Step 2: Rename the KiCad project files**
 
 ```bash
 mv gamesetup.kicad_pro pikocore_gamepad.kicad_pro
@@ -98,7 +98,7 @@ lines for zero functional benefit (they're internal library identifiers, not
 user-facing). Only the project's own root-sheet name needs to match the `.kicad_pro`
 filename, which Step 2 just did.
 
-- [ ] **Step 3: Open the project once to confirm it loads**
+- [x] **Step 3: Open the project once to confirm it loads**
 
 Open `hardware/pikocore_gamepad/pcb/pikocore_gamepad.kicad_pro` in KiCad. Confirm the
 schematic editor opens without complaining about a missing root sheet (KiCad expects
@@ -107,7 +107,7 @@ and `gamesetup_lcsc` resolve in the library manager (they should, since `fp-lib-
 paths are relative to the project directory, which moved as a unit). Close without
 saving — no GUI edits happen in this plan.
 
-- [ ] **Step 4: Commit the raw fork before any adaptation**
+- [x] **Step 4: Commit the raw fork before any adaptation**
 
 ```bash
 cd ../../..
@@ -126,7 +126,7 @@ checkpoint to diff against later.
 - Modify: `hardware/pikocore_gamepad/pcb/pinmap.py`
 - Modify: `docs/hardware/pikocore_gamepad-pinout.md`
 
-- [ ] **Step 1: Replace the GPIO assignment table**
+- [x] **Step 1: Replace the GPIO assignment table**
 
 In `hardware/pikocore_gamepad/pcb/pinmap.py`, replace the `GPIO = {...}` dict and the
 `FREE = (...)` tuple with:
@@ -176,13 +176,13 @@ reference literally — Task 4 removes the PCF8574 detour those net names used t
 through, but the net names themselves don't change, so nothing else in `netlist.py`
 needs touching for the button rewiring to take effect.
 
-- [ ] **Step 2: Verify the module docstring's pin-range claim still holds**
+- [x] **Step 2: Verify the module docstring's pin-range claim still holds**
 
 The file's module docstring already says "GP0-GP22 y GP26-GP28" are exposed and
 GP23/24/25/29 are internal — that claim doesn't change with this fork (same
 physical module), so leave it as-is.
 
-- [ ] **Step 3: Update the pinout reference doc**
+- [x] **Step 3: Update the pinout reference doc**
 
 Replace the pin table in `docs/hardware/pikocore_gamepad-pinout.md` (written for the
 superseded manual-GUI plan) with the table below, and add a note pointing at the
@@ -232,7 +232,7 @@ still needs `gpio_pull_up()` on each, same mechanism, just inherited from the fo
 schematic instead of designed fresh.
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add hardware/pikocore_gamepad/pcb/pinmap.py docs/hardware/pikocore_gamepad-pinout.md
@@ -246,12 +246,12 @@ git commit -m "hw: pikocore_gamepad pin map — 12 direct-GPIO buttons, no MIDI/
 **Files:**
 - Modify: `hardware/pikocore_gamepad/pcb/netlist.py`
 
-- [ ] **Step 1: Delete the MIDI/microSD symbol definitions**
+- [x] **Step 1: Delete the MIDI/microSD symbol definitions**
 
 In the `SYMS = {...}` dict, delete these three entries entirely (each is a
 `"NAME": dict(...)` block ending in `),`): `"H11L1"`, `"JACK_TRS"`, `"MICROSD"`.
 
-- [ ] **Step 2: Delete the MIDI/microSD instances block**
+- [x] **Step 2: Delete the MIDI/microSD instances block**
 
 Delete the entire section starting at the comment
 `# ============================================================ MIDI y microSD`
@@ -260,7 +260,7 @@ decoupling capacitor `C31` and the closing `]`). This removes R18–R24, D1, `J2
 `J3`, `U6`, `J6`, and C29–C31 in one deletion — the whole block is self-contained
 between that comment and the next top-level statement.
 
-- [ ] **Step 3: Delete the MIDI/microSD footprint constants**
+- [x] **Step 3: Delete the MIDI/microSD footprint constants**
 
 Delete these two lines (just above the block deleted in Step 2):
 
@@ -272,12 +272,12 @@ SD_FP = "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical"
 and the `FOOTPRINTS_PROVISIONALES.update({...})` call that follows them (the one
 adding `"TRS_FP"` and `"SD_FP"` entries).
 
-- [ ] **Step 4: Delete the `OPTO_FP` constant and its provisional-footprint entry**
+- [x] **Step 4: Delete the `OPTO_FP` constant and its provisional-footprint entry**
 
 Delete the line `OPTO_FP = "Package_SO:SO-6_4.4x3.6mm_P1.27mm"` and the
 `"OPTO_FP": "el H11L1 que se eligio..."` entry inside `FOOTPRINTS_PROVISIONALES`.
 
-- [ ] **Step 5: Update `PINOUT_SIN_VERIFICAR`**
+- [x] **Step 5: Update `PINOUT_SIN_VERIFICAR`**
 
 Change:
 
@@ -295,7 +295,7 @@ PINOUT_SIN_VERIFICAR = ("TPS61023", "JACK_AUDIO")
 genuinely unverified for pikocore_gamepad the same way they were for GAMESETUP (see
 Task 6).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add hardware/pikocore_gamepad/pcb/netlist.py
@@ -309,11 +309,11 @@ git commit -m "hw: remove MIDI I/O and microSD from pikocore_gamepad netlist"
 **Files:**
 - Modify: `hardware/pikocore_gamepad/pcb/netlist.py`
 
-- [ ] **Step 1: Delete the `PCF8574` and `NAV_WS1004` symbol definitions**
+- [x] **Step 1: Delete the `PCF8574` and `NAV_WS1004` symbol definitions**
 
 In `SYMS = {...}`, delete the `"PCF8574"` and `"NAV_WS1004"` entries.
 
-- [ ] **Step 2: Delete the PCF8574 support code**
+- [x] **Step 2: Delete the PCF8574 support code**
 
 Delete, as one contiguous removal: the `PCF_MAP = {...}` dict, the comment above it,
 the `PCF_ADDR_BITS = {...}` line, the comment block about "Los expansores arrancan en
@@ -321,7 +321,7 @@ U10...", the `_pcf_instances()` function definition, and the
 `PCF_P_PINS = ["4", "5", "6", "7", "9", "10", "11", "12"]` constant (defined earlier,
 just above `_mcu_nets()`).
 
-- [ ] **Step 3: Delete the PCF8574 pull-up/decouple instances and the expander
+- [x] **Step 3: Delete the PCF8574 pull-up/decouple instances and the expander
   instantiation call**
 
 Delete the line `INSTANCES += _pcf_instances()` and the entire following
@@ -329,18 +329,18 @@ Delete the line `INSTANCES += _pcf_instances()` and the entire following
 `# Pull-ups del bus...` through the `TP2` testpoint line) — this removes R1–R3,
 C1–C3, TP1, TP2.
 
-- [ ] **Step 4: Delete the nav switch instances**
+- [x] **Step 4: Delete the nav switch instances**
 
 Delete the `# ------------------------------------------------------------ nav switches`
 block: the `INSTANCES += [...]` containing `SW13` (`NAV1`) and `SW14` (`NAV2`).
 
-- [ ] **Step 5: Delete the expansion header instance**
+- [x] **Step 5: Delete the expansion header instance**
 
 In the `# --------------------------------------------------- alimentacion y EXP`
 block, delete just the `("Conn_01x09", "J7", "EXP", ...)` tuple — **keep** the
 `("SK12D07", "SW15", "PWR", ...)` power-switch tuple right above it, that one stays.
 
-- [ ] **Step 6: Delete the `PCF_FP`, `NAV_FP`, and `TP_FP` constants**
+- [x] **Step 6: Delete the `PCF_FP`, `NAV_FP`, and `TP_FP` constants**
 
 Delete:
 
@@ -353,7 +353,7 @@ TP_FP = "TestPoint:TestPoint_Pad_D1.5mm"
 (`BTN_FP`, `BTN_RA_FP`, `R_FP`, `C_FP` stay — the 12 tacts and their footprint
 constants are unaffected by this task.)
 
-- [ ] **Step 7: Confirm the `TACTS` list needs no changes**
+- [x] **Step 7: Confirm the `TACTS` list needs no changes**
 
 Re-read the `TACTS` list and the `SW9`/`SW10` angled-trigger instances: they already
 reference `DPAD_UP`, `DPAD_DOWN`, `DPAD_LEFT`, `DPAD_RIGHT`, `BTN_X`, `BTN_Y`,
@@ -363,7 +363,7 @@ switches now land on the RP2350-Plus's GPIO automatically once `_mcu_nets()` (wh
 Task 2 didn't touch) re-derives the socket's pin↔net map from the updated
 `pinmap.GPIO`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add hardware/pikocore_gamepad/pcb/netlist.py
@@ -377,7 +377,7 @@ git commit -m "hw: remove nav switches and PCF8574 expanders, buttons go direct 
 **Files:**
 - Modify: `hardware/pikocore_gamepad/pcb/placements.py`
 
-- [ ] **Step 1: Delete placement rows for every removed reference**
+- [x] **Step 1: Delete placement rows for every removed reference**
 
 In the `PLACEMENTS = [...]` list, delete the rows for: `U10`, `U11`, `U12` (PCF8574
 expanders), `TP1`, `TP2` (testpoints), `U6` (H11L1 opto), `J6` (microSD stand-in
@@ -389,14 +389,14 @@ angled `SW9`/`SW10`), `SW15` (power slide switch), `U1` (RP2350-Plus socket), `U
 (boost), `U5` (PCM5102A), `U3` (op-amp), `U4` (PAM8302A), `J1` (phones jack), `J5`
 (speaker JST).
 
-- [ ] **Step 2: Leave `FREE_REGIONS` untouched for now**
+- [x] **Step 2: Leave `FREE_REGIONS` untouched for now**
 
 `placements.py`'s own docstring says positions are provisional and get rewritten by
 `parse_dxf.py` once someone lays the board out in Rhino — removing 10 components
 changes what's free, but recomputing that by hand now would just be discarded at the
 next Rhino cycle. Note it as a known stale spot, don't fix it in this task.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add hardware/pikocore_gamepad/pcb/placements.py
@@ -418,7 +418,7 @@ But `checks/check_pinmap.py` (gate G-4) needs *some* `config.h` with matching
 This task creates a **stub that only the check reads** — it isn't wired into any
 CMake build.
 
-- [ ] **Step 1: Generate the stub's `#define` lines from `pinmap.py`**
+- [x] **Step 1: Generate the stub's `#define` lines from `pinmap.py`**
 
 Create `hardware/pikocore_gamepad/pcb/firmware_pin_stub/config.h`:
 
@@ -465,7 +465,7 @@ Create `hardware/pikocore_gamepad/pcb/firmware_pin_stub/config.h`:
 Every line here must equal a `pinmap.GPIO` entry from Task 2 — that's exactly what
 Step 3 verifies.
 
-- [ ] **Step 2: Point `check_pinmap.py` at the stub**
+- [x] **Step 2: Point `check_pinmap.py` at the stub**
 
 In `hardware/pikocore_gamepad/pcb/checks/check_pinmap.py`, change:
 
@@ -483,7 +483,7 @@ CONFIG_H = os.path.join(PCB, "firmware_pin_stub", "config.h")
 this fork does not have — and pikocore_gamepad's real firmware config doesn't exist
 yet, hence the stub.)
 
-- [ ] **Step 3: Run the check**
+- [x] **Step 3: Run the check**
 
 ```bash
 cd hardware/pikocore_gamepad/pcb
@@ -495,7 +495,7 @@ in `pinmap.GPIO` after Task 2's rewrite). If it reports a mismatch, the stub's
 `#define` values and `pinmap.py`'s `GPIO` dict have drifted — fix whichever one is
 wrong before continuing.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add hardware/pikocore_gamepad/pcb/firmware_pin_stub hardware/pikocore_gamepad/pcb/checks/check_pinmap.py
@@ -511,7 +511,7 @@ git commit -m "hw: firmware pin-map stub so G-4 gate has something to check agai
 - Create: `hardware/pikocore_gamepad/pcb/logs/erc.log` (generated, committed as
   evidence)
 
-- [ ] **Step 1: Regenerate the schematic from the edited netlist**
+- [x] **Step 1: Regenerate the schematic from the edited netlist**
 
 ```bash
 cd hardware/pikocore_gamepad/pcb
@@ -522,7 +522,7 @@ Expected: it overwrites `pikocore_gamepad.kicad_sch` and exits 0. If it errors o
 undefined symbol or net, one of Tasks 3–5's deletions left a dangling reference —
 search `netlist.py` for the deleted ref/symbol name and remove what Step 1 missed.
 
-- [ ] **Step 2: Run the Python check gates**
+- [x] **Step 2: Run the Python check gates**
 
 ```bash
 "$LOCALAPPDATA/Programs/KiCad/9.0/bin/python.exe" checks/run_all.py
@@ -537,7 +537,7 @@ a regression**, this plan doesn't resolve GAMESETUP's own open part-sourcing
 questions, it only removes subsystems pikocore_gamepad doesn't need. G-4 (pinmap) and
 G-5 (duplicate refs) should show **0** issues from this fork's changes specifically.
 
-- [ ] **Step 3: Run ERC**
+- [x] **Step 3: Run ERC**
 
 ```bash
 "$LOCALAPPDATA/Programs/KiCad/9.0/bin/kicad-cli.exe" sch erc \
@@ -548,7 +548,7 @@ Expected: 0 errors. Warnings about the 3 reserved-free GPIO (GP26–28) being
 unconnected are fine (matches the intentional "reserved" entries in the pin map doc)
 — every other warning must be resolved before moving on to layout.
 
-- [ ] **Step 4: Commit the logs as evidence**
+- [x] **Step 4: Commit the logs as evidence**
 
 ```bash
 git add hardware/pikocore_gamepad/pcb/logs/erc.log
@@ -556,6 +556,36 @@ git commit -m "hw: pikocore_gamepad schematic — checks green, ERC clean"
 ```
 
 ---
+
+## Execution notes (added after running the plan, 2026-08-11)
+
+All 7 tasks executed via subagent-driven-development, each with a spec-compliance
+review and a code-quality review; every task needed at least one fix-and-re-review
+round. Final state: 174 tests passing, `checks/run_all.py` shows only gate G-0
+failing (GAMESETUP's own pre-existing provisional part/constant list — audio jack,
+tact switch, boost inductor values, LCD measurements — not something this fork
+introduced or was scoped to resolve), and `kicad-cli sch erc` reports 0 errors with
+exactly the 3 expected `EXP_GP26`/`27`/`28` dangling-label warnings.
+
+**One fix went beyond Task 7's literal file list** (which said "Modify: none —
+verification only"): running ERC for the first time surfaced that `sym-lib-table`
+still registered the project's own symbol library under the nickname `"gamesetup"`,
+while `gen_sch.py`'s `PROJECT = "pikocore_gamepad"` constant (set in a Task 1
+follow-up fix) emits every schematic symbol's `lib_id` with a `"pikocore_gamepad:"`
+prefix — a nickname that didn't exist, producing 62 spurious `lib_symbol_issues`
+warnings. Fixed by renaming the `sym-lib-table` nickname to match (not the `uri`,
+already correct; the unrelated `gamesetup_fp`/`gamesetup_lcsc` footprint-library
+nicknames were left untouched, per Task 1's original instruction to preserve those).
+Re-verified: ERC dropped from 65 to 3 warnings, test suite and G-4 pinmap check both
+still green. Commit `68d27b5`.
+
+Also committed as part of Task 7, beyond the plan's original "verification only"
+framing: the regenerated `pikocore_gamepad.kicad_sch`/`.kicad_sym`/`.kicad_pcb`/
+`.net` files themselves (not gitignored; matches GAMESETUP's own convention of
+tracking these). The `.kicad_pcb` is placement-only — 0 tracks, 0 vias — consistent
+with PCB routing being explicitly out of scope for this plan.
+
+Branch: `pikocore-gamepad-hardware`. Ready for the out-of-scope items below.
 
 ## Out of scope (tracked for future plans, not this one)
 
