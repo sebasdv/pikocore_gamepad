@@ -135,8 +135,8 @@ NOTES = [
      "VERIFICAR ANTES DE FABRICAR (correr checks/check_verified.py):\n"
      "- Cotas del modulo LCD que el drawing no acota: vertical de la fila de pines, y el\n"
      "  offset de los agujeros (la cota dice 2.19 y la nota china 2.5).\n"
-     "- Pinout de TPS61023, H11L1, los dos jacks TRS, el jack de audio y el socket microSD:\n"
-     "  ninguno viene verificado de V1 y sus simbolos lo dicen.\n"
+     "- Pinout de TPS61023 y del jack de audio: ninguno viene verificado de V1\n"
+     "  y sus simbolos lo dicen.\n"
      "- Valores del lazo del boost (inductor y divisor de realimentacion).\n"
      "Los pinouts de PCM5102A, NJM4556AD, PAM8302A y el nav WS-1004 SI vienen verificados\n"
      "de V1, donde llegaron a una placa ruteada con DRC limpio."),

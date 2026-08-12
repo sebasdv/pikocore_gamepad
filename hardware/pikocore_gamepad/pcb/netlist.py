@@ -69,8 +69,8 @@ SYMS = {
     "LCD_ST7789": dict(
         ref="J", w=7.62, h=10.16,
         desc="Modulo IPS 1.3in 240x240 ST7789, 7 pines. NO tiene pin CS: esta "
-             "siempre seleccionado, asi que su SPI no se puede compartir — por "
-             "eso la microSD va a SPI1.",
+             "siempre seleccionado, asi que su SPI no se puede compartir con "
+             "ningun otro periferico.",
         ds="",
         pins=_left_pins(["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]),
     ),
@@ -266,9 +266,9 @@ PCF_FP = "Package_SO:TSSOP-16_4.4x5mm_P0.65mm"
 R_FP = "Resistor_SMD:R_0603_1608Metric"
 C_FP = "Capacitor_SMD:C_0603_1608Metric"
 TP_FP = "TestPoint:TestPoint_Pad_D1.5mm"
-# Op-amp y optoacoplador pasan a SMD para que los monte JLC. No es solo
-# comodidad de armado: liberan 95 mm2 del dorso (66% y 57% de su area de pads
-# respectivamente), que es donde la placa esta apretada.
+# El op-amp pasa a SMD para que lo monte JLC. No es solo comodidad de armado:
+# libera 95 mm2 del dorso (66% de su area de pads), que es donde la placa esta
+# apretada.
 # El header del parlante NO se convierte: medido, el JST en SMD ocupa 55 mm2
 # contra 6 del THT — nueve veces mas, por las lenguetas de anclaje y los pads
 # anchos. Ademas recibe la fuerza de insercion de un conector, donde THT es
@@ -355,7 +355,7 @@ PCF_MAP = {
 PCF_ADDR_BITS = {"U10": (0, 0, 0), "U11": (1, 0, 0), "U12": (0, 1, 0)}
 
 # Los expansores arrancan en U10 a proposito, reservando el bloque U1-U6 para
-# los integrados de una sola pieza (MCU, boost, op-amp, class-D, DAC, opto).
+# los integrados de una sola pieza (MCU, boost, op-amp, class-D, DAC).
 # Eso deja U7-U9 sin usar y check_refs.py lo reporta como hueco: es esperado,
 # no un componente perdido. Renumerarlos desincronizaria las referencias con
 # boards/rp2350plus_v2/config.h y con el spec.

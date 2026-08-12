@@ -222,9 +222,6 @@ class TestSimbolosNuevos(unittest.TestCase):
     def test_el_boost_tiene_seis_pines(self):
         self.assertEqual(len(netlist.SYMS["TPS61023"]["pins"]), 6)
 
-    def test_el_optoacoplador_tiene_seis_pines(self):
-        self.assertEqual(len(netlist.SYMS["H11L1"]["pins"]), 6)
-
     def test_los_pasivos_tienen_dos_pines(self):
         for name in ("R", "C", "CP", "L", "D"):
             self.assertEqual(len(netlist.SYMS[name]["pins"]), 2, name)
@@ -239,10 +236,6 @@ class TestSimbolosNuevos(unittest.TestCase):
 
     def test_el_jack_de_audio_declara_el_contacto_de_deteccion(self):
         self.assertIn("DET", pin_names("JACK_AUDIO"))
-
-    def test_el_jack_trs_de_midi_tiene_tres_conductores(self):
-        self.assertEqual(sorted(pin_names("JACK_TRS")),
-                         ["RING", "SLEEVE", "TIP"])
 
     def test_el_header_del_parlante_tiene_dos_pines(self):
         self.assertEqual(len(netlist.SYMS["Conn_01x02"]["pins"]), 2)
@@ -700,90 +693,6 @@ class TestAudioJackYParlante(unittest.TestCase):
         self.assertEqual(u4["5"], "SPK_P")
         self.assertEqual(u4["8"], "SPK_N")
         self.assertNotIn("GND", (u4["5"], u4["8"]))
-
-
-class TestMidi(unittest.TestCase):
-
-    def test_el_out_usa_un_par_de_33_ohm(self):
-        # A 3.3V el par correcto es 33 ohm. El clasico 220 corresponde a 5V:
-        # el lazo cierra contra los 220 ohm del receptor, asi que con 3.3V y
-        # 220+220 la corriente queda muy por debajo de los 5mA del estandar.
-        self.assertTrue(hay_pasivo("R", ["MIDI_TX", "MIDI_OUT_TIP"], "33R"))
-        self.assertTrue(hay_pasivo("R", ["3V3", "MIDI_OUT_RING"], "33R"))
-
-    def test_el_out_toma_corriente_del_3v3_y_no_del_riel_analogico(self):
-        # Mantenerlo separado evita meter los transitorios de conmutacion del
-        # MIDI en la alimentacion del op-amp.
-        rs = [i for i in netlist.INSTANCES
-              if i[0] == "R" and "MIDI_OUT_RING" in i[5].values()]
-        self.assertTrue(all("3V3" in i[5].values() for i in rs))
-        self.assertFalse(any("5V" in i[5].values() for i in rs))
-
-    def test_el_jack_de_out_lleva_tip_ring_y_sleeve(self):
-        n = nets_of("J2")
-        self.assertEqual(n["1"], "MIDI_OUT_TIP")
-        self.assertEqual(n["2"], "MIDI_OUT_RING")
-        self.assertEqual(n["3"], "GND")
-
-    def test_el_in_pasa_por_el_optoacoplador(self):
-        # Aislamiento galvanico: es lo que evita lazos de masa entre equipos.
-        # La entrada NO puede ir directo a la UART.
-        n = nets_of("U6")
-        self.assertEqual(n["4"], "MIDI_RX", "VO")
-        self.assertEqual(n["6"], "3V3", "VCC")
-        self.assertEqual(n["5"], "GND")
-
-    def test_el_jack_de_in_no_toca_la_uart_directamente(self):
-        self.assertNotIn("MIDI_RX", nets_of("J3").values())
-
-    def test_el_in_tiene_resistencia_serie_en_el_lazo(self):
-        self.assertTrue(hay_pasivo("R", ["MIDI_IN_SRC", "MIDI_IN_A"], "220R"))
-
-    def test_el_in_tiene_diodo_de_proteccion_antiparalelo(self):
-        # Un cable MIDI al reves aplicaria tension inversa al LED del opto.
-        # El diodo va anti-paralelo: su anodo al catodo del LED.
-        d = [i for i in netlist.INSTANCES if i[0] == "D"]
-        self.assertEqual(len(d), 1)
-        self.assertEqual(d[0][5]["1"], "MIDI_IN_K")
-        self.assertEqual(d[0][5]["2"], "MIDI_IN_A")
-
-    def test_la_salida_del_opto_tiene_pull_up(self):
-        # El H11L1 es open-collector: sin pull-up la UART no ve nada.
-        self.assertTrue(hay_pasivo("R", ["3V3", "MIDI_RX"]))
-
-    def test_el_opto_tiene_desacople(self):
-        self.assertTrue(hay_pasivo("C", ["3V3", "GND"], "100nF"))
-
-
-class TestMicroSD(unittest.TestCase):
-
-    def test_usa_spi1(self):
-        n = nets_of("J6")
-        self.assertEqual(n["2"], "SD_CS", "CD_DAT3")
-        self.assertEqual(n["3"], "SD_MOSI", "CMD")
-        self.assertEqual(n["5"], "SD_SCK", "CLK")
-        self.assertEqual(n["7"], "SD_MISO", "DAT0")
-
-    def test_se_alimenta_de_3v3(self):
-        n = nets_of("J6")
-        self.assertEqual(n["4"], "3V3", "VDD")
-        self.assertEqual(n["6"], "GND", "VSS")
-
-    def test_las_lineas_sin_usar_tienen_pull_up(self):
-        # Modo SPI: DAT1/DAT2 no se usan pero la spec de la tarjeta pide que
-        # queden en alto, no flotantes.
-        for net in ("SD_DAT1", "SD_DAT2"):
-            self.assertTrue(hay_pasivo("R", ["3V3", net], "10k"), net)
-
-    def test_el_chip_select_tiene_pull_up(self):
-        # Sin el, la tarjeta puede entrar en modo SD en vez de SPI durante el
-        # arranque, antes de que el firmware maneje el pin.
-        self.assertTrue(hay_pasivo("R", ["3V3", "SD_CS"], "10k"))
-
-    def test_tiene_desacople_de_dos_valores(self):
-        # Una tarjeta pide picos de corriente al escribir.
-        self.assertTrue(hay_pasivo("C", ["3V3", "GND"], "100nF"))
-        self.assertTrue(hay_pasivo("CP", ["3V3", "GND"], "10uF"))
 
 
 class TestCoberturaDeNets(unittest.TestCase):
