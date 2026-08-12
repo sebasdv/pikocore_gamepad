@@ -99,11 +99,18 @@ PLACEMENTS = [
 # Se declaran aca y no en gen_pcb.py porque son consecuencia del layout, y el
 # layout es lo que el usuario ordena en Rhino: si mueve los controles, estas
 # regiones son lo primero que hay que revisar.
+#
+# STALE a proposito tras Task 5 (remocion de los expansores PCF8574): las
+# menciones a "los expansores" de abajo describen un layout que ya no tiene
+# ningun expansor en esa zona. No se recalculo porque este bloque entero lo
+# reescribe parse_dxf.py en el proximo ciclo de Rhino — tocar las coordenadas
+# a mano aca se perderia igual. Ver docs/superpowers/plans/
+# 2026-08-11-pikocore-gamepad-pcb-fork.md Task 5.
 FREE_REGIONS = [
     (31.0,  12.0, 59.0,  45.0),   # bajo el display, entre sus agujeros
     (31.0,  47.0, 88.0,  55.0),   # franja entre el display y la fila SW9..SW10
     (60.0,   2.0, 88.0,  45.0),   # derecha, alrededor de la etapa de audio
-    (36.0,  64.0, 58.0, 128.0),   # columna central, con los expansores
+    (36.0,  64.0, 58.0, 128.0),   # columna central (antes con los expansores, ver nota arriba)
     (60.0,  62.0, 88.0, 101.0),   # derecha media
     (60.0, 115.0, 88.0, 128.0),   # abajo a la derecha
     (2.0,   62.0, 10.0, 128.0),   # borde izquierdo
