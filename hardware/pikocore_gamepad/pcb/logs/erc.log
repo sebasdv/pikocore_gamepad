@@ -1,0 +1,200 @@
+Informe de ERC (2026-08-11T21:46:46-0400, codificación UTF8)
+
+***** Hoja /
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(59,69 mm, 59,69 mm): Símbolo U1 [RP2350-Plus]
+[global_label_dangling]: Etiqueta global no conectada en ningún otro lugar del esquema
+    ; warning
+    @(77,47 mm, 50,80 mm): Etiqueta global «EXP_GP28»
+[global_label_dangling]: Etiqueta global no conectada en ningún otro lugar del esquema
+    ; warning
+    @(77,47 mm, 55,88 mm): Etiqueta global «EXP_GP27»
+[global_label_dangling]: Etiqueta global no conectada en ningún otro lugar del esquema
+    ; warning
+    @(77,47 mm, 58,42 mm): Etiqueta global «EXP_GP26»
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(20,32 mm, 160,02 mm): Símbolo SW15 [SK12D07]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(199,39 mm, 39,37 mm): Símbolo J4 [LCD_ST7789]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(39,37 mm, 219,71 mm): Símbolo U2 [TPS61023]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 20,32 mm): Símbolo SW1 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 31,75 mm): Símbolo SW2 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 44,45 mm): Símbolo SW3 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 55,88 mm): Símbolo SW4 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 68,58 mm): Símbolo SW5 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 80,01 mm): Símbolo SW6 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 91,44 mm): Símbolo SW7 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(139,70 mm, 219,71 mm): Símbolo U5 [PCM5102A]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 104,14 mm): Símbolo SW8 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 115,57 mm): Símbolo SW11 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 128,27 mm): Símbolo SW12 [SW_Push]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 160,02 mm): Símbolo SW9 [SW_Push_RA]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 171,45 mm): Símbolo SW10 [SW_Push_RA]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(240,03 mm, 219,71 mm): Símbolo U3 [NJM4556AD]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 30,48 mm): Símbolo L2 [L]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 50,80 mm): Símbolo C4 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 71,12 mm): Símbolo L1 [L]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 91,44 mm): Símbolo R4 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 111,76 mm): Símbolo R5 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 132,08 mm): Símbolo C5 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(279,40 mm, 240,03 mm): Símbolo J1 [JACK_AUDIO]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 30,48 mm): Símbolo C16 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 152,40 mm): Símbolo C6 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 50,80 mm): Símbolo R6 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 71,12 mm): Símbolo R7 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 172,72 mm): Símbolo C7 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 91,44 mm): Símbolo C17 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 111,76 mm): Símbolo R8 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 193,04 mm): Símbolo C8 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 132,08 mm): Símbolo C18 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(299,72 mm, 265,43 mm): Símbolo U4 [PAM8302A]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 152,40 mm): Símbolo R9 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 213,36 mm): Símbolo C9 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 30,48 mm): Símbolo C23 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 50,80 mm): Símbolo C24 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 71,12 mm): Símbolo R15 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 172,72 mm): Símbolo R10 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 91,44 mm): Símbolo R16 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 233,68 mm): Símbolo C10 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 111,76 mm): Símbolo R17 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 193,04 mm): Símbolo C19 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 132,08 mm): Símbolo C25 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(330,20 mm, 265,43 mm): Símbolo J5 [Conn_01x02]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 254,00 mm): Símbolo C11 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 213,36 mm): Símbolo C20 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 152,40 mm): Símbolo C26 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 172,72 mm): Símbolo C27 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 274,32 mm): Símbolo C12 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 233,68 mm): Símbolo C21 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(401,32 mm, 193,04 mm): Símbolo C28 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 254,00 mm): Símbolo R11 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 294,64 mm): Símbolo C13 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 274,32 mm): Símbolo R12 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 314,96 mm): Símbolo C14 [CP]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 294,64 mm): Símbolo C22 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(340,36 mm, 335,28 mm): Símbolo C15 [C]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 314,96 mm): Símbolo R13 [R]
+[lib_symbol_issues]: The current configuration does not include the symbol library 'pikocore_gamepad'
+    ; warning
+    @(370,84 mm, 335,28 mm): Símbolo R14 [R]
+
+**Mensajes ERC: 65. Errores0, Avisos 65
