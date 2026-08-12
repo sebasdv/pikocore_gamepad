@@ -102,8 +102,12 @@ ALL = {
         "parse_dxf.py.",
         "V-0"),
     "BOARD_H": Param(
-        130.0, False,
-        "PROVISIONAL: ver BOARD_W.",
+        105.0, False,
+        "PROVISIONAL: ver BOARD_W. Bajado de 130 a 105 al mover el D-pad a "
+        "NAV5 (Y=83, mas arriba que el viejo D-pad en Y=100-116) y J5 junto "
+        "a U1 — ya no hace falta espacio cerca del borde inferior. Sigue "
+        "siendo un placeholder: el contorno definitivo lo dibuja el usuario "
+        "en Rhino.",
         "V-0"),
 }
 
