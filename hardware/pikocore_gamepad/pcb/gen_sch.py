@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera gamesetup.kicad_sch + .kicad_sym + .kicad_pro desde netlist.py.
+"""Genera pikocore_gamepad.kicad_sch + .kicad_sym + .kicad_pro desde netlist.py.
 
 Python puro, sin pcbnew: escribe los archivos como texto.
 
@@ -12,7 +12,7 @@ Las conexiones se hacen por GLOBAL LABELS en el extremo de cada pin, no por
 cables. Es lo que permite generar un esquematico legible sin resolver ruteo
 de wires, y lo que hace que el netlist dependa solo de la tabla.
 
-gamesetup.kicad_pro NO se sobrescribe si ya existe: KiCad lo enriquece con
+pikocore_gamepad.kicad_pro NO se sobrescribe si ya existe: KiCad lo enriquece con
 los ajustes de diseno de la placa (anchos de pista, clearances, reglas de
 DRC) que no estan en este generador, y regenerarlo los borra en silencio.
 Para forzar el reset, borrar el archivo a mano.
@@ -27,7 +27,7 @@ import os
 from netlist import SYMS, INSTANCES, NC
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PROJECT = "gamesetup"
+PROJECT = "pikocore_gamepad"
 
 # UUID de la hoja raiz: FIJO, no aleatorio. Hace la regeneracion reproducible:
 # sin esto cada corrida cambia todos los uuid y el diff de git queda

@@ -28,7 +28,7 @@ import pcbnew
 HERE = os.path.dirname(os.path.abspath(__file__))
 PCB_DIR = os.path.dirname(HERE)
 sys.path.insert(0, PCB_DIR)
-PCB = os.path.join(PCB_DIR, "gamesetup.kicad_pcb")
+PCB = os.path.join(PCB_DIR, "pikocore_gamepad.kicad_pcb")
 
 MARGEN_BORDE = 1.0    # mm minimos entre cobre y borde de placa
 

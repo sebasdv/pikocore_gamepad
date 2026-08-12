@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """G-2: el netlist del esquematico y el de la PCB son identicos.
 
-Compara pares (referencia, pin) -> net entre gamesetup.net (exportado del
-esquematico) y gamesetup.kicad_pcb. Una divergencia significa que la placa
+Compara pares (referencia, pin) -> net entre pikocore_gamepad.net (exportado del
+esquematico) y pikocore_gamepad.kicad_pcb. Una divergencia significa que la placa
 esta cableada distinto del esquematico, y no la detecta ni el ERC —que solo
 mira el esquematico— ni el DRC, que da por buena la net que tiene el pad.
 
@@ -17,8 +17,8 @@ import pcbnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PCB_DIR = os.path.dirname(HERE)
-NET = os.path.join(PCB_DIR, "gamesetup.net")
-PCB = os.path.join(PCB_DIR, "gamesetup.kicad_pcb")
+NET = os.path.join(PCB_DIR, "pikocore_gamepad.net")
+PCB = os.path.join(PCB_DIR, "pikocore_gamepad.kicad_pcb")
 
 
 def from_netlist(path):

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Export DSN / import SES para freerouting. Correr con el python de KiCad.
 
-  "$KIPY" route_io.py export   -> gamesetup.dsn
-  "$KIPY" route_io.py import   -> aplica gamesetup.ses, rellena zonas, guarda
+  "$KIPY" route_io.py export   -> pikocore_gamepad.dsn
+  "$KIPY" route_io.py import   -> aplica pikocore_gamepad.ses, rellena zonas, guarda
 
 DIFERENCIA CON V1: alli habia que QUITAR las zonas GND antes de exportar, para
 que freerouting ruteara GND como pistas. Eso era un parche a la fragmentacion
@@ -24,9 +24,9 @@ import sys
 import pcbnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PCB = os.path.join(HERE, "gamesetup.kicad_pcb")
-DSN = os.path.join(HERE, "gamesetup.dsn")
-SES = os.path.join(HERE, "gamesetup.ses")
+PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
+DSN = os.path.join(HERE, "pikocore_gamepad.dsn")
+SES = os.path.join(HERE, "pikocore_gamepad.ses")
 
 
 def main():

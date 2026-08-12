@@ -1,3 +1,11 @@
+> ⚠️ **Documento histórico, heredado del fork.** Describe las partes del
+> proyecto GAMESETUP original — se conserva por el research de componentes
+> (footprints verificados, decisiones de jack/tact/etc.) que este fork
+> reutiliza, no como inventario de `pikocore_gamepad`. Ver
+> `docs/hardware/pikocore_gamepad-pinout.md` y
+> `docs/superpowers/plans/2026-08-11-pikocore-gamepad-pcb-fork.md` para el
+> estado real de este proyecto.
+
 # Partes de GAMESETUP V2
 
 Estado de cada componente. **Verificado** significa: footprint importado y

@@ -35,8 +35,8 @@ import pcbnew
 import dxf_io
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PCB = os.path.join(HERE, "gamesetup.kicad_pcb")
-OUT = os.path.join(HERE, "gamesetup_template.dxf")
+PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
+OUT = os.path.join(HERE, "pikocore_gamepad_template.dxf")
 
 
 def to_mm(v):

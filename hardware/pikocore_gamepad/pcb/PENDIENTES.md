@@ -1,3 +1,12 @@
+> ⚠️ **Documento histórico, heredado del fork.** Describe el proyecto GAMESETUP
+> original (`C:\midigame\GAMESETUP`), no `pikocore_gamepad`. Las rutas de archivo
+> de aquí abajo (`gamesetup.kicad_pro`, `gamesetup.net`, etc.) apuntan al proyecto
+> viejo, en su repo aparte — **no** a este fork. Se conserva por el research de
+> partes que sigue aplicando (jack de audio V-3, fuerza de los tacts, etc.), no
+> como instrucciones operativas para este proyecto. Ver
+> `docs/superpowers/plans/2026-08-11-pikocore-gamepad-pcb-fork.md` para el estado
+> real de este fork.
+
 # GAMESETUP V2 — pendientes
 
 Estado al **2026-08-08**, rama `GAMESETUPV2`, último commit `8f55abb`.

@@ -30,7 +30,7 @@ import sys
 import pcbnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PCB = os.path.join(HERE, "gamesetup.kicad_pcb")
+PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
 
 
 def main():

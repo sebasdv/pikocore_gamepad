@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera gamesetup.kicad_pcb: contorno, stack de 4 capas, colocacion y zonas.
+"""Genera pikocore_gamepad.kicad_pcb: contorno, stack de 4 capas, colocacion y zonas.
 
 Correr con el python de KiCad 9:
   "$LOCALAPPDATA/Programs/KiCad/9.0/bin/python.exe" gen_pcb.py
@@ -30,8 +30,8 @@ from netlist import INSTANCES
 from placements import PLACEMENTS, BOARD_W, BOARD_H, FREE_REGIONS
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "gamesetup.kicad_pcb")
-NET = os.path.join(HERE, "gamesetup.net")
+OUT = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
+NET = os.path.join(HERE, "pikocore_gamepad.net")
 W, H = BOARD_W, BOARD_H
 
 CORNER_R = 3.0          # radio de las esquinas del contorno
