@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.dirname(HERE)
 sys.path.insert(0, PCB)
 
-CONFIG_H = os.path.join(PCB, "..", "boards", "rp2350plus_v2", "config.h")
+CONFIG_H = os.path.join(PCB, "firmware_pin_stub", "config.h")
 
 
 def parse_defines(src):
