@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "gamesetup")(type "KiCad")(uri "${KIPRJMOD}/gamesetup.kicad_sym")(options "")(descr "Simbolos del proyecto GAMESETUP V2"))
+)
