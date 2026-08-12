@@ -184,18 +184,6 @@ SYMS = {
         ds="https://www.ti.com/lit/ds/symlink/tps61023.pdf",
         pins=_dual_pins(["VIN", "GND", "EN"], ["FB", "VOUT", "SW"]),
     ),
-    "H11L1": dict(
-        ref="U", w=10.16, h=10.16,
-        desc="Optoacoplador con salida Schmitt-trigger open-collector, DIP-6. "
-             "En encapsulado SO-6 (SMD). Elegido sobre el 6N138 clasico porque no necesita red de "
-             "polarizacion ni ajuste de ancho de pulso: menos componentes y "
-             "mas margen de timing para MIDI IN. Al ser open-collector "
-             "necesita pull-up externo. PINOUT SIN VERIFICAR — confirmar "
-             "contra la hoja de datos de ON Semi antes de fabricar.",
-        ds="https://www.onsemi.com/pdf/datasheet/h11l1m-d.pdf",
-        pins=_dual_pins(["ANODE", "CATHODE", "NC"], ["VO", "GND", "VCC"]),
-    ),
-
     # ---------------------------------------------------------- conectores
     "JACK_AUDIO": dict(
         ref="J", w=7.62, h=10.16,
@@ -207,24 +195,6 @@ SYMS = {
              "PINOUT SIN VERIFICAR: la parte todavia no esta elegida (V-3).",
         ds="",
         pins=_left_pins(["TIP", "RING", "SLEEVE", "DET"]),
-    ),
-    "JACK_TRS": dict(
-        ref="J", w=7.62, h=7.62,
-        desc="Jack 3.5mm TRS THT para MIDI Type-A, el estandar de la MMA desde "
-             "2018. Tip = MIDI pin 5, Ring = MIDI pin 4, Sleeve = MIDI pin 2. "
-             "PINOUT SIN VERIFICAR: la parte todavia no esta elegida (V-4).",
-        ds="",
-        pins=_left_pins(["TIP", "RING", "SLEEVE"]),
-    ),
-    "MICROSD": dict(
-        ref="J", w=12.7, h=17.78,
-        desc="Socket microSD push-push, modo SPI. Solo se usan CS/DI/SCK/DO; "
-             "DAT1/DAT2 quedan sin usar pero con pull-up, como pide la spec de "
-             "la tarjeta. PINOUT SIN VERIFICAR: varia entre fabricantes y la "
-             "parte todavia no esta elegida (V-4).",
-        ds="",
-        pins=_dual_pins(["DAT2", "CD_DAT3", "CMD", "VDD"],
-                        ["CLK", "VSS", "DAT0", "DAT1"]),
     ),
     "Conn_01x02": dict(
         ref="J", w=5.08, h=5.08,
@@ -272,7 +242,7 @@ SYMS = {
 # Simbolos cuyo pinout NO viene verificado de V1. Su descripcion lo dice, asi
 # que aparece en el PDF del esquematico — es el mismo mecanismo que V1 uso con
 # el NJM4556AD antes de confirmarlo contra LCSC. Verificar antes de fabricar.
-PINOUT_SIN_VERIFICAR = ("TPS61023", "H11L1", "JACK_AUDIO", "JACK_TRS", "MICROSD")
+PINOUT_SIN_VERIFICAR = ("TPS61023", "JACK_AUDIO")
 
 # Numeros de pin del PCF8574 para P0..P7. Sale del pinout del datasheet
 # (P0-P3 = 4,5,6,7 y P4-P7 = 9,10,11,12).
@@ -304,7 +274,6 @@ TP_FP = "TestPoint:TestPoint_Pad_D1.5mm"
 # anchos. Ademas recibe la fuerza de insercion de un conector, donde THT es
 # mejor, y soldar dos pines pasantes no es trabajo.
 OPAMP_FP = "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm"
-OPTO_FP = "Package_SO:SO-6_4.4x3.6mm_P1.27mm"
 # El jack de audio todavia no esta elegido (V-3: se descarto el PJ-320A de V1
 # por no tener datasheet publico). Se usa un header de 4 pines como stand-in
 # para que el flujo corra; la geometria NO es la del jack.
@@ -318,10 +287,6 @@ FOOTPRINTS_PROVISIONALES = {
     "OPAMP_FP": "el NJM4556AD que se eligio (C2838125) es DIP-8; la version "
                 "SOIC es otra parte (NJM4556AM o equivalente) y falta su "
                 "codigo LCSC (V-4)",
-    "OPTO_FP": "el H11L1 que se eligio (C78588) es DIP-6; la version SMD es "
-               "otra parte (H11L1S/H11L1SM) y falta confirmar que exista con "
-               "stock. Si no, el fallback es 6N137 en SOIC-8, que CAMBIA el "
-               "simbolo porque tiene 8 pines y otro pinout (V-4)",
     "BTN_RA_FP": "tact angulado para L/R: el footprint es el de C&K PTS645 que "
                  "trae KiCad, pero falta elegir el numero de parte concreto y "
                  "el largo de actuador, que depende del enclosure (V-4)",
@@ -631,74 +596,4 @@ INSTANCES += [
     ("Conn_01x02", "J5", "SPEAKER 8R", 330.0, 265.0,
      {"1": "SPK_P", "2": "SPK_N"},
      {"FP": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"}),
-]
-
-# ============================================================ MIDI y microSD
-#
-# MIDI TRS Type-A, el estandar de la MMA desde 2018:
-#   Tip = MIDI pin 5 (data), Ring = MIDI pin 4 (fuente), Sleeve = MIDI pin 2.
-#
-# El lazo de corriente se alimenta del 3V3 y no del riel analogico de 5V, para
-# no meter los transitorios de conmutacion del MIDI en la alimentacion del
-# op-amp.
-
-TRS_FP = "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
-SD_FP = "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical"
-
-FOOTPRINTS_PROVISIONALES.update({
-    "TRS_FP": "jacks TRS de MIDI sin elegir (V-4); se usa un header de 3 "
-              "pines como stand-in y la geometria NO es la correcta",
-    "SD_FP": "socket microSD sin elegir (V-4); se usa un header de 8 pines "
-             "como stand-in y la geometria NO es la correcta",
-})
-
-INSTANCES += [
-    # ------------------------------------------------------------- MIDI OUT
-    # Par de 33 ohm: a 3.3V es el valor correcto. El clasico 220 corresponde a
-    # 5V — el lazo cierra contra los 220 ohm del receptor, asi que con 3.3V y
-    # 220+220 la corriente quedaria muy por debajo de los 5mA del estandar.
-    ("R", "R18", "33R", 340.0, 40.0,
-     {"1": "MIDI_TX", "2": "MIDI_OUT_TIP"}, {"FP": R_FP}),
-    ("R", "R19", "33R", 348.0, 40.0,
-     {"1": "3V3", "2": "MIDI_OUT_RING"}, {"FP": R_FP}),
-    ("JACK_TRS", "J2", "MIDI OUT", 360.0, 45.0,
-     {"1": "MIDI_OUT_TIP", "2": "MIDI_OUT_RING", "3": "GND"},
-     {"FP": TRS_FP}),
-
-    # -------------------------------------------------------------- MIDI IN
-    # Aislamiento galvanico obligatorio: es lo que evita lazos de masa entre
-    # equipos. La entrada NO va directo a la UART.
-    ("JACK_TRS", "J3", "MIDI IN", 360.0, 90.0,
-     {"1": "MIDI_IN_K", "2": "MIDI_IN_SRC", "3": "GND"},
-     {"FP": TRS_FP}),
-    ("R", "R20", "220R", 340.0, 85.0,
-     {"1": "MIDI_IN_SRC", "2": "MIDI_IN_A"}, {"FP": R_FP}),
-    # Diodo ANTI-PARALELO al LED del opto: un cable MIDI al reves le aplicaria
-    # tension inversa.
-    ("D", "D1", "1N4148W", 348.0, 95.0,
-     {"1": "MIDI_IN_K", "2": "MIDI_IN_A"}, {"LCSC": "C917030", "FP": D_FP}),
-    ("H11L1", "U6", "H11L1", 330.0, 95.0, {
-        "1": "MIDI_IN_A", "2": "MIDI_IN_K", "3": NC,
-        "4": "MIDI_RX", "5": "GND", "6": "3V3"},
-     {"FP": OPTO_FP}),
-    # El H11L1 tiene salida open-collector: sin pull-up la UART no ve nada.
-    ("R", "R21", "1k", 322.0, 85.0, {"1": "3V3", "2": "MIDI_RX"}, {"FP": R_FP}),
-    ("C", "C29", "100nF", 322.0, 100.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
-
-    # -------------------------------------------------------------- microSD
-    # Modo SPI: DAT1/DAT2 no se usan, pero la spec de la tarjeta pide que
-    # queden en alto y no flotantes.
-    ("MICROSD", "J6", "microSD", 380.0, 140.0, {
-        "1": "SD_DAT2", "2": "SD_CS", "3": "SD_MOSI", "4": "3V3",
-        "5": "SD_SCK", "6": "GND", "7": "SD_MISO", "8": "SD_DAT1"},
-     {"FP": SD_FP}),
-    ("R", "R22", "10k", 360.0, 130.0, {"1": "3V3", "2": "SD_DAT1"}, {"FP": R_FP}),
-    ("R", "R23", "10k", 368.0, 130.0, {"1": "3V3", "2": "SD_DAT2"}, {"FP": R_FP}),
-    # Pull-up del CS: sin el, la tarjeta puede entrar en modo SD en vez de SPI
-    # durante el arranque, antes de que el firmware maneje el pin.
-    ("R", "R24", "10k", 376.0, 130.0, {"1": "3V3", "2": "SD_CS"}, {"FP": R_FP}),
-    # Una tarjeta pide picos de corriente al escribir: hacen falta los dos
-    # valores de desacople.
-    ("C", "C30", "100nF", 384.0, 130.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
-    ("CP", "C31", "10uF", 392.0, 130.0, {"1": "3V3", "2": "GND"}, {"FP": CP_FP}),
 ]
