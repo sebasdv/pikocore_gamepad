@@ -1,4 +1,4 @@
 (sym_lib_table
   (version 7)
-  (lib (name "gamesetup")(type "KiCad")(uri "${KIPRJMOD}/pikocore_gamepad.kicad_sym")(options "")(descr "Simbolos del proyecto GAMESETUP V2"))
+  (lib (name "pikocore_gamepad")(type "KiCad")(uri "${KIPRJMOD}/pikocore_gamepad.kicad_sym")(options "")(descr "Simbolos del proyecto pikocore_gamepad (forked de GAMESETUP V2)"))
 )
