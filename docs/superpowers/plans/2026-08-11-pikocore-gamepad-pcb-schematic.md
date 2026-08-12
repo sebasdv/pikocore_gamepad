@@ -1,3 +1,9 @@
+> **SUPERSEDED 2026-08-11** — see
+> `docs/superpowers/plans/2026-08-11-pikocore-gamepad-pcb-fork.md`. A sibling
+> project (`C:\midigame\GAMESETUP`) turned out to have an already-verified,
+> scriptable KiCad pipeline for the same RP2350-Plus target; forking it makes
+> this manual-GUI plan obsolete. Kept here for the pin-map rationale only.
+
 # pikocore_gamepad PCB Schematic Implementation Plan
 
 > **For agentic workers:** This plan is **GUI-execution**, not autonomous — KiCad
