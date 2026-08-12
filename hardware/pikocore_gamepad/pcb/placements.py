@@ -35,11 +35,9 @@ PLACEMENTS = [
     ("J4",  "gamesetup_fp:LCD_ST7789_240x240_7P",       _LCD_X, _LCD_Y, 0, False),
 
     # ================================================ FRENTE: controles
-    # D-pad en diamante, abajo a la izquierda.
-    ("SW1", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  22.50, 100.00, 0, False),  # UP
-    ("SW2", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  22.50, 116.00, 0, False),  # DOWN
-    ("SW3", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  14.50, 108.00, 0, False),  # LEFT
-    ("SW4", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  30.50, 108.00, 0, False),  # RIGHT
+    # NAV5 (reemplaza el D-pad de 4 tacts): espejado con el diamante X/Y/A/B,
+    # mismo eje Y=83. Ver spec 2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md.
+    ("SW13", "gamesetup_lcsc:SW-TH_WS-1004-ARL10026",     22.50,  83.00, 0, False),
     # X/Y/A/B en diamante, abajo a la derecha.
     ("SW5", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  67.50,  75.00, 0, False),  # X
     ("SW6", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  59.50,  83.00, 0, False),  # Y
@@ -86,9 +84,16 @@ PLACEMENTS = [
     # el solapamiento no se ve mirando los numeros.
     ("J1",  "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
      86.00, 102.00, 0, True),   # phones    -> pads y 93.5..102.9
-    # Parlante abajo a la izquierda.
+    # Parlante: header en el dorso, junto al hueco que deja U1 (el modulo
+    # RP2350-Plus tiene sus pines en dos filas laterales, con espacio libre
+    # en el medio). El parlante fisico se atornilla al enclosure del lado del
+    # FRENTE, sobre esta misma zona X/Y — no hace falta reservar espacio
+    # aparte cerca del borde inferior. Exacta posicion relativa a los pines
+    # de U1 se termina de ajustar en el pase de Rhino; si check_placement.py
+    # reporta un choque de pads, correr este mismo layout con la Y de J5
+    # movida +-5mm hasta que limpie.
     ("J5",  "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
-     12.00, 124.00, 0, True),
+     18.00,  30.00, 0, True),
 ]
 
 # Regiones del DORSO donde gen_pcb.py empaqueta los ~58 pasivos, en este
