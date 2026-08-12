@@ -187,13 +187,6 @@ SYMS = {
         ds="",
         pins=_left_pins(["1", "2"]),
     ),
-    "TP": dict(
-        ref="TP", w=2.54, h=2.54,
-        desc="Testpoint. Los dos puertos libres de U12 salen aca en vez de "
-             "quedar flotantes, que es lo que dispara un warning de ERC.",
-        ds="",
-        pins=[("1", "TP", -5.08, 0.0, 0)],
-    ),
 
     # ------------------------------------------------------------- pasivos
     "R": dict(ref="R", w=2.54, h=7.62, desc="Resistencia SMD 0603", ds="",

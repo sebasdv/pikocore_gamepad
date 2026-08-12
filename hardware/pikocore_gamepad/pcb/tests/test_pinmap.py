@@ -33,38 +33,10 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_SCK"), pinmap.SPI0_SCK_OK)
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
-    def test_spi1_usa_pines_validos_para_spi1(self):
-        self.assertIn(pinmap.gpio_of("SD_SCK"), pinmap.SPI1_SCK_OK)
-        self.assertIn(pinmap.gpio_of("SD_MOSI"), pinmap.SPI1_TX_OK)
-        self.assertIn(pinmap.gpio_of("SD_MISO"), pinmap.SPI1_RX_OK)
-
-    def test_el_lcd_y_la_sd_no_comparten_bus(self):
-        # El modulo LCD de 7 pines NO tiene CS: esta siempre seleccionado, asi
-        # que su SPI no se puede compartir. Si alguien mueve la SD a SPI0, las
-        # dos escrituras se pisan y el sintoma es basura en pantalla.
-        lcd = {pinmap.gpio_of("LCD_SCK"), pinmap.gpio_of("LCD_MOSI")}
-        sd = {pinmap.gpio_of("SD_SCK"), pinmap.gpio_of("SD_MOSI"),
-              pinmap.gpio_of("SD_MISO")}
-        self.assertTrue(lcd <= set(pinmap.SPI0_SCK_OK + pinmap.SPI0_TX_OK))
-        self.assertTrue(sd <= set(pinmap.SPI1_SCK_OK + pinmap.SPI1_TX_OK +
-                                  pinmap.SPI1_RX_OK))
-
-    def test_i2c1_usa_pines_validos_para_i2c1(self):
-        self.assertIn(pinmap.gpio_of("I2C_SDA"), pinmap.I2C1_SDA_OK)
-        self.assertIn(pinmap.gpio_of("I2C_SCL"), pinmap.I2C1_SCL_OK)
-
-    def test_i2c_usa_un_par_contiguo(self):
-        # En el RP2350 las funciones I2C alternan cada 2 GPIO con SDA en el par
-        # y SCL en el impar siguiente. Un SDA/SCL de bloques distintos pasaria
-        # las dos aserciones de arriba por separado y aun asi no funcionaria.
-        self.assertEqual(pinmap.gpio_of("I2C_SCL"), pinmap.gpio_of("I2C_SDA") + 1)
-
-    def test_uart0_usa_pines_validos_para_uart0(self):
-        self.assertIn(pinmap.gpio_of("MIDI_TX"), pinmap.UART0_TX_OK)
-        self.assertIn(pinmap.gpio_of("MIDI_RX"), pinmap.UART0_RX_OK)
-
-    def test_quedan_exactamente_seis_pines_libres(self):
-        self.assertEqual(len(pinmap.FREE), 6)
+    def test_quedan_exactamente_tres_pines_libres(self):
+        # pikocore_gamepad no tiene microSD, MIDI ni expansor I2C: sin esos
+        # tres consumidores, solo quedan los 3 GPIO con ADC reservados.
+        self.assertEqual(len(pinmap.FREE), 3)
 
     def test_los_libres_no_chocan_con_los_asignados(self):
         self.assertEqual(set(pinmap.FREE) & set(pinmap.GPIO.keys()), set())
