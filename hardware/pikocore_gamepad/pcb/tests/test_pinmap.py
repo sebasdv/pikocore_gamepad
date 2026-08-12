@@ -33,10 +33,10 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_SCK"), pinmap.SPI0_SCK_OK)
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
-    def test_quedan_exactamente_tres_pines_libres(self):
-        # pikocore_gamepad no tiene microSD, MIDI ni expansor I2C: sin esos
-        # tres consumidores, solo quedan los 3 GPIO con ADC reservados.
-        self.assertEqual(len(pinmap.FREE), 3)
+    def test_quedan_exactamente_dos_pines_libres(self):
+        # GP26 ahora es BTN_OK (centro del NAV5): de los 3 GPIO con ADC que
+        # quedaban reservados, solo 2 siguen libres.
+        self.assertEqual(len(pinmap.FREE), 2)
 
     def test_los_libres_no_chocan_con_los_asignados(self):
         self.assertEqual(set(pinmap.FREE) & set(pinmap.GPIO.keys()), set())
@@ -50,11 +50,14 @@ class TestPinmap(unittest.TestCase):
         self.assertEqual(expuestos - declarados, set(),
                          "GPIO expuestos sin declarar")
 
-    def test_los_tres_pines_con_adc_quedan_libres(self):
-        # GP26/27/28 son los unicos con ADC del header: deben quedar
-        # disponibles en el header de expansion para un potenciometro futuro.
-        for g in (26, 27, 28):
+    def test_los_dos_pines_con_adc_restantes_quedan_libres(self):
+        # GP26/27/28 son los unicos con ADC del header. GP26 ahora es BTN_OK;
+        # GP27/28 deben seguir disponibles en el header de expansion.
+        for g in (27, 28):
             self.assertIn(g, pinmap.FREE)
+
+    def test_btn_ok_toma_el_gpio_26(self):
+        self.assertEqual(pinmap.gpio_of("BTN_OK"), 26)
 
     def test_el_pin_fisico_del_header_se_deriva_bien(self):
         # GP0 es el pin 1 del header tipo Pico; GP22 es el pin 29.

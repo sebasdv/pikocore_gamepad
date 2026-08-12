@@ -35,3 +35,4 @@
 #define PIN_SPK_SHDN     20
 #define PIN_JACK_DET     21
 #define PIN_DAC_XSMT     22
+#define PIN_BTN_OK       26

@@ -64,11 +64,12 @@ GPIO = {
     20: "SPK_SHDN",    # salida: 1 = parlante encendido
     21: "JACK_DET",    # entrada con pull-up: 0 = plug insertado
     22: "DAC_XSMT",    # pulldown 100k: arranca muteado
+    26: "BTN_OK",      # centro del NAV5
 }
 
 # Sin MIDI, sin microSD, sin expansores I2C: no queda nada que enrutar por
-# expansion salvo estos 3, con ADC.
-FREE = (26, 27, 28)
+# expansion salvo estos 2, con ADC.
+FREE = (27, 28)
 
 # Orden fisico del header de 40 pines tipo Pico. El pin 38 es GND (no VSYS_EN).
 HEADER_ORDER = [

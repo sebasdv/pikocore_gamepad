@@ -31,7 +31,8 @@ G-2/G-4 gates catch drift between it, the schematic, and the firmware config.h s
 | GP20 | `SPK_SHDN` | Speaker amp shutdown (1 = speaker on) |
 | GP21 | `JACK_DET` | Headphone jack detect (0 = plug inserted, needs pull-up) |
 | GP22 | `DAC_XSMT` | DAC mute control (starts muted via 100k pulldown) |
-| GP26, GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate) |
+| GP26 | `BTN_OK` | NAV5 center press (confirm/select) |
+| GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate) |
 | GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor) |
 
 The electrical topology is the same one the superseded from-scratch plan called for
