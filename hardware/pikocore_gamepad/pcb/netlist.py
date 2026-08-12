@@ -297,8 +297,9 @@ def _mcu_nets():
     return nets
 
 
-# Los 12 tacts: (ref, net de senal). El orden sigue al enum GcButton del
-# firmware (src/input/ControlsTypes.h) precedido por el D-pad.
+# Los 6 tacts restantes (X/Y/A/B, Start/Select): (ref, net de senal). El
+# orden sigue al enum GcButton del firmware (src/input/ControlsTypes.h). El
+# D-pad se resuelve aparte, via el NAV5 (ver bloque "NAV5" mas abajo).
 TACTS = [
     ("SW5", "BTN_X"), ("SW6", "BTN_Y"),
     ("SW7", "BTN_A"), ("SW8", "BTN_B"),
