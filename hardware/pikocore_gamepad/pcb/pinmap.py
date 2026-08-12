@@ -40,30 +40,34 @@ UART0_RX_OK = (1, 13, 17)              # GP29 no sale al header
 
 # --- asignacion definitiva ---
 GPIO = {
-    0:  "MIDI_TX",     # UART0 TX
-    1:  "MIDI_RX",     # UART0 RX
+    0:  "DPAD_UP",
+    1:  "DPAD_DOWN",
     2:  "LCD_SCK",     # SPI0 SCK
     3:  "LCD_MOSI",    # SPI0 TX
-    4:  "PCF_INT",     # wired-OR de los 3 /INT
+    4:  "DPAD_LEFT",
     5:  "LCD_DC",
     6:  "LCD_RES",
     7:  "LCD_BLK",     # PWM de backlight
     8:  "I2S_DIN",     # PIO
-    10: "SD_SCK",      # SPI1 SCK
-    11: "SD_MOSI",     # SPI1 TX
-    12: "SD_MISO",     # SPI1 RX
-    13: "SD_CS",
+    9:  "DPAD_RIGHT",
+    10: "BTN_X",
+    11: "BTN_Y",
+    12: "BTN_A",
+    13: "BTN_B",
+    14: "BTN_START",
+    15: "BTN_SELECT",
     16: "I2S_BCK",     # PIO
     17: "I2S_LRCK",    # PIO — DEBE ser BCK+1
-    18: "I2C_SDA",     # I2C1
-    19: "I2C_SCL",     # I2C1
+    18: "BTN_L",
+    19: "BTN_R",
     20: "SPK_SHDN",    # salida: 1 = parlante encendido
     21: "JACK_DET",    # entrada con pull-up: 0 = plug insertado
     22: "DAC_XSMT",    # pulldown 100k: arranca muteado
 }
 
-# Van al header de expansion. GP26/27/28 son los unicos con ADC.
-FREE = (9, 14, 15, 26, 27, 28)
+# Sin MIDI, sin microSD, sin expansores I2C: no queda nada que enrutar por
+# expansion salvo estos 3, con ADC.
+FREE = (26, 27, 28)
 
 # Orden fisico del header de 40 pines tipo Pico. El pin 38 es GND (no VSYS_EN).
 HEADER_ORDER = [
