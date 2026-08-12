@@ -59,10 +59,6 @@ PLACEMENTS = [
     # START / SELECT al centro.
     ("SW11", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  32.50,  59.00, 0, False),
     ("SW12", "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5",  57.50,  59.00, 0, False),
-    # Los nav de 10.2x10.2 necesitan aire alrededor: en V1 el placement
-    # apretado del nav fue una de las causas de que freerouting no cerrara.
-    ("SW13", "gamesetup_lcsc:SW-TH_WS-1004-ARL10026",    22.50,  83.00, 0, False),
-    ("SW14", "gamesetup_lcsc:SW-TH_WS-1004-ARL10026",    67.50, 108.00, 0, False),
     # Slide de encendido en el borde izquierdo, actuador accesible.
     ("SW15", "gamesetup_lcsc:SW-TH_SK12D07VG3",            3.50,   38.00, 270, False),
 
@@ -73,17 +69,6 @@ PLACEMENTS = [
     # contra el borde SUPERIOR, que es el unico que quedo despejado.
     ("U1",  "gamesetup_fp:RP2350-Plus_Socket",          18.00,  28.00, 180, True),
 
-    # ================================================ DORSO: expansores
-    # En la columna central, entre el D-pad/nav1 de la izquierda y el
-    # XYAB/nav2 de la derecha: es donde convergen los 22 contactos de switch.
-    ("U10", "Package_SO:TSSOP-16_4.4x5mm_P0.65mm",      45.00,  68.00, 0, True),
-    ("U11", "Package_SO:TSSOP-16_4.4x5mm_P0.65mm",      45.00,  78.00, 0, True),
-    ("U12", "Package_SO:TSSOP-16_4.4x5mm_P0.65mm",      45.00,  88.00, 0, True),
-    # Fuera de FREE_REGIONS: la franja entre el borde inferior del display
-    # (y=47.2) y la fila de SW9/SW11/SW12 (y=55.5) no la usa nadie.
-    ("TP1", "TestPoint:TestPoint_Pad_D1.5mm",           33.00,  50.00, 0, True),
-    ("TP2", "TestPoint:TestPoint_Pad_D1.5mm",           37.00,  50.00, 0, True),
-
     # ================================================ DORSO: audio
     # Agrupado a la derecha del display, lejos del MCU y de los controles. El
     # lazo de conmutacion del boost queda arriba de todo, sin cruzar por
@@ -93,30 +78,17 @@ PLACEMENTS = [
     ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              66.00, 38.00, 0, True),
     ("U4",  "gamesetup_lcsc:MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL",   81.00, 38.00, 0, True),
 
-    # ================================================ DORSO: MIDI y microSD
-    ("U6",  "Package_SO:SO-6_4.4x3.6mm_P1.27mm",       80.00,  20.00, 0, True),
-    ("J6",  "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical",
-     42.00, 122.00, 90, True),
-
     # ================================================ BORDES: conectores
     # OJO: los headers tienen su ORIGEN en el PAD 1, no en el centro, y un
     # footprint VOLTEADO extiende sus pads hacia -Y. O sea que la posicion de
     # aca es el extremo INFERIOR del conector y el cuerpo sube desde ahi. Con
-    # la intuicion contraria (+Y) los tres jacks se metian en la fila de
-    # SW9/SW10, y el solapamiento no se ve mirando los numeros.
-    # Los tres van al borde derecho, por debajo de la etapa de audio.
-    ("J3",  "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
-     86.00,  76.00, 0, True),   # MIDI IN   -> pads y 69.9..76.9
-    ("J2",  "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
-     86.00,  88.00, 0, True),   # MIDI OUT  -> pads y 81.9..88.9
+    # la intuicion contraria (+Y) el jack se metia en la fila de SW9/SW10, y
+    # el solapamiento no se ve mirando los numeros.
     ("J1",  "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
      86.00, 102.00, 0, True),   # phones    -> pads y 93.5..102.9
-    # Parlante abajo a la izquierda, expansion en el borde izquierdo.
+    # Parlante abajo a la izquierda.
     ("J5",  "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
      12.00, 124.00, 0, True),
-    # Idem: y=108 es el extremo inferior; los 9 pines suben hasta y=86.
-    ("J7",  "Connector_PinHeader_2.54mm:PinHeader_1x09_P2.54mm_Vertical",
-     4.00, 108.00, 0, True),
 ]
 
 # Regiones del DORSO donde gen_pcb.py empaqueta los ~58 pasivos, en este
