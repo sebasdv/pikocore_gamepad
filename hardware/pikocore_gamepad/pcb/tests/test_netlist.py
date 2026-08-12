@@ -119,37 +119,6 @@ class TestSimboloLcd(unittest.TestCase):
         self.assertNotIn("CS", pin_names("LCD_ST7789"))
 
 
-class TestSimboloPcf8574(unittest.TestCase):
-
-    def test_tiene_dieciseis_pines(self):
-        self.assertEqual(len(netlist.SYMS["PCF8574"]["pins"]), 16)
-
-    def test_sigue_el_pinout_del_datasheet(self):
-        self.assertEqual(
-            pin_names("PCF8574"),
-            ["A0", "A1", "A2", "P0", "P1", "P2", "P3", "VSS",
-             "P4", "P5", "P6", "P7", "INT", "SCL", "SDA", "VDD"])
-
-    def test_los_ocho_puertos_estan_donde_dice_la_tabla_de_instancias(self):
-        # netlist.PCF_P_PINS mapea P0..P7 a numeros de pin. Si esa tabla y el
-        # simbolo se separan, los switches quedan cableados al puerto
-        # equivocado y el firmware lee botones cambiados.
-        nombres = pin_names("PCF8574")
-        for i, num in enumerate(netlist.PCF_P_PINS):
-            self.assertEqual(nombres[int(num) - 1], f"P{i}")
-
-
-class TestSimboloNav(unittest.TestCase):
-
-    def test_tiene_seis_pines(self):
-        self.assertEqual(len(netlist.SYMS["NAV_WS1004"]["pins"]), 6)
-
-    def test_sigue_el_pinout_del_datasheet(self):
-        # WS-1004-ARL10026: 1=COM 2=LEFT 3=CENTRO 4=UP 5=RIGHT 6=DOWN.
-        self.assertEqual(pin_names("NAV_WS1004"),
-                         ["COM", "LEFT", "CENTER", "UP", "RIGHT", "DOWN"])
-
-
 class TestSimboloTact(unittest.TestCase):
 
     def test_declara_los_dos_pares_internos(self):
@@ -240,17 +209,6 @@ class TestSimbolosNuevos(unittest.TestCase):
     def test_el_header_del_parlante_tiene_dos_pines(self):
         self.assertEqual(len(netlist.SYMS["Conn_01x02"]["pins"]), 2)
 
-    def test_el_header_de_expansion_tiene_nueve_pines(self):
-        self.assertEqual(len(netlist.SYMS["Conn_01x09"]["pins"]), 9)
-
-    def test_el_header_de_expansion_expone_los_gpio_libres(self):
-        # Los 6 libres de pinmap mas 3V3/GND/VSYS.
-        nombres = pin_names("Conn_01x09")
-        for g in pinmap.FREE:
-            self.assertIn(f"GP{g}", nombres)
-        for riel in ("3V3", "GND", "VSYS"):
-            self.assertIn(riel, nombres)
-
 
 class TestPinoutsSinVerificar(unittest.TestCase):
     """Los simbolos nuevos no heredan la verificacion de V1. Mientras su
@@ -273,8 +231,7 @@ class TestPinoutsSinVerificar(unittest.TestCase):
     def test_ningun_simbolo_heredado_de_v1_esta_en_la_lista(self):
         # Si uno de estos aparece marcado sin verificar, es que alguien lo
         # reescribio y perdio la verificacion de V1.
-        for name in ("PCM5102A", "NJM4556AD", "PAM8302A", "NAV_WS1004",
-                     "PCF8574", "SK12D07"):
+        for name in ("PCM5102A", "NJM4556AD", "PAM8302A", "SK12D07"):
             self.assertNotIn(name, netlist.PINOUT_SIN_VERIFICAR)
 
 
@@ -340,39 +297,6 @@ class TestInstanciasEntrada(unittest.TestCase):
             self.assertEqual(n["1"], sig)
             self.assertEqual(n["2"], "GND")
 
-    def test_hay_dos_nav_switches(self):
-        navs = [i for i in netlist.INSTANCES if i[0] == "NAV_WS1004"]
-        self.assertEqual(len(navs), 2)
-
-    def test_hay_tres_expansores(self):
-        pcfs = [i for i in netlist.INSTANCES if i[0] == "PCF8574"]
-        self.assertEqual(len(pcfs), 3)
-
-    def test_los_expansores_tienen_las_direcciones_del_firmware(self):
-        # A0/A1/A2 (pines 1/2/3) codifican la direccion: a GND = 0, a 3V3 = 1.
-        # Tienen que coincidir con PCF_ADDR_* de boards/rp2350plus_v2/config.h.
-        esperado = {"U10": 0x20, "U11": 0x21, "U12": 0x22}
-        for ref, addr in esperado.items():
-            n = nets_of(ref)
-            bits = [0 if n[p] == "GND" else 1 for p in ("1", "2", "3")]
-            leido = 0x20 | bits[0] | (bits[1] << 1) | (bits[2] << 2)
-            self.assertEqual(leido, addr, f"{ref}: direccion {hex(leido)}")
-
-    def test_cada_nav_switch_esta_entero_en_un_solo_expansor(self):
-        # Una lectura I2C debe devolver un estado coherente de las 5 vias. Si
-        # un nav quedara repartido entre dos chips, dos lecturas distintas
-        # podrian mostrar una diagonal que el usuario nunca hizo.
-        for nav_ref, pcf_ref in (("SW13", "U11"), ("SW14", "U12")):
-            nav = nets_of(nav_ref)
-            pcf = set(nets_of(pcf_ref).values())
-            for pin in ("2", "3", "4", "5", "6"):
-                self.assertIn(nav[pin], pcf,
-                              f"{nav_ref} pin {pin} no cae en {pcf_ref}")
-
-    def test_el_comun_de_cada_nav_va_a_masa(self):
-        for ref in ("SW13", "SW14"):
-            self.assertEqual(nets_of(ref)["1"], "GND")
-
     def test_los_tacts_usan_cableado_diagonal(self):
         for inst in netlist.INSTANCES:
             if inst[0] != "SW_Push":
@@ -383,62 +307,6 @@ class TestInstanciasEntrada(unittest.TestCase):
             self.assertEqual(n["2"], netlist.NC)
             self.assertEqual(n["3"], netlist.NC)
 
-    def test_los_22_contactos_de_switch_llegan_a_un_expansor(self):
-        entradas = set()
-        for ref in ("U10", "U11", "U12"):
-            n = nets_of(ref)
-            for pin in netlist.PCF_P_PINS:
-                if n[pin] != netlist.NC:
-                    entradas.add(n[pin])
-        senales = set()
-        for inst in netlist.INSTANCES:
-            if inst[0] in ("SW_Push", "SW_Push_RA"):
-                senales.add(inst[5]["1"])
-            elif inst[0] == "NAV_WS1004":
-                for pin in ("2", "3", "4", "5", "6"):
-                    senales.add(inst[5][pin])
-        self.assertEqual(len(senales), 22)
-        self.assertTrue(senales <= entradas,
-                        f"sin expansor: {sorted(senales - entradas)}")
-
-    def test_las_senales_de_los_switches_coinciden_con_el_firmware(self):
-        # El mapa P0..P7 de cada chip tiene que ser el mismo que el de
-        # config.h, o el firmware lee un boton por otro.
-        self.assertEqual(netlist.PCF_MAP["U10"][:4],
-                         ["DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT"])
-        self.assertEqual(netlist.PCF_MAP["U11"][4], "NAV1_CENTER")
-        self.assertEqual(netlist.PCF_MAP["U12"][5], "BTN_SELECT")
-
-    def test_los_tres_int_comparten_la_misma_net(self):
-        ints = {nets_of(r)["13"] for r in ("U10", "U11", "U12")}
-        self.assertEqual(ints, {"PCF_INT"})
-
-    def test_el_int_tiene_un_solo_pull_up(self):
-        # Son open-drain en wired-OR: un pull-up para los tres, no tres.
-        rs = [i for i in netlist.INSTANCES
-              if i[0] == "R" and set(i[5].values()) == {"3V3", "PCF_INT"}]
-        self.assertEqual(len(rs), 1)
-
-    def test_el_bus_i2c_tiene_sus_dos_pull_ups(self):
-        for net in ("I2C_SDA", "I2C_SCL"):
-            rs = [i for i in netlist.INSTANCES
-                  if i[0] == "R" and set(i[5].values()) == {"3V3", net}]
-            self.assertEqual(len(rs), 1, f"falta el pull-up de {net}")
-
-    def test_cada_expansor_tiene_su_desacople(self):
-        cs = [i for i in netlist.INSTANCES
-              if i[0] == "C" and i[2] == "100nF"
-              and set(i[5].values()) == {"3V3", "GND"}]
-        self.assertGreaterEqual(len(cs), 3)
-
-    def test_los_puertos_libres_del_tercer_expansor_no_quedan_flotantes(self):
-        # Un pin flotante dispara warning de ERC. Salen a testpoints.
-        tps = {i[5]["1"] for i in netlist.INSTANCES if i[0] == "TP"}
-        n = nets_of("U12")
-        for pin in netlist.PCF_P_PINS[6:]:
-            self.assertIn(n[pin], tps, f"U12 pin {pin} flotante")
-
-
 class TestInstanciaMcu(unittest.TestCase):
 
     def test_usa_exactamente_el_pinmap(self):
@@ -447,13 +315,6 @@ class TestInstanciaMcu(unittest.TestCase):
             pin = str(pinmap.header_pin(gpio))
             self.assertEqual(u1[pin], func,
                              f"GP{gpio} (pin {pin}) deberia ser {func}")
-
-    def test_los_pines_libres_van_al_header_de_expansion(self):
-        u1 = nets_of("U1")
-        exp = set(nets_of("J7").values())
-        for gpio in pinmap.FREE:
-            net = u1[str(pinmap.header_pin(gpio))]
-            self.assertIn(net, exp, f"GP{gpio} no llega al header EXP")
 
     def test_todos_los_gnd_del_header_van_a_masa(self):
         u1 = nets_of("U1")
@@ -699,8 +560,10 @@ class TestCoberturaDeNets(unittest.TestCase):
 
     def test_ninguna_net_de_senal_tiene_un_solo_extremo(self):
         # Una net con un solo pin es casi siempre un typo, y el ERC la reporta
-        # recien al generar el esquematico. Se exceptuan los rieles y los
-        # testpoints, que legitimamente pueden tener un solo consumidor.
+        # recien al generar el esquematico. Se exceptuan los rieles, los
+        # testpoints y los GPIO libres del MCU (EXP_GP*, sin header ni otro
+        # consumidor desde que se elimino el header de expansion), que
+        # legitimamente pueden tener un solo consumidor.
         from collections import Counter
         cuenta = Counter()
         for inst in netlist.INSTANCES:
@@ -710,7 +573,8 @@ class TestCoberturaDeNets(unittest.TestCase):
         exentas = {"GND", "3V3", "5V", "VSYS", "VBUS"}
         huerfanas = sorted(n for n, c in cuenta.items()
                            if c < 2 and n not in exentas
-                           and not n.startswith("TP_"))
+                           and not n.startswith("TP_")
+                           and not n.startswith("EXP_"))
         self.assertEqual(huerfanas, [], f"nets con un solo extremo: {huerfanas}")
 
     def test_toda_funcion_del_pinmap_llega_a_algun_componente(self):

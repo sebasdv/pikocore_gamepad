@@ -112,15 +112,13 @@ verificar_colisiones(PLACED)
 
 NOTES = [
     (20.32, 300.0,
-     "GAMESETUP V2 - PCB panel unico, 4 capas. MCU Waveshare RP2350-Plus 16MB en socket 2x20.\n"
+     "pikocore_gamepad - PCB panel unico, 4 capas. MCU Waveshare RP2350-Plus 16MB en socket 2x20.\n"
      "La bateria LiPo va al PH1.25 del propio modulo (cargador ETA6096 a bordo): la placa no\n"
      "lleva circuito de carga. SW15 apaga el rail 3V3 del modulo via 3V3_EN, que tiene\n"
      "pull-up interno de 100K a VSYS."),
     (20.32, 315.0,
-     "ENTRADA: los 22 contactos de switch (12 tacts + 2 nav de 5 vias) NO entran en los 26\n"
-     "GPIO que expone el modulo, asi que van por 3 expansores PCF8574 en I2C1 (0x20/0x21/0x22).\n"
-     "Cada nav queda ENTERO en un solo chip: repartido entre dos, dos lecturas distintas\n"
-     "podrian mostrar una diagonal que el usuario nunca hizo. Los 3 /INT van en wired-OR a GP4."),
+     "ENTRADA: los 12 botones van directo a GPIO del modulo (sin expansor I2C) — ver pinmap.py\n"
+     "para la asignacion."),
     (20.32, 335.0,
      "AUDIO: DAC PCM5102A (U5) chip-down, I2S por PIO. SCK (pin 12) a GND = PLL interno desde\n"
      "BCK, no hace falta MCLK. FMT/FLT/DEMP a GND. XSMT con pulldown de 100k: el DAC arranca\n"
@@ -138,7 +136,7 @@ NOTES = [
      "- Pinout de TPS61023 y del jack de audio: ninguno viene verificado de V1\n"
      "  y sus simbolos lo dicen.\n"
      "- Valores del lazo del boost (inductor y divisor de realimentacion).\n"
-     "Los pinouts de PCM5102A, NJM4556AD, PAM8302A y el nav WS-1004 SI vienen verificados\n"
+     "Los pinouts de PCM5102A, NJM4556AD y PAM8302A SI vienen verificados\n"
      "de V1, donde llegaron a una placa ruteada con DRC limpio."),
 ]
 

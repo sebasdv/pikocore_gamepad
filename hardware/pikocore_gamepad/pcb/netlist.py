@@ -74,24 +74,6 @@ SYMS = {
         ds="",
         pins=_left_pins(["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]),
     ),
-    "PCF8574": dict(
-        ref="U", w=10.16, h=20.32,
-        desc="Expansor I2C de 8 bits, quasi-bidireccional con pull-up interno "
-             "de 100uA. Variante SIN sufijo A: direcciones 0x20-0x27 (la "
-             "PCF8574A responde en 0x38-0x3F y no sirve para este diseno).",
-        ds="https://www.ti.com/lit/ds/symlink/pcf8574.pdf",
-        pins=_dual_pins(
-            ["A0", "A1", "A2", "P0", "P1", "P2", "P3", "VSS"],
-            ["P4", "P5", "P6", "P7", "INT", "SCL", "SDA", "VDD"]),
-    ),
-    "NAV_WS1004": dict(
-        ref="SW", w=7.62, h=12.7,
-        desc="XUNPU WS-1004-ARL10026, nav switch de 5 vias THT 10.2x10.2mm. "
-             "Pinout de datasheet: 1=COM 2=LEFT 3=CENTRO 4=UP 5=RIGHT 6=DOWN. "
-             "Cada direccion cierra contra el comun (pin 1).",
-        ds="https://www.lcsc.com/product-detail/C42377836.html",
-        pins=_left_pins(["COM", "LEFT", "CENTER", "UP", "RIGHT", "DOWN"]),
-    ),
     "SW_Push": dict(
         ref="SW", w=7.62, h=5.08,
         desc="Tact switch 6x6mm THT, 4 pines. Los 4 pines son DOS PARES "
@@ -205,15 +187,6 @@ SYMS = {
         ds="",
         pins=_left_pins(["1", "2"]),
     ),
-    "Conn_01x09": dict(
-        ref="J", w=5.08, h=25.4,
-        desc="Header de expansion: 3V3, GND, VSYS y los 6 GPIO libres. "
-             "GP26/27/28 son los unicos con ADC del header y quedan "
-             "disponibles para un potenciometro de volumen futuro.",
-        ds="",
-        pins=_left_pins(["3V3", "GND", "VSYS"] +
-                        [f"GP{g}" for g in pinmap.FREE]),
-    ),
     "TP": dict(
         ref="TP", w=2.54, h=2.54,
         desc="Testpoint. Los dos puertos libres de U12 salen aca en vez de "
@@ -244,10 +217,6 @@ SYMS = {
 # el NJM4556AD antes de confirmarlo contra LCSC. Verificar antes de fabricar.
 PINOUT_SIN_VERIFICAR = ("TPS61023", "JACK_AUDIO")
 
-# Numeros de pin del PCF8574 para P0..P7. Sale del pinout del datasheet
-# (P0-P3 = 4,5,6,7 y P4-P7 = 9,10,11,12).
-PCF_P_PINS = ["4", "5", "6", "7", "9", "10", "11", "12"]
-
 # ---------------------------------------------------------------- footprints
 # El tact de V2 es de 6x6 (spec 4.2) pero esa parte todavia no esta importada
 # de LCSC (V-4). Se apunta al 4.5x4.5 de V1 —conservado en la libreria
@@ -261,11 +230,8 @@ BTN_FP = "gamesetup_lcsc:SW-TH_4P-L4.5-W4.5-P3.00-LS5.5"
 # EXACTAMENTE la misma geometria de pads, asi que el largo se elige al definir
 # el enclosure sin tocar la PCB: solo cambia el numero de parte.
 BTN_RA_FP = "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
-NAV_FP = "gamesetup_lcsc:SW-TH_WS-1004-ARL10026"
-PCF_FP = "Package_SO:TSSOP-16_4.4x5mm_P0.65mm"
 R_FP = "Resistor_SMD:R_0603_1608Metric"
 C_FP = "Capacitor_SMD:C_0603_1608Metric"
-TP_FP = "TestPoint:TestPoint_Pad_D1.5mm"
 # El op-amp pasa a SMD para que lo monte JLC. No es solo comodidad de armado:
 # libera 95 mm2 del dorso (66% de su area de pads), que es donde la placa esta
 # apretada.
@@ -339,46 +305,6 @@ TACTS = [
     ("SW11", "BTN_START"), ("SW12", "BTN_SELECT"),
 ]
 
-# Mapa P0..P7 de cada expansor (spec 3.2). Cada nav queda ENTERO en un chip
-# para que una lectura I2C devuelva un estado coherente de sus 5 vias: si
-# quedara repartido entre dos chips, dos lecturas distintas podrian mostrar
-# una diagonal que el usuario nunca hizo.
-PCF_MAP = {
-    "U10": ["DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT",
-            "BTN_X", "BTN_Y", "BTN_A", "BTN_B"],
-    "U11": ["NAV1_UP", "NAV1_DOWN", "NAV1_LEFT", "NAV1_RIGHT", "NAV1_CENTER",
-            "BTN_L", "BTN_R", "BTN_START"],
-    "U12": ["NAV2_UP", "NAV2_DOWN", "NAV2_LEFT", "NAV2_RIGHT", "NAV2_CENTER",
-            "BTN_SELECT", "TP_SPARE1", "TP_SPARE2"],
-}
-# A0/A1/A2 de cada expansor: 0x20 = 000, 0x21 = 001, 0x22 = 010.
-PCF_ADDR_BITS = {"U10": (0, 0, 0), "U11": (1, 0, 0), "U12": (0, 1, 0)}
-
-# Los expansores arrancan en U10 a proposito, reservando el bloque U1-U6 para
-# los integrados de una sola pieza (MCU, boost, op-amp, class-D, DAC).
-# Eso deja U7-U9 sin usar y check_refs.py lo reporta como hueco: es esperado,
-# no un componente perdido. Renumerarlos desincronizaria las referencias con
-# boards/rp2350plus_v2/config.h y con el spec.
-
-
-def _pcf_instances():
-    out = []
-    for i, (ref, sigs) in enumerate(PCF_MAP.items()):
-        a0, a1, a2 = PCF_ADDR_BITS[ref]
-        nets = {
-            "1": "3V3" if a0 else "GND",   # A0
-            "2": "3V3" if a1 else "GND",   # A1
-            "3": "3V3" if a2 else "GND",   # A2
-            "8": "GND", "16": "3V3",       # VSS / VDD
-            "13": "PCF_INT", "14": "I2C_SCL", "15": "I2C_SDA",
-        }
-        for pin, sig in zip(PCF_P_PINS, sigs):
-            nets[pin] = sig
-        out.append(("PCF8574", ref, "PCF8574MT", 60.0, 40.0 + 60.0 * i,
-                    nets, {"LCSC": "C22461594", "FP": PCF_FP}))
-    return out
-
-
 INSTANCES = [
     # ---------------------------------------------------------------- MCU
     ("RP2350-Plus", "U1", "RP2350-Plus-16MB", 60.0, 60.0, _mcu_nets(),
@@ -389,25 +315,6 @@ INSTANCES = [
         "1": "GND", "2": "3V3", "3": "LCD_SCK", "4": "LCD_MOSI",
         "5": "LCD_RES", "6": "LCD_DC", "7": "LCD_BLK"},
      {"FP": "gamesetup_fp:LCD_ST7789_240x240_7P"}),
-]
-
-# ----------------------------------------------------------- expansores I2C
-INSTANCES += _pcf_instances()
-
-INSTANCES += [
-    # Pull-ups del bus. El /INT de los tres chips va en wired-OR, asi que
-    # lleva UN pull-up, no tres.
-    ("R", "R1", "4.7k", 140.0, 30.0, {"1": "3V3", "2": "I2C_SDA"}, {"FP": R_FP}),
-    ("R", "R2", "4.7k", 150.0, 30.0, {"1": "3V3", "2": "I2C_SCL"}, {"FP": R_FP}),
-    ("R", "R3", "10k", 160.0, 30.0, {"1": "3V3", "2": "PCF_INT"}, {"FP": R_FP}),
-    # Un desacople por expansor.
-    ("C", "C1", "100nF", 80.0, 40.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
-    ("C", "C2", "100nF", 80.0, 100.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
-    ("C", "C3", "100nF", 80.0, 160.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
-    # Los dos puertos libres de U12 salen a testpoints en vez de quedar
-    # flotantes, que es lo que dispara un warning de ERC.
-    ("TP", "TP1", "SPARE1", 100.0, 170.0, {"1": "TP_SPARE1"}, {"FP": TP_FP}),
-    ("TP", "TP2", "SPARE2", 105.0, 170.0, {"1": "TP_SPARE2"}, {"FP": TP_FP}),
 ]
 
 # ------------------------------------------------------------------- tacts
@@ -428,18 +335,6 @@ INSTANCES += [
      {"1": "BTN_R", "2": "GND"}, {"FP": BTN_RA_FP}),
 ]
 
-# ------------------------------------------------------------ nav switches
-INSTANCES += [
-    ("NAV_WS1004", "SW13", "NAV1", 300.0, 40.0, {
-        "1": "GND", "2": "NAV1_LEFT", "3": "NAV1_CENTER",
-        "4": "NAV1_UP", "5": "NAV1_RIGHT", "6": "NAV1_DOWN"},
-     {"LCSC": "C42377836", "FP": NAV_FP}),
-    ("NAV_WS1004", "SW14", "NAV2", 300.0, 100.0, {
-        "1": "GND", "2": "NAV2_LEFT", "3": "NAV2_CENTER",
-        "4": "NAV2_UP", "5": "NAV2_RIGHT", "6": "NAV2_DOWN"},
-     {"LCSC": "C42377836", "FP": NAV_FP}),
-]
-
 # --------------------------------------------------- alimentacion y EXP
 INSTANCES += [
     # El pin 3V3_EN del header tiene pull-up interno de 100k a VSYS hacia el
@@ -447,11 +342,6 @@ INSTANCES += [
     ("SK12D07", "SW15", "PWR", 20.0, 160.0,
      {"1": "GND", "2": "PWR_EN", "3": NC, "4": "GND", "5": "GND"},
      {"LCSC": "C431547", "FP": "gamesetup_lcsc:SW-TH_SK12D07VG3"}),
-    ("Conn_01x09", "J7", "EXP", 20.0, 60.0, {
-        "1": "3V3", "2": "GND", "3": "VSYS",
-        "4": "EXP_GP9", "5": "EXP_GP14", "6": "EXP_GP15",
-        "7": "EXP_GP26", "8": "EXP_GP27", "9": "EXP_GP28"},
-     {"FP": "Connector_PinHeader_2.54mm:PinHeader_1x09_P2.54mm_Vertical"}),
 ]
 
 # =================================================================== AUDIO
