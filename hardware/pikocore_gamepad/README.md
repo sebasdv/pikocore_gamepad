@@ -8,6 +8,7 @@ this repo targets.
 - **Hardware design & BOM:** [`docs/superpowers/specs/2026-08-11-pikocore-gamepad-hardware-design.md`](../../docs/superpowers/specs/2026-08-11-pikocore-gamepad-hardware-design.md)
 - **GPIO pin map (source of truth: `pcb/pinmap.py`):** [`docs/hardware/pikocore_gamepad-pinout.md`](../../docs/hardware/pikocore_gamepad-pinout.md)
 - **PCB pipeline plan & execution notes:** [`docs/superpowers/plans/2026-08-11-pikocore-gamepad-pcb-fork.md`](../../docs/superpowers/plans/2026-08-11-pikocore-gamepad-pcb-fork.md)
+- **NAV5 D-pad + speaker relocation (later layout change):** [`docs/superpowers/specs/2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md`](../../docs/superpowers/specs/2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md) · [plan](../../docs/superpowers/plans/2026-08-11-pikocore-gamepad-nav5-speaker-reloc.md)
 
 ## `pcb/`
 

@@ -41,6 +41,11 @@ field-replaceable without desoldering. Carrier PCB footprint: 2× rows of 20 THT
 
 ## Subsystem BOM
 
+> **Buttons row superseded 2026-08-11.** The D-pad became a single 5-way NAV5 nav
+> switch instead of 4 discrete tacts — see
+> [2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md](2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md).
+> The rest of this table is still current.
+
 | Subsystem | Component | Part | Notes |
 |---|---|---|---|
 | Core | RP2350-Plus, THT pinheader version, 16MB flash | Waveshare RP2350-Plus | Soldered direct to carrier PCB, see Mounting |
