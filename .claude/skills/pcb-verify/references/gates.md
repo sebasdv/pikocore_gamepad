@@ -169,10 +169,46 @@ netclasses por defecto, el resultado no significa nada respecto de JLCPCB. Si
 alguna vez se rutea con un servicio externo, hay que **volver a correr el DRC
 localmente** con las reglas propias: el DRC del servicio usó las suyas.
 
-**Errores de margen agrupados.** Cinco violaciones idénticas de `clearance` en
-la netclass `Power` suelen ser una sola causa (un ancho de pista o un margen de
-netclass que no entra en una zona), no cinco problemas. `read_drc.py` los
-agrupa por tipo justamente para no perseguirlos de a uno.
+**Errores de margen agrupados: agrupá, pero no asumas una sola causa.**
+`read_drc.py` agrupa por tipo para no perseguirlos de a uno, y varios errores
+idénticos suelen compartir causa — pero hay que confirmarlo mirando los `items`
+de cada violación, no darlo por hecho. En la primera corrida de esta skill, 5
+violaciones idénticas de `clearance` en la netclass `Power` resultaron ser
+**dos causas distintas**: 3 eran pad-a-pad dentro de U2 y 2 eran vía-a-vía en
+U5. Sacá siempre los items:
+
+```bash
+python -c "
+import json,sys; sys.stdout.reconfigure(encoding='utf-8',errors='replace')
+for v in json.load(open('logs/drc.json'))['violations']:
+    if v['severity']!='error': continue
+    print(v['type'], '|', v['description'])
+    for it in v.get('items',[]):
+        p=it.get('pos',{}); print('   ', it.get('description'), p.get('x'), p.get('y'))
+"
+```
+
+**Trampa del `.kicad_dru`: `A.Reference` NO matchea pads.** Una regla escrita
+como `(condition "A.Reference == 'U2' && B.Reference == 'U2'")` se parsea sin
+error, se carga sin aviso y **no matchea nada** — el DRC sigue aplicando la
+netclass y parece que la excepción no existiera. La forma que funciona para
+alcanzar los pads de un footprint es:
+
+```
+(condition "A.memberOfFootprint('U2') && B.memberOfFootprint('U2')")
+```
+
+**Cómo verificar que una regla está viva**, en dos pasos, porque el modo de
+fallo silencioso hace que "escribí la regla" no sea evidencia de nada:
+
+1. ¿Se lee el archivo? Poné una regla trivialmente cierta
+   (`A.Type == 'Pad'`) con `(min 5mm)` y corré el DRC. Si el conteo explota, se
+   lee. Si no cambia, KiCad no está viendo el `.kicad_dru`.
+2. ¿Matchea la condición? Dejá la condición real y subí el `min` a `5mm`. Si
+   explotan solo los items que esperabas, la condición es correcta; bajá el
+   `min` al valor definitivo. Si no cambia nada, la condición está mal.
+
+Restaurá siempre el archivo original después (`cp` antes de tocarlo).
 
 ## G-6 — paquete de fabricación
 
