@@ -210,6 +210,31 @@ fallo silencioso hace que "escribí la regla" no sea evidencia de nada:
 
 Restaurá siempre el archivo original después (`cp` antes de tocarlo).
 
+**Un DRC limpio no es reproducible: freerouting varía entre corridas.**
+Sobre entradas identicas el autorouter da ruteos distintos, y con ellos
+violaciones marginales que aparecen y desaparecen. Medido en este proyecto:
+503 pistas una corrida y 477 la siguiente; y una violacion de `clearance` de
+0.150mm presente en una corrida y ausente en la de al lado, con el mismo
+codigo y los mismos archivos de entrada.
+
+Consecuencias practicas, las dos importantes:
+
+1. **Un verde no autoriza a re-rutear sin volver a chequear.** El DRC vale
+   para la placa que hay en disco, no para "esta placa". Si se corre el ciclo
+   otra vez, hay que correr el DRC otra vez — es exactamente lo que G-F ya
+   exige por fecha, y esto es la misma idea por contenido.
+2. **Un rojo marginal no siempre es un bug propio.** Antes de perseguir una
+   violacion de margen, corré el ciclo de nuevo sin cambiar nada. Si vuelve
+   igual, es estructural y hay causa que buscar; si cambia de lugar o
+   desaparece, es varianza del autorouter. Este test separo señal de ruido dos
+   veces acá: descarto una violacion contra un agujero NPTH de SW10, y
+   confirmo que un pad sin rutear era geometrico y no suerte.
+
+Cuando la varianza aparece siempre en la misma zona, lo que dice es que esa
+zona esta congestionada — no que el autorouter este roto. Las salidas son
+darle margen (declararle mas clearance del que se exige), acotar una excepcion
+en el `.kicad_dru`, o descongestionar moviendo componentes.
+
 ## G-6 — paquete de fabricación
 
 `"$KIPY" gen_fab.py` · genera `fab/`
