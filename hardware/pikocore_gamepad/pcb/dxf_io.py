@@ -117,26 +117,78 @@ def _groups(txt):
 
 
 def _lines_by_layer(txt):
-    """{capa: [(x1, y1, x2, y2), ...]} en coordenadas KiCad (Y ya re-negada)."""
+    """{capa: [(x1, y1, x2, y2), ...]} en coordenadas KiCad (Y ya re-negada).
+
+    Entiende LINE y POLYLINE/VERTEX. Las dos cosas hacen falta: el template
+    que escribe gen_template_dxf.py usa solo LINE, pero Rhino guarda como
+    POLYLINE cualquier cosa que el usuario redibuje —el contorno nuevo, una
+    cruz que haya rehecho— y esas entidades son invisibles si solo se leen
+    LINEs. Sintoma tipico: "el DXF no tiene capa BOARD_OUTLINE" cuando la capa
+    esta ahi y con geometria adentro.
+
+    LWPOLYLINE no se soporta todavia: Rhino escribe POLYLINE clasica al
+    exportar a AC1021. Si algun dia aparece, hay que agregarla aca.
+    """
     groups = _groups(txt)
     by_layer = {}
     j = 0
     while j < len(groups):
-        if groups[j] != (0, "LINE"):
+        code, val = groups[j]
+
+        if (code, val) == (0, "LINE"):
+            ent = {}
             j += 1
+            while j < len(groups) and groups[j][0] != 0:
+                ent[groups[j][0]] = groups[j][1]
+                j += 1
+            layer = ent.get(8, "")
+            try:
+                x1, y1 = float(ent.get(10, 0)), -float(ent.get(20, 0))
+                x2, y2 = float(ent.get(11, 0)), -float(ent.get(21, 0))
+            except ValueError:
+                continue
+            by_layer.setdefault(layer, []).append((x1, y1, x2, y2))
             continue
-        ent = {}
+
+        if (code, val) == (0, "POLYLINE"):
+            ent = {}
+            j += 1
+            while j < len(groups) and groups[j][0] != 0:
+                ent[groups[j][0]] = groups[j][1]
+                j += 1
+            layer = ent.get(8, "")
+            # bit 0 del codigo 70: la polilinea esta cerrada.
+            try:
+                cerrada = bool(int(ent.get(70, 0)) & 1)
+            except ValueError:
+                cerrada = False
+            pts = []
+            while j < len(groups):
+                if groups[j] == (0, "VERTEX"):
+                    v = {}
+                    j += 1
+                    while j < len(groups) and groups[j][0] != 0:
+                        v[groups[j][0]] = groups[j][1]
+                        j += 1
+                    try:
+                        pts.append((float(v.get(10, 0)), -float(v.get(20, 0))))
+                    except ValueError:
+                        pass
+                    continue
+                if groups[j] == (0, "SEQEND"):
+                    j += 1
+                    while j < len(groups) and groups[j][0] != 0:
+                        j += 1
+                    break
+                break
+            pares = list(zip(pts, pts[1:]))
+            if cerrada and len(pts) > 2:
+                pares.append((pts[-1], pts[0]))
+            for (ax, ay), (bx, by) in pares:
+                by_layer.setdefault(layer, []).append((ax, ay, bx, by))
+            continue
+
         j += 1
-        while j < len(groups) and groups[j][0] != 0:
-            ent[groups[j][0]] = groups[j][1]
-            j += 1
-        layer = ent.get(8, "")
-        try:
-            x1, y1 = float(ent.get(10, 0)), -float(ent.get(20, 0))
-            x2, y2 = float(ent.get(11, 0)), -float(ent.get(21, 0))
-        except ValueError:
-            continue
-        by_layer.setdefault(layer, []).append((x1, y1, x2, y2))
     return by_layer
 
 

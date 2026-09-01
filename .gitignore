@@ -59,3 +59,6 @@ build-gamepi/*
 # designing LCD UI assets. Scratch material only -- the parsed/renamed data
 # that's actually compiled lives in ui_bitmaps.h and splash_logo.h.
 src/gamepi13/*.txt
+
+# Salida de gen_fab.py: se regenera desde el .kicad_pcb en un comando.
+hardware/pikocore_gamepad/pcb/fab/

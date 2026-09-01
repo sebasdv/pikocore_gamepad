@@ -149,6 +149,28 @@ def build_lcd():
     return "".join(out)
 
 
+# NOTA: el jack 3.5mm ya NO se genera aca. Se dibujo un footprint propio y
+# estaba MAL: las cotas 1.20/3.60/7.30/9.10/12.80 del "Recommended PCB
+# Layout" del datasheet son VERTICALES y se leyeron como horizontales, con
+# lo que salia un patron ancho y bajo en vez de alto y angosto. Se detecto
+# porque el modelo 3D del fabricante no calzaba sobre los pads.
+# Ahora se usa el OFICIAL de KiCad 9:
+#   Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal
+# Sus pads se llaman por funcion (S/T/R/TN/RN), no por numero.
+#
+# El MODELO 3D si vive en este repo: KiCad 9.0.4 declara el .step en el
+# footprint pero NO lo incluye en la instalacion (estan los del
+# 3523N/3524N/3525N, no el del 3535NG). El .wrl de
+# lib/gamesetup_fp.3dshapes/ se armo desde el modelo de Same Sky, alineado
+# con el origen del footprint oficial (pad S). Se referencia desde
+# placements/gen_pcb, no desde aca, porque el footprint no es nuestro.
+
+
+# El socket 2x20 no trae modelo 3D propio (es un header generico), pero el
+# MODULO que se enchufa encima si: RP2350-Plus_Module.step, de Waveshare.
+# Lo asigna gen_pcb.py via MODELOS_PROPIOS, igual que el jack.
+
+
 def copiar_socket_de_v1():
     """El socket 2x20 del RP2350-Plus se reusa tal cual de V1.
 

@@ -17,16 +17,33 @@ Que sale en el DXF, una capa por refdes:
 El bbox sale del board, no de datos hardcodeados, asi que siempre refleja los
 footprints vigentes.
 
+QUE ENTRA EN EL DXF: solo los componentes MECANICOS, o sea los que la posicion
+la manda el enclosure y no el circuito — botones, switches, la pantalla, el
+jack, los conectores y el socket del MCU. Los pasivos SMD (C/R/L) y los chips
+SMD (el boost, el op-amp, el class-D, el DAC) NO salen: su posicion la decide
+la agrupacion electrica alrededor de cada bloque, que se hace DESPUES de que el
+usuario cierre el placement mecanico.
+
+El criterio operativo es el montaje: THT = mecanico, SMD = no. Coincide exacto
+con la lista de arriba y no depende de mantener una lista de refdes a mano.
+Si algun dia entra un conector SMD, agregarlo a MECANICOS_SMD.
+
+Sacarlos del DXF no es solo comodidad visual: parse_dxf.py AGREGA a PLACEMENTS
+todo lo que encuentra en el DXF, asi que un pasivo que viaje en el archivo
+queda anclado en la posicion que le dio la grilla automatica —justo lo que hay
+que evitar mientras el layout analogico no este resuelto.
+
 LIMITACION: la ROTACION no viaja por el DXF. Una cruz no tiene orientacion,
 asi que girar algo en Rhino no tiene efecto. La rotacion se edita a mano en
 placements.py.
 
 Flujo:
   1. "$KIPY" gen_template_dxf.py
-  2. abrir gamesetup_template.dxf en Rhino (unidades mm)
+  2. abrir pikocore_gamepad_template.dxf en Rhino (unidades mm)
   3. mover las cruces y, si hace falta, el contorno
-  4. guardar como gamesetup_template_MOD.dxf
-  5. python parse_dxf.py gamesetup_template_MOD.dxf --write
+  4. guardar como pikocore_gamepad_template_MOD.dxf
+  5. "$KIPY" parse_dxf.py pikocore_gamepad_template_MOD.dxf          # dry run
+     "$KIPY" parse_dxf.py pikocore_gamepad_template_MOD.dxf --write  # aplica
 """
 import os
 
@@ -39,8 +56,27 @@ PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
 OUT = os.path.join(HERE, "pikocore_gamepad_template.dxf")
 
 
+# Excepciones al criterio "THT = mecanico": conectores o controles que vengan
+# en SMD y que igual los ubique el enclosure. Hoy no hay ninguno.
+MECANICOS_SMD = set()
+
+
 def to_mm(v):
     return pcbnew.ToMM(v)
+
+
+def es_mecanico(fp):
+    """True si la posicion de esta pieza la manda el enclosure.
+
+    Se decide por el montaje: THT son los botones, switches, la pantalla, el
+    jack, los conectores y el socket del MCU — todo lo que el usuario toca o
+    lo que asoma por la carcasa. Los pasivos y los chips SMD se ordenan
+    despues, agrupados por bloque electrico.
+    """
+    if fp.GetReference() in MECANICOS_SMD:
+        return True
+    return any(p.GetAttribute() == pcbnew.PAD_ATTRIB_PTH
+               for p in fp.Pads() if p.GetNumber())
 
 
 def pad_bbox_mm(fp):
@@ -85,7 +121,11 @@ def main():
     outline = contorno_geometrico(board)
 
     items = []
+    omitidos = []
     for fp in sorted(board.GetFootprints(), key=lambda f: f.GetReference()):
+        if not es_mecanico(fp):
+            omitidos.append(fp.GetReference())
+            continue
         pos = fp.GetPosition()
         items.append(dxf_io.Item(
             ref=fp.GetReference(),
@@ -99,8 +139,11 @@ def main():
 
     dorso = sum(1 for i in items if i.back)
     print(f"OK -> {OUT}")
-    print(f"{len(items)} componentes leidos del board real "
+    print(f"{len(items)} componentes MECANICOS "
           f"({len(items) - dorso} al frente, {dorso} al dorso)")
+    print(f"  {' '.join(i.ref for i in items)}")
+    print(f"{len(omitidos)} SMD omitidos (se ordenan despues, por bloque "
+          f"electrico)")
     print(f"contorno: {outline[2] - outline[0]:.2f} x "
           f"{outline[3] - outline[1]:.2f} mm")
 

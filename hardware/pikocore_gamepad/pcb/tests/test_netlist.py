@@ -1,4 +1,7 @@
+import io
+import math
 import os
+import re
 import unittest
 
 import gen_fp
@@ -27,6 +30,23 @@ def footprint_path(fpid):
     return os.path.join(KICAD_FP, lib + ".pretty", name + ".kicad_mod")
 
 
+def pads_bbox(fpid):
+    """Semiejes del rectangulo que cubre los pads de un footprint, medidos
+    desde su origen y SIN rotar. None si el .kicad_mod no esta disponible."""
+    path = footprint_path(fpid)
+    if not path or not os.path.isfile(path):
+        return None
+    txt = io.open(path, encoding="utf-8").read()
+    dx = dy = 0.0
+    # [^(]* se come el tipo y la forma del pad, saltos de linea incluidos.
+    pat = r'\(pad\s+"[^"]*"[^(]*\(at\s+([-\d.]+)\s+([-\d.]+)[^)]*\)\s*\(size\s+([-\d.]+)\s+([-\d.]+)\)'
+    for m in re.finditer(pat, txt):
+        x, y, w, h = (float(v) for v in m.groups())
+        dx = max(dx, abs(x) + w / 2)
+        dy = max(dy, abs(y) + h / 2)
+    return (dx, dy) if dx else None
+
+
 def nets_of(ref):
     for inst in netlist.INSTANCES:
         if inst[1] == ref:
@@ -35,8 +55,16 @@ def nets_of(ref):
 
 
 def pin_names(sym):
-    """Nombres de los pines de un simbolo, en orden de numero de pin."""
-    return [p[1] for p in sorted(netlist.SYMS[sym]["pins"], key=lambda p: int(p[0]))]
+    """Nombres de los pines de un simbolo, en orden de numero de pin.
+
+    Algunos footprints identifican sus pads por FUNCION y no por numero (el
+    jack oficial de KiCad usa S/T/R/TN/RN). Para esos se conserva el orden de
+    declaracion, que es el que el simbolo dibuja.
+    """
+    pins = netlist.SYMS[sym]["pins"]
+    if all(p[0].isdigit() for p in pins):
+        pins = sorted(pins, key=lambda p: int(p[0]))
+    return [p[1] for p in pins]
 
 
 class TestSimbolos(unittest.TestCase):
@@ -63,6 +91,8 @@ class TestSimbolos(unittest.TestCase):
         # Un hueco en la numeracion casi siempre es un pin olvidado, y el
         # sintoma es una net que no cierra en el ERC.
         for name, s in netlist.SYMS.items():
+            if not all(p[0].isdigit() for p in s["pins"]):
+                continue      # pads identificados por funcion (S/T/R/TN/RN)
             nums = sorted(int(p[0]) for p in s["pins"])
             self.assertEqual(nums, list(range(1, len(nums) + 1)),
                              f"{name}: numeracion con huecos")
@@ -132,11 +162,13 @@ class TestSimboloNav(unittest.TestCase):
 
 class TestSimboloTact(unittest.TestCase):
 
-    def test_declara_los_dos_pares_internos(self):
-        # Los 4 pines de un tact son dos pares cortocircuitados: 1-2 y 3-4.
-        # El simbolo lo expresa con los nombres, y por eso cablear 1 y 4
-        # garantiza cruzar el contacto.
-        self.assertEqual(pin_names("SW_Push"), ["A", "A", "B", "B"])
+    def test_declara_un_pin_por_par_interno(self):
+        # El tact tiene 4 patas pero son DOS PARES cortocircuitados. El
+        # simbolo declara 2 pines, uno por par, porque el footprint oficial de
+        # KiCad (SW_PUSH_6mm) numera sus cuatro pads como 1,1,2,2 — cada
+        # numero en las dos patas del mismo par. Cablear 1 y 2 cruza el
+        # contacto por construccion.
+        self.assertEqual(pin_names("SW_Push"), ["A", "B"])
 
 
 class TestSimboloSlide(unittest.TestCase):
@@ -177,9 +209,15 @@ class TestSimbolosVerificadosDeV1(unittest.TestCase):
         self.assertEqual(n[15], "FMT")
 
     def test_el_opamp_sigue_el_estandar_dual_dip8(self):
-        # Verificado en V1 contra el simbolo de LCSC C2838125.
+        # El simbolo pasó de NJM4556AD (V1) a PT2308, pero el pinout es el
+        # MISMO: ambos usan el estandar de op-amp dual, identico al
+        # 4558/5532/TL072. Verificado contra el datasheet de Princeton
+        # (PT2308-s.pdf, PIN CONFIGURATION) pin por pin.
+        # Los nombres se conservan en la convencion del op-amp (OUTA/INA-...)
+        # y no en la del PT2308 (OUT1/IN1-...) porque es lo que el resto del
+        # netlist y el esquematico ya usan; la posicion es lo que importa.
         self.assertEqual(
-            pin_names("NJM4556AD"),
+            pin_names("PT2308"),
             ["OUTA", "INA-", "INA+", "V-", "INB+", "INB-", "OUTB", "V+"])
 
     def test_el_classd_sigue_el_datasheet_de_diodes(self):
@@ -227,8 +265,12 @@ class TestPinoutsSinVerificar(unittest.TestCase):
     el esquematico en PDF lo muestra, igual que V1 hizo con el NJM4556AD
     antes de verificarlo."""
 
-    def test_estan_declarados(self):
-        self.assertTrue(netlist.PINOUT_SIN_VERIFICAR)
+    def test_la_tabla_existe_aunque_este_vacia(self):
+        # Hoy esta vacia: los dos simbolos que faltaban (JACK_AUDIO y
+        # TPS61023) ya se verificaron contra sus datasheets, y en LOS DOS la
+        # verificacion encontro errores reales. Por eso la tabla se conserva
+        # en vez de borrarla: lo que entre nuevo sin verificar va aca.
+        self.assertIsInstance(netlist.PINOUT_SIN_VERIFICAR, tuple)
 
     def test_todos_existen_como_simbolo(self):
         for name in netlist.PINOUT_SIN_VERIFICAR:
@@ -281,6 +323,155 @@ class TestFootprints(unittest.TestCase):
                 faltan.append(f"{inst[1]}: {fpid}")
         self.assertEqual(faltan, [], f"footprints inexistentes: {faltan}")
 
+    def test_placements_usa_el_mismo_footprint_que_el_netlist(self):
+        # El footprint esta declarado en DOS lugares: netlist.py (que va al
+        # esquematico y al .net) y placements.py (que es de donde gen_pcb.py
+        # lo carga de verdad). Si divergen, la placa sale con el footprint
+        # viejo y el pinout nuevo — y nada falla a la vista: los pads que
+        # sobran quedan como "unconnected-(...)" en vez de dar error.
+        # Paso exactamente eso al cambiar J1 de header de 4 pines al jack de
+        # 5, asi que queda cubierto.
+        import placements
+        del_netlist = {i[1]: i[6].get("FP", "") for i in netlist.INSTANCES}
+        divergen = []
+        for ref, lib_id, *_ in placements.PLACEMENTS:
+            esperado = del_netlist.get(ref)
+            if esperado and esperado != lib_id:
+                divergen.append(f"{ref}: netlist={esperado} placements={lib_id}")
+        self.assertEqual(divergen, [], f"footprint divergente: {divergen}")
+
+    def test_las_regiones_libres_caen_dentro_de_la_placa(self):
+        # FREE_REGIONS le dice a gen_pcb.py donde empaquetar los pasivos, y
+        # empaquetar_pasivos NO verifica el contorno: si una region se pasa
+        # del borde, los componentes caen afuera sin que nada avise.
+        # Ya paso DOS veces al cambiar BOARD_H (105 -> 80 la ultima), asi que
+        # el test existe para que no haya una tercera.
+        import placements
+        malas = [r for r in placements.FREE_REGIONS
+                 if r[2] > placements.BOARD_W or r[3] > placements.BOARD_H]
+        self.assertEqual(malas, [],
+                         f"regiones fuera de la placa "
+                         f"{placements.BOARD_W}x{placements.BOARD_H}: {malas}")
+
+    def test_los_gatillos_L_y_R_quedan_simetricos(self):
+        # El origen del tact angulado es el PAD 1, que no esta en el centro de
+        # la pieza: su cuerpo esta 2.25mm corrido en X local. Como L y R usan
+        # rotaciones opuestas (90 y 270), ese desbalance se proyecta sobre Y
+        # con signos contrarios — poniendo los dos en el mismo Y quedan
+        # corridos 4.50mm uno respecto del otro, que se ve a simple vista en
+        # la placa armada pero no mirando los numeros.
+        # El invariante que importa es que los CUERPOS queden a la misma
+        # altura, no que los origenes coincidan.
+        import placements
+        OFF = 2.25   # (x0+x1)/2 del F.Fab del PTS645Vx39-2LFS
+        pos = {}
+        for ref, lib_id, x, y, rot, flip in placements.PLACEMENTS:
+            if ref in ("SW9", "SW10"):
+                pos[ref] = (x, y, rot % 360)
+        self.assertEqual(set(pos), {"SW9", "SW10"}, "faltan los gatillos")
+
+        rots = {r for _, _, r in pos.values()}
+        self.assertTrue(rots <= {0, 90, 180, 270},
+                        f"rotacion inesperada: {rots}")
+
+        if rots == {0} or rots == {180}:
+            # Gatillos en un borde HORIZONTAL (arriba o abajo): el desbalance
+            # del footprint cae del mismo lado en los dos, asi que lo que
+            # tiene que coincidir es la Y, y los cuerpos tienen que quedar
+            # simetricos respecto del centro de la placa.
+            self.assertAlmostEqual(
+                pos["SW9"][1], pos["SW10"][1], places=3,
+                msg=f"gatillos a distinta altura: {pos}")
+            cx = {ref: x + OFF for ref, (x, _, _) in pos.items()}
+            centro = placements.BOARD_W / 2
+            self.assertAlmostEqual(
+                cx["SW9"] - 0, placements.BOARD_W - cx["SW10"], places=2,
+                msg=f"gatillos no simetricos respecto de X={centro}: {cx}")
+        else:
+            # Gatillos en los bordes LATERALES con rotaciones opuestas: ahi el
+            # desbalance se proyecta sobre Y con signos contrarios y hay que
+            # compensarlo, o quedan corridos 4.50mm (paso en su momento).
+            self.assertEqual(rots, {90, 270},
+                             f"un gatillo en cada lateral requiere 90 y 270: {pos}")
+            centros = {}
+            for ref, (x, y, rot) in pos.items():
+                centros[ref] = y - OFF if rot == 90 else y + OFF
+            self.assertAlmostEqual(
+                centros["SW9"], centros["SW10"], places=3,
+                msg=f"gatillos a distinta altura: {centros}")
+
+
+    def test_nada_alto_queda_bajo_el_modulo_rp2350(self):
+        # El socket 2x20 levanta el modulo ~8.5mm sobre la placa. En COBRE la
+        # franja central entre las dos filas de pines esta libre y tienta a
+        # meter cosas ahi, pero en ALTURA no entra casi nada: un JST PH
+        # vertical solo mide 8.0mm y ademas hay que poder ENCHUFARLE el cable,
+        # que suma varios mm mas por arriba.
+        # J5 estuvo en (18,30) —dentro de la huella de U1— hasta que se
+        # detecto el choque; el DRC lo reportaba como courtyards_overlap y se
+        # leia como ruido.
+        import placements
+        U1 = next((p for p in placements.PLACEMENTS if p[0] == "U1"), None)
+        self.assertIsNotNone(U1, "no se encontro U1 en PLACEMENTS")
+        _, fpid, ux, uy, rot, uflip = U1
+        # La caja sale del .kicad_mod, NO de dos numeros escritos a mano: si
+        # se cambia el socket o se gira el modulo, el guard se mueve con el.
+        # Cableada, la caja se queda vieja justo cuando mas hace falta, y este
+        # test es lo unico que separa a J5 de volver debajo del modulo.
+        caja = pads_bbox(fpid)
+        if caja is None:
+            self.skipTest("no esta el .kicad_mod de %s" % fpid)
+        HW, HH = caja
+        if rot % 180 == 90:
+            HW, HH = HH, HW      # 90 y 270 intercambian los ejes
+        HW += 1.0                # holgura de colocacion
+        HH += 1.0
+        ALTOS = {"J5"}   # conectores que no pueden vivir debajo del modulo
+        dentro = []
+        for ref, lib_id, x, y, rot, flip in placements.PLACEMENTS:
+            if ref not in ALTOS:
+                continue
+            if flip != uflip:
+                # Lado opuesto de la placa: el modulo no le pasa por encima.
+                # SW11 cae justo en el centro de la huella de U1 y es
+                # correcto, porque el tact esta en el panel (F.Cu) y el
+                # modulo en el dorso (B.Cu). Sin esta condicion el guard
+                # dispararia contra colocaciones que estan bien.
+                continue
+            if abs(x - ux) < HW and abs(y - uy) < HH:
+                dentro.append(f"{ref} en ({x}, {y}) cae bajo U1 en ({ux}, {uy})")
+        self.assertEqual(dentro, [], f"choque mecanico con el modulo: {dentro}")
+
+
+class TestPuentesDeTact(unittest.TestCase):
+    """Los tacts de 6mm tienen cuatro patas numeradas 1,1,2,2 en el footprint
+    oficial de KiCad. KiCad NO da por conectados dos pads solo porque
+    compartan numero, asi que si el ruteador llega a uno de los dos, la net
+    queda abierta — y como el switch une las patas por dentro, la placa
+    funciona igual y el error solo se ve en el DRC.
+
+    Venia pasando por casualidad: en una corrida el ruteador alcanzaba los
+    dos pads de cinco de los seis tacts y en SW5 llegaba a uno solo."""
+
+    def test_cada_tact_de_6mm_tiene_su_puente(self):
+        import manual_tracks
+        tacts = {i[1] for i in netlist.INSTANCES if i[0] == "SW_Push"}
+        self.assertEqual(tacts - set(manual_tracks.PUENTES_TACT), set(),
+                         "tact(s) sin puente en PUENTES_TACT")
+
+    def test_no_hay_puentes_de_mas(self):
+        import manual_tracks
+        tacts = {i[1] for i in netlist.INSTANCES if i[0] == "SW_Push"}
+        self.assertEqual(set(manual_tracks.PUENTES_TACT) - tacts, set(),
+                         "PUENTES_TACT nombra piezas que ya no existen")
+
+    def test_cada_puente_usa_la_net_de_su_tact(self):
+        import manual_tracks
+        for ref, (net, _a, _b) in manual_tracks.PUENTES_TACT.items():
+            self.assertIn(net, nets_of(ref).values(),
+                          "%s: el puente usa la net %s, que no es suya"
+                          % (ref, net))
+
 
 class TestInstanciasEntrada(unittest.TestCase):
 
@@ -319,15 +510,22 @@ class TestInstanciasEntrada(unittest.TestCase):
             self.assertEqual(n["1"], sig)
             self.assertEqual(n["2"], "GND")
 
-    def test_los_tacts_usan_cableado_diagonal(self):
+    def test_los_tacts_cruzan_el_contacto(self):
+        # El tact tiene 4 patas en dos pares cortocircuitados. Para que apretar
+        # el boton CIERRE algo, los dos extremos tienen que caer en pares
+        # DISTINTOS: si los dos van al mismo par, la net queda cerrada siempre
+        # y el boton no hace nada.
+        # Con SW_PUSH_6mm eso queda garantizado por el footprint, que numera
+        # sus pads 1,1,2,2 — un numero por par. Basta con que el netlist use
+        # los dos numeros, que es lo que se verifica aca.
         for inst in netlist.INSTANCES:
             if inst[0] != "SW_Push":
                 continue
             n = inst[5]
-            self.assertEqual(n["4"], "GND", f"{inst[1]}: pin 4 debe ir a GND")
+            self.assertEqual(set(n), {"1", "2"},
+                             f"{inst[1]}: tiene que usar un pin de cada par")
             self.assertNotEqual(n["1"], "GND", f"{inst[1]}: pin 1 es la senal")
-            self.assertEqual(n["2"], netlist.NC)
-            self.assertEqual(n["3"], netlist.NC)
+            self.assertEqual(n["2"], "GND", f"{inst[1]}: pin 2 va a masa")
 
     def test_el_comun_del_nav5_va_a_masa(self):
         self.assertEqual(nets_of("SW13")["1"], "GND")
@@ -415,6 +613,70 @@ def hay_pasivo(sym, nets, valor=None):
     return False
 
 
+def faradios(valor):
+    """'2.2uF', '2u2' o '100nF' -> el valor en faradios.
+
+    Acepta las dos notaciones a proposito: asi el test verifica el NUMERO y
+    no como esta escrito. La cadena importa aparte — el emparejador de BOM de
+    JLCPCB lee el campo Comment, y ahi '2u2' es ambiguo (se estaba usando
+    para 2.2uF y para 2.2uH a la vez)."""
+    v = valor.rstrip("F")
+    for suf, mult in (("p", 1e-12), ("n", 1e-9), ("u", 1e-6), ("m", 1e-3)):
+        if v.endswith(suf):          # "2.2u"
+            return float(v[:-1]) * mult
+        if suf in v:                 # "2u2", notacion europea
+            ent, _, dec = v.partition(suf)
+            return float(ent + "." + dec) * mult
+    return float(v)
+
+
+def valor_de(sym, nets):
+    """Valor del unico pasivo de `sym` conectado exactamente a `nets`."""
+    for i in netlist.INSTANCES:
+        if i[0] == sym and set(i[5].values()) == set(nets):
+            return i[2]
+    raise AssertionError("no hay %s entre %s" % (sym, " y ".join(nets)))
+
+
+def resistencia(nets):
+    return valor_de("R", nets)
+
+
+def capacitancia_total(nets):
+    """Suma en faradios de todos los capacitores entre `nets`.
+
+    Suma C y CP juntos a proposito: lo que le importa a un riel es la
+    capacidad que ve, no con que simbolo esta dibujada. Varios electroliticos
+    pasaron a ceramico al elegir las partes de JLCPCB y los tests no tienen
+    por que romperse por eso — si el valor cambia, ahi si."""
+    total = 0.0
+    for i in netlist.INSTANCES:
+        if i[0] in ("C", "CP") and set(i[5].values()) == set(nets):
+            total += faradios(i[2])
+    return total
+
+
+def capacitor(nets):
+    """Busca en C y en CP: si un electrolitico se cambia por ceramico o al
+    reves el valor sigue siendo el mismo y el test no tiene por que romperse."""
+    for sym in ("C", "CP"):
+        try:
+            return valor_de(sym, nets)
+        except AssertionError:
+            pass
+    raise AssertionError("no hay capacitor entre %s" % " y ".join(nets))
+
+
+def ohms(valor):
+    """'4.7k' -> 4700.0. Sirve para verificar divisores por su NUMERO y no
+    por la cadena, que es lo que permite cambiar valores sin romper el test
+    mientras el circuito siga cumpliendo."""
+    mult = {"R": 1, "k": 1e3, "M": 1e6}
+    if valor[-1] in mult:
+        return float(valor[:-1]) * mult[valor[-1]]
+    return float(valor)
+
+
 class TestAudioDac(unittest.TestCase):
 
     def test_el_sck_va_a_masa(self):
@@ -455,7 +717,12 @@ class TestAudioDac(unittest.TestCase):
                   if i[0] == "C" and i[2] == "100nF"
                   and set(i[5].values()) == {"3V3", "GND"}]
         diez_u = [i for i in netlist.INSTANCES
-                  if i[0] == "CP" and i[2] == "10uF"
+                  # isclose y no ==: faradios("10uF") da 9.999...e-6, que
+                  # con == no coincide con 10e-6. Comparar flotantes por
+                  # igualdad exacta hacia fallar el test sin que el netlist
+                  # tuviera nada malo.
+                  if i[0] in ("C", "CP")
+                  and math.isclose(faradios(i[2]), 10e-6, rel_tol=1e-9)
                   and set(i[5].values()) == {"3V3", "GND"}]
         self.assertGreaterEqual(len(cien_n), 3)
         self.assertGreaterEqual(len(diez_u), 3)
@@ -463,27 +730,53 @@ class TestAudioDac(unittest.TestCase):
     def test_el_charge_pump_esta_completo(self):
         # CAPP-CAPM y VNEG a masa. Es lo que centra la salida en masa; sin
         # esto no hay DirectPath.
-        self.assertTrue(hay_pasivo("C", ["CAPP", "CAPM"], "2u2"))
-        self.assertTrue(hay_pasivo("C", ["VNEG", "GND"], "2u2"))
+        self.assertAlmostEqual(faradios(capacitor(["CAPP", "CAPM"])), 2.2e-6)
+        self.assertAlmostEqual(faradios(capacitor(["VNEG", "GND"])), 2.2e-6)
         self.assertTrue(hay_pasivo("C", ["LDOO", "GND"], "100nF"))
 
-    def test_el_filtro_de_salida_es_470r_y_2n2_por_canal(self):
+    def test_el_filtro_de_salida_es_470_ohm_y_2n2_por_canal(self):
         for dac, aout in (("DACOUT_L", "AOUT_L"), ("DACOUT_R", "AOUT_R")):
-            self.assertTrue(hay_pasivo("R", [dac, aout], "470R"), dac)
-            self.assertTrue(hay_pasivo("C", [aout, "GND"], "2n2"), aout)
+            self.assertAlmostEqual(ohms(resistencia([dac, aout])), 470.0,
+                                   msg=dac)
+            self.assertAlmostEqual(faradios(capacitor([aout, "GND"])), 2.2e-9,
+                                   msg=aout)
 
 
 class TestAudioBoost(unittest.TestCase):
 
     def test_toma_vsys_filtrado_y_entrega_cinco_volts(self):
+        # Pinout de TI SLVSF14B, seccion 5: 1=FB 2=EN 3=VIN 4=GND 5=SW 6=VOUT.
+        # El simbolo de V1 tenia 5 de los 6 pines corridos y el cableado
+        # seguia ese error.
         n = nets_of("U2")
-        self.assertEqual(n["1"], "VSYS_F", "VIN")
-        self.assertEqual(n["5"], "5V", "VOUT")
+        self.assertEqual(n["3"], "VSYS_F", "pin 3 = VIN")
+        self.assertEqual(n["6"], "5V", "pin 6 = VOUT")
+        self.assertEqual(n["4"], "GND", "pin 4 = GND")
+        self.assertEqual(n["5"], "BOOST_SW", "pin 5 = SW, va al inductor")
+        self.assertEqual(n["1"], "BOOST_FB", "pin 1 = FB, va al divisor")
 
     def test_arranca_habilitado(self):
-        # EN atado a VIN: el riel analogico no depende de ningun GPIO, asi que
-        # el audio funciona aunque el firmware no arranque.
-        self.assertEqual(nets_of("U2")["3"], "VSYS_F")
+        # EN (pin 2) atado a VIN: el riel analogico no depende de ningun GPIO,
+        # asi que el audio funciona aunque el firmware no arranque.
+        self.assertEqual(nets_of("U2")["2"], "VSYS_F")
+
+    def test_el_divisor_de_realimentacion_da_cinco_volts(self):
+        # Vout = VREF * (1 + Rtop/Rbot), VREF = 0.595V (TI SLVSF14B tabla 6.5).
+        # Los valores de V1 (1000k/200k) daban 3.57V: nunca se calcularon.
+        import params
+        VREF = 0.595
+        top = params.v("BOOST_RFB_TOP")
+        bot = params.v("BOOST_RFB_BOT")
+        vout = VREF * (1 + top / bot)
+        self.assertAlmostEqual(vout, 5.0, delta=0.05,
+                               msg=f"el divisor {top}k/{bot}k da {vout:.3f}V")
+
+    def test_el_inductor_esta_en_el_rango_de_ti(self):
+        # TI SLVSF14B tabla 6.3: inductancia efectiva 0.37 .. 2.9 uH.
+        import params
+        L = params.v("BOOST_L")
+        self.assertGreaterEqual(L, 0.37)
+        self.assertLessEqual(L, 2.9)
 
     def test_tiene_filtro_lc_en_la_entrada(self):
         # Spec 5.2.1: que la conmutacion del boost no vuelva por VSYS hasta el
@@ -500,7 +793,11 @@ class TestAudioBoost(unittest.TestCase):
 
     def test_tiene_bulk_local_en_el_riel_de_cinco_volts(self):
         # Spec 5.2.1: fisicamente junto a los pines del op-amp.
-        self.assertTrue(hay_pasivo("CP", ["5V", "GND"]))
+        # Se mide la CAPACIDAD del riel, no el tipo de capacitor: el bulk
+        # dejo de ser un electrolitico de 100uF y pasaron a ser dos ceramicos
+        # de 22uF/25V, que a 1MHz sirven mucho mas (el electrolitico tiene
+        # demasiado ESR ahi). TI pide ~22uF de salida para el TPS61023.
+        self.assertGreaterEqual(capacitancia_total(["5V", "GND"]), 20e-6)
         self.assertTrue(hay_pasivo("C", ["5V", "GND"], "100nF"))
 
 
@@ -520,7 +817,12 @@ class TestAudioOpamp(unittest.TestCase):
         # Divisor 10k/10k desde 5V, con bulk. Alimentacion simple obliga.
         self.assertTrue(hay_pasivo("R", ["5V", "VREF25"], "10k"))
         self.assertTrue(hay_pasivo("R", ["VREF25", "GND"], "10k"))
-        self.assertTrue(hay_pasivo("CP", ["VREF25", "GND"]))
+        # El reservorio de la masa virtual. Con R9/R10 el equivalente
+        # Thevenin es 5k, asi que 100uF ponen el corte en 0.32Hz, muy
+        # por debajo del audio. Bajar de ~47uF lo subiria a 0.7Hz y
+        # empezaria a acortar la rampa de encendido (mas "pop").
+        self.assertGreaterEqual(capacitancia_total(["VREF25", "GND"]),
+                                47e-6)
 
     def test_la_entrada_esta_acoplada_por_capacitor(self):
         # La salida del DAC reposa en MASA y la del op-amp en VREF25. Sin
@@ -547,18 +849,74 @@ class TestAudioOpamp(unittest.TestCase):
 class TestAudioJackYParlante(unittest.TestCase):
 
     def test_el_jack_recibe_los_dos_canales_y_masa(self):
+        # Orden del datasheet del SJ1-3535NG (rev 1.06 p.2), NO el del header
+        # de 4 pines que se usaba como stand-in: 1=sleeve, 2=tip, 3=ring.
         n = nets_of("J1")
-        self.assertEqual(n["1"], "JACK_L", "TIP")
-        self.assertEqual(n["2"], "JACK_R", "RING")
-        self.assertEqual(n["3"], "GND", "SLEEVE")
+        self.assertEqual(n["S"], "GND", "SLEEVE")
+        self.assertEqual(n["T"], "JACK_L", "TIP")
+        self.assertEqual(n["R"], "JACK_R", "RING")
 
     def test_el_jack_lleva_su_contacto_de_deteccion_al_gpio(self):
-        self.assertEqual(nets_of("J1")["4"], "JACK_DET")
+        # El contacto usado es el de RING (pin 5). El de TIP (pin 4) queda al
+        # aire: ver la nota en netlist.py sobre por que no se puede colgar un
+        # pull-up de cualquiera de los dos.
+        self.assertEqual(nets_of("J1")["RN"], "JACK_DETSW")
 
     def test_la_deteccion_tiene_pull_up_externo(self):
         # Antes de que el firmware configure el pin, el pull-up interno no
         # esta activo y DET quedaria flotante.
         self.assertTrue(hay_pasivo("R", ["3V3", "JACK_DET"]))
+
+    def test_la_deteccion_esta_aislada_del_canal_de_audio(self):
+        # Los switches del SJ1-3535NG cierran contra su propia senal, no
+        # contra masa. Sin la serie el pull-up inyecta DC en el canal derecho
+        # cada vez que no hay auriculares puestos.
+        self.assertTrue(hay_pasivo("R", ["JACK_DET", "JACK_DETSW"]))
+
+    def test_el_divisor_de_deteccion_se_cierra_contra_masa(self):
+        # ESTA ES LA REGRESION. El circuito original ponia pull-up en
+        # JACK_DET y serie hasta JACK_DETSW, y ahi se detenia: el switch
+        # cierra contra JACK_R, que del otro lado solo tiene C24 — un
+        # capacitor, que BLOQUEA CONTINUA. No se formaba ningun divisor y
+        # JACK_DET se quedaba en 3V3 con y sin plug. La deteccion no
+        # funcionaba en ningun estado, y nada lo detectaba.
+        self.assertTrue(hay_pasivo("R", ["JACK_R", "GND"]),
+                        "sin resistencia de JACK_R a masa el divisor de "
+                        "deteccion no existe: C24 bloquea la continua")
+
+    def test_la_deteccion_da_nivel_bajo_sin_plug(self):
+        # Con el plug afuera el switch cierra y queda
+        #   3V3 -[R15]- DET -[R18]- JACK_R -[R20]- GND
+        # Para que el GPIO lea BAJO hace falta R18+R20 << R15. Con los 100k
+        # que tenia R18 el divisor daba 3.1V aunque el camino existiera, o
+        # sea seguia sin funcionar. Se verifica el numero, no el valor.
+        pu = ohms(resistencia(["3V3", "JACK_DET"]))
+        serie = ohms(resistencia(["JACK_DET", "JACK_DETSW"]))
+        bleed = ohms(resistencia(["JACK_R", "GND"]))
+        det = 3.3 * (serie + bleed) / (pu + serie + bleed)
+        self.assertLess(det, 0.3 * 3.3,
+                        "DET = %.2fV, el umbral bajo del RP2350 es 0.99V "
+                        "(R15=%g R18=%g R20=%g)" % (det, pu, serie, bleed))
+
+    def test_la_deteccion_esta_filtrada(self):
+        # Con el plug afuera el switch esta cerrado y JACK_R sigue llevando
+        # audio, atenuado solo por R15/R18. Sin capacitor el pin lee ALTO en
+        # cada pico de senal: el jack parpadeando.
+        self.assertTrue(hay_pasivo("C", ["JACK_DET", "GND"]))
+
+    def test_los_capacitores_de_acoplo_tienen_referencia_de_continua(self):
+        # C23 y C24 son electroliticos POLARIZADOS de 470uF. Sin bleeder su
+        # terminal negativo flota cuando no hay auriculares puestos: no hay
+        # nada que fije su polaridad. Los bleeders tambien matan el "pop" al
+        # conectar, porque el capacitor ya esta descargado del lado del jack.
+        for net in ("JACK_L", "JACK_R"):
+            self.assertTrue(hay_pasivo("R", [net, "GND"]),
+                            "%s no tiene bleeder a masa" % net)
+
+    def test_los_dos_canales_tienen_el_mismo_bleeder(self):
+        # Valores distintos serian un desbalance de canales.
+        self.assertEqual(resistencia(["JACK_L", "GND"]),
+                         resistencia(["JACK_R", "GND"]))
 
     def test_la_suma_mono_usa_dos_resistencias_iguales(self):
         sumas = [i for i in netlist.INSTANCES
@@ -637,8 +995,14 @@ class TestGuardaDeColisiones(unittest.TestCase):
     cortocircuito y nada lo bloquea."""
 
     def test_acepta_el_netlist_real(self):
+        # Se verifica HOJA POR HOJA, que es como lo corre el generador: dos
+        # pines en hojas distintas no se tocan aunque compartan coordenada.
         import gen_sch
-        gen_sch.verificar_colisiones(gen_sch.PLACED)   # no debe levantar
+        porRef = {i[1]: i for i in netlist.INSTANCES}
+        for idx, (_n, titulo, refs, _x) in enumerate(gen_sch.HOJAS):
+            colocadas, _w, _h = gen_sch._layout_hoja(
+                [porRef[r] for r in refs])
+            gen_sch.verificar_colisiones(colocadas)   # no debe levantar
 
     def test_detecta_dos_resistencias_que_se_tocan(self):
         # Caso real que aparecio al generar: R1/R2/R3 estaban a 10mm y el
@@ -665,12 +1029,53 @@ class TestGuardaDeColisiones(unittest.TestCase):
         ]
         gen_sch.verificar_colisiones(fake)   # no debe levantar
 
-    def test_los_pasivos_quedan_separados_mas_que_su_propio_ancho(self):
-        # La grilla tiene que dar mas luz que el ancho del simbolo, o el
-        # problema vuelve en cuanto se agregue un pasivo.
+    def test_la_celda_es_mas_ancha_que_el_simbolo_mas_grande(self):
+        # La celda de la grilla tiene que dar mas luz que el simbolo que
+        # contiene, o el cortocircuito vuelve en cuanto se agregue una pieza.
+        # w y h del simbolo son SEMIEJES, de ahi el factor 2.
         import gen_sch
-        ancho = 2 * 5.08   # pin a pin de un pasivo
-        self.assertGreater(gen_sch.GRILLA_DX, ancho)
+        porRef = {i[1]: i for i in netlist.INSTANCES}
+        for _n, titulo, refs, _x in gen_sch.HOJAS:
+            instancias = [porRef[r] for r in refs]
+            w = max(netlist.SYMS[i[0]]["w"] for i in instancias)
+            h = max(netlist.SYMS[i[0]]["h"] for i in instancias)
+            colocadas, _cw, _ch = gen_sch._layout_hoja(instancias)
+            xs = sorted({c[3] for c in colocadas})
+            ys = sorted({c[4] for c in colocadas})
+            if len(xs) > 1:
+                self.assertGreater(min(b - a for a, b in zip(xs, xs[1:])),
+                                   2 * w, titulo)
+            if len(ys) > 1:
+                self.assertGreater(min(b - a for a, b in zip(ys, ys[1:])),
+                                   2 * h, titulo)
+
+
+class TestRepartoEnHojas(unittest.TestCase):
+    """El esquematico va en cinco hojas, una por bloque funcional, para que se
+    pueda revisar de a partes. El reparto es una tabla escrita a mano, asi que
+    agregar una pieza a netlist.py y olvidar asignarla la dejaria fuera del
+    esquematico — presente en la placa y en ningun plano."""
+
+    def test_cada_instancia_esta_en_exactamente_una_hoja(self):
+        import gen_sch
+        gen_sch.verificar_reparto()   # no debe levantar
+
+    def test_detecta_una_pieza_sin_hoja(self):
+        import gen_sch
+        original = gen_sch.HOJAS
+        try:
+            gen_sch.HOJAS = [(n, t, r[1:] if i == 0 else r, x)
+                             for i, (n, t, r, x) in enumerate(original)]
+            with self.assertRaises(SystemExit):
+                gen_sch.verificar_reparto()
+        finally:
+            gen_sch.HOJAS = original
+
+    def test_las_notas_que_nombran_las_hojas_existen(self):
+        import gen_sch
+        for _n, titulo, _r, claves in gen_sch.HOJAS:
+            for clave in claves:
+                self.assertIn(clave, gen_sch.NOTAS, titulo)
 
 
 def Counter_de_nets():

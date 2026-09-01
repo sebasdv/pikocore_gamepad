@@ -57,20 +57,25 @@ ALL = {
 
     # --- LAS DOS QUE EL DRAWING NO CIERRA ---
     "LCD_PIN_ROW_Y": Param(
-        1.60, False,
-        "PROVISIONAL. El drawing no acota la vertical del header: las cotas "
-        "2.19/0.81/0.64/0.64 son todas horizontales. 1.60 sale de escalar el "
-        "dibujo (11.09 px/mm, verificado contra dos cotas conocidas). MEDIR "
-        "con calibre: borde superior del modulo -> centro de la fila de pines.",
+        1.27, True,
+        "Borde del modulo (el del lado del header) -> centro de la fila de "
+        "pines. Medido sobre el STEP del modulo: los 7 agujeros D1.27 estan "
+        "en Y=37.950 y el modulo mide 39.22 de alto, o sea 1.270 al borde. "
+        "1.27 = 0.05 pulgadas = MEDIO paso de 2.54: es una cota de diseno y "
+        "no una casualidad, lo que da confianza extra en el numero. "
+        "El 1.60 de V1 salia de escalar el dibujo a ojo y erraba por 0.33mm.",
         "V-1"),
     "LCD_HOLE_INSET": Param(
-        2.19, False,
-        "PROVISIONAL. La cota del drawing dice 2.19mm al borde y la nota china "
-        "al pie dice 2.5mm. HIPOTESIS de que no se contradicen sino que acotan "
-        "cosas distintas: (27.78 - 23.40)/2 = 2.19 EXACTO, o sea que 2.19 es "
-        "el margen lateral del area activa, y 2.5 seria el centro del agujero. "
-        "De ser asi el valor correcto aca es 2.5. MEDIR con calibre para "
-        "confirmar: borde del modulo -> CENTRO del agujero, en los dos ejes.",
+        2.50, True,
+        "Borde del modulo -> CENTRO del agujero de montaje, en los dos ejes. "
+        "Medido sobre el STEP del modulo: los cuatro agujeros D2.00 caen en "
+        "(2.500, 2.500) (2.500, 36.720) (25.200, 36.720) (25.200, 2.500). "
+        "CONFIRMA la hipotesis que estaba anotada aca: el drawing decia 2.19 "
+        "y la nota china 2.5, y no se contradecian — acotan cosas distintas. "
+        "2.19 es el margen lateral del AREA ACTIVA ((27.78-23.40)/2 = 2.190 "
+        "exacto), no la posicion del agujero. El valor de V1 estaba mal. "
+        "gen_fp.py calcula el agujero derecho como BOARD_W - inset, o sea "
+        "asume simetria: correcto para un modulo comercial.",
         "V-2"),
     "LCD_HOLE_DIA": Param(
         2.00, True,
@@ -79,35 +84,38 @@ ALL = {
 
     # ---------------------------------------------------------------- audio
     "BOOST_L": Param(
-        2.2, False,
-        "PROVISIONAL. Inductor del TPS61023 en uH. Calcular desde la hoja de "
-        "datos de TI para 5V de salida con la corriente del NJM4556AD, y "
-        "confirmar stock del valor elegido en LCSC.",
+        2.2, True,
+        "Inductor del TPS61023 en uH. TI SLVSF14B tabla 6.3 (Recommended "
+        "Operating Conditions) da un rango de inductancia efectiva de "
+        "0.37 a 2.9 uH, con 1.0 nominal: 2.2 entra con margen. Se conserva "
+        "en 2.2 y no se baja a 1.0 porque el inductor ya esta elegido y "
+        "comprado (C3002559, 1210/3225), y moverlo dentro del rango valido no "
+        "compra nada.",
         "V-7"),
     "BOOST_RFB_TOP": Param(
-        1000.0, False,
-        "PROVISIONAL. Resistencia superior del divisor de realimentacion en "
-        "kOhm. Calcular para Vout = 5.0V con la Vref del TPS61023.",
+        200.0, True,
+        "Resistencia superior del divisor de realimentacion, en kOhm. "
+        "Vout = VREF * (1 + Rtop/Rbot) con VREF = 0.595V (TI SLVSF14B tabla "
+        "6.5, PWM mode: 580/595/610 mV). Con 200k/27k da 5.0024V, o sea "
+        "+0.05% de error, y los dos son valores E24 comunes. "
+        "El divisor conduce 22uA contra los 4nA de fuga del pin FB (misma "
+        "tabla), o sea 5500x mas: el error que aporta la fuga es despreciable. "
+        "OJO: los valores de V1 (1000k/200k) daban 3.57V, un 28.6% por debajo "
+        "del objetivo — nunca se habian calculado.",
         "V-7"),
     "BOOST_RFB_BOT": Param(
-        200.0, False,
-        "PROVISIONAL. Resistencia inferior del divisor, en kOhm.",
+        27.0, True,
+        "Resistencia inferior del divisor, en kOhm. Ver BOOST_RFB_TOP.",
         "V-7"),
 
     # ---------------------------------------------------------------- placa
     "BOARD_W": Param(
-        90.0, False,
-        "PROVISIONAL: contorno de partida para poder generar el template DXF. "
-        "El contorno definitivo lo dibuja el usuario en Rhino y entra por "
-        "parse_dxf.py.",
+        120.00, True,
+        "Contorno definitivo, tomado de la capa BOARD_OUTLINE del DXF que el usuario ordeno en Rhino.",
         "V-0"),
     "BOARD_H": Param(
-        105.0, False,
-        "PROVISIONAL: ver BOARD_W. Bajado de 130 a 105 al mover el D-pad a "
-        "NAV5 (Y=83, mas arriba que el viejo D-pad en Y=100-116) y J5 junto "
-        "a U1 — ya no hace falta espacio cerca del borde inferior. Sigue "
-        "siendo un placeholder: el contorno definitivo lo dibuja el usuario "
-        "en Rhino.",
+        80.00, True,
+        "Contorno definitivo, tomado de la capa BOARD_OUTLINE del DXF que el usuario ordeno en Rhino.",
         "V-0"),
 }
 

@@ -25,9 +25,24 @@ class TestParams(unittest.TestCase):
         self.assertTrue(params.ALL["LCD_BOARD_W"].verified)
         self.assertTrue(params.ALL["LCD_PIN1_X"].verified)
 
-    def test_las_cotas_ambiguas_arrancan_sin_verificar(self):
-        self.assertFalse(params.ALL["LCD_PIN_ROW_Y"].verified)
-        self.assertFalse(params.ALL["LCD_HOLE_INSET"].verified)
+    def test_las_cotas_del_lcd_salen_del_modelo_del_modulo(self):
+        # Las dos arrancaron sin verificar porque el drawing del vendedor no
+        # las acota: LCD_PIN_ROW_Y salia de escalar el dibujo a ojo (erraba
+        # 0.33mm) y LCD_HOLE_INSET tenia dos candidatos, 2.19 y 2.5.
+        # Se cerraron midiendo el STEP del modulo, y ahi se vio que 2.19 era
+        # el margen del AREA ACTIVA, no la posicion del agujero.
+        self.assertTrue(params.ALL["LCD_PIN_ROW_Y"].verified)
+        self.assertTrue(params.ALL["LCD_HOLE_INSET"].verified)
+        self.assertAlmostEqual(params.v("LCD_PIN_ROW_Y"), 1.27, places=2)
+        self.assertAlmostEqual(params.v("LCD_HOLE_INSET"), 2.50, places=2)
+
+    def test_el_margen_del_area_activa_no_es_el_inset_del_agujero(self):
+        # (27.78 - 23.40)/2 = 2.19 EXACTO. Ese numero existe y es correcto,
+        # pero acota el area activa — confundirlo con el agujero fue el error
+        # que arrastraba V1.
+        margen = (params.v("LCD_BOARD_W") - params.v("LCD_ACTIVE_W")) / 2
+        self.assertAlmostEqual(margen, 2.19, places=2)
+        self.assertNotAlmostEqual(margen, params.v("LCD_HOLE_INSET"), places=2)
 
     def test_la_geometria_del_header_cierra_con_el_ancho_de_la_placa(self):
         # 6.27 + 6*2.54 + 6.27 == 27.78 exacto. Si alguien toca un valor
@@ -62,8 +77,17 @@ class TestAccesorV(unittest.TestCase):
 class TestCheckVerified(unittest.TestCase):
 
     def test_reporta_los_no_verificados(self):
-        pend = check_verified.pendientes(params.ALL)
-        self.assertIn("LCD_PIN_ROW_Y", pend)
+        # Con un Param falso, para no depender de que quede alguno sin
+        # verificar en el proyecto real — hoy no queda ninguno.
+        from params import Param
+        falso = {"OK": Param(1.0, True, "medido", "V-0"),
+                 "PENDIENTE": Param(2.0, False, "sin medir", "V-9")}
+        pend = check_verified.pendientes(falso)
+        self.assertEqual(pend, ["PENDIENTE"])
+
+    def test_hoy_no_queda_ninguno_pendiente(self):
+        # G-0 en verde: es lo que habilita a gen_fab.py a generar sin --force.
+        self.assertEqual(check_verified.pendientes(params.ALL), [])
 
     def test_pasa_cuando_todo_esta_verificado(self):
         from params import Param

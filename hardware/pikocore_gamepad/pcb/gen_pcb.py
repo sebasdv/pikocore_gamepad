@@ -36,6 +36,11 @@ W, H = BOARD_W, BOARD_H
 
 CORNER_R = 3.0          # radio de las esquinas del contorno
 EDGE_KEEPOUT = 0.6      # franja sin pistas/vias contra el borde
+NPTH_KEEPOUT = 0.60     # anillo sin pistas/vias alrededor de cada NPTH
+#   0.60 y no los 0.40 que pide la regla: freerouting respeta las rule
+#   areas de forma aproximada —su pasada de optimizacion vuelve a
+#   empujar las pistas hacia adentro— asi que el anillo se dibuja mas
+#   grande que el margen que se quiere conseguir.
 ZONE_MARGIN = 0.5       # retiro de las zonas respecto del contorno
 
 # Ruta estandar de footprints de la instalacion.
@@ -146,7 +151,12 @@ def setup_netclasses(board):
     nc = pcbnew.NETCLASS("Power")
     nc.SetTrackWidth(mm(0.4))
     ns.SetNetclass("Power", nc)
-    for pn in ("3V3", "VSYS", "5V", "VSYS_F"):
+    # GND va incluido aunque sea un PLANO y no un riel ruteado: en el DSN la
+    # clase es lo que le dice a freerouting con que via bajar a la capa
+    # interna. Sin esto GND queda en kicad_default y los 32 pads SMD de masa
+    # no reciben via al plano de In1 — se ven como "unconnected" aunque el
+    # plano este relleno justo debajo.
+    for pn in ("GND", "3V3", "VSYS", "5V", "VSYS_F"):
         ns.SetNetclassPatternAssignment(pn, "Power")
     ns.RecomputeEffectiveNetclasses()
 
@@ -274,12 +284,90 @@ def empaquetar_pasivos(board, faltan):
     return sin_lugar
 
 
+# Footprints de la libreria de KiCad cuyo modelo 3D KiCad declara pero NO
+# instala. Se reemplaza por el .wrl propio, armado desde el modelo del
+# fabricante y alineado con el origen del footprint oficial.
+# valor: (archivo, offset_mm, rotacion_grados)
+MODELOS_PROPIOS = {
+    "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal": (
+        "Jack_3.5mm_CUI_SJ1-3535NG_Horizontal.step",
+        # El STEP viene de Same Sky en el sistema de SolidWorks: eje largo en
+        # X (barril en X max), alto en Y. rotX 90 lleva el alto a Z y rotZ 90
+        # pone el eje largo en Y con el barril del lado -Y, que es donde lo
+        # dibuja el F.Fab oficial (barril y -5.20..-1.20, cuerpo -1.20..12.80).
+        #
+        # DOS TRAMPAS, las dos costaron una vuelta de render:
+        # 1) KiCad rota en sentido HORARIO: el angulo del (rotate) es el
+        #    NEGADO del que uno calcularia con la convencion matematica. Con
+        #    la convencion antihoraria sale (90,0,270), que deja el barril
+        #    apuntando al interior de la placa.
+        # 2) No se puede pedir cualquier mapeo de ejes: el intento inicial
+        #    (X_k=z, Y_k=-x, Z_k=y) tiene determinante -1, o sea una
+        #    REFLEXION, y ninguna rotacion la produce.
+        #
+        # Los offsets alinean el CUERPO con el F.Fab (y -1.20..12.80), no el
+        # bbox completo: el modelo mide 23.49mm de largo contra 18.00 del
+        # F.Fab, porque el footprint acota hasta la base del barril y el
+        # modelo incluye la punta. En el STEP el cuerpo esta en x <= -4 y el
+        # barril de -4 a +5.49 — al reves de lo que sugiere el bbox, y eso
+        # costo dos vueltas de render.
+        # AJUSTADOS A MANO en KiCad, con el preview a la vista, y verificados
+        # ahi mismo. No deducirlos de nuevo por calculo: varios intentos de
+        # derivarlos midiendo el STEP terminaron con la pieza acostada o fuera
+        # de la placa. Si hay que retocarlos, hacerlo otra vez en la GUI
+        # (doble clic en J1 -> pestana 3D Models) y copiar los numeros aca.
+        #
+        # OJO con los signos: la rotacion es NEGATIVA (-180, 0, -90). Con los
+        # mismos valores en positivo el jack queda acostado.
+        (1.0, 5.0, 7.0),
+        (-180.0, 0.0, -90.0),
+    ),
+    # El socket 2x20 es un header generico sin modelo; el que interesa ver es
+    # el MODULO que se enchufa encima (Waveshare RP2350-Plus, STEP en mm).
+    #
+    # AJUSTADOS A MANO en KiCad con el preview a la vista. No re-derivarlos por
+    # calculo: el STEP es un ENSAMBLAJE de 93 solidos, cada uno con su propia
+    # transformacion, asi que muestrear sus CARTESIAN_POINT en crudo da ejes
+    # equivocados — por ese camino salio una rotacion de 90 que dejaba el
+    # modulo perpendicular al socket.
+    # Si hay que retocarlos: doble clic en U1 -> pestana 3D Models, y copiar
+    # los numeros de vuelta aca.
+    "gamesetup_fp:RP2350-Plus_Socket": (
+        "RP2350-Plus_Module.step",
+        (-10.54, -25.40, 2.00),
+        (0.0, 0.0, 0.0),
+    ),
+}
+
+
+def _parchar_modelo_3d(fp, lib_id):
+    """Apunta el modelo 3D al .wrl propio si KiCad no trae el suyo.
+
+    KiCad 9.0.4 declara Connector_Audio.3dshapes/...SJ1-3535NG...step en el
+    footprint pero ese archivo no viene en la instalacion (si estan los del
+    3523N/3524N/3525N). Sin esto la pieza no aparece en el visor 3D y el
+    enclosure se disena a ciegas.
+    """
+    spec = MODELOS_PROPIOS.get(lib_id)
+    if not spec:
+        return
+    nombre, off, rot = spec
+    fp.Models().clear()
+    m = pcbnew.FP_3DMODEL()
+    m.m_Filename = "${KIPRJMOD}/lib/gamesetup_fp.3dshapes/" + nombre
+    m.m_Offset = pcbnew.VECTOR3D(*off)
+    m.m_Rotation = pcbnew.VECTOR3D(*rot)
+    m.m_Show = True
+    fp.Models().push_back(m)
+
+
 def colocar(board, netmap, nets):
     """Footprints de placements.py, mas los pasivos en grilla automatica."""
     colocados = set()
     for ref, lib_id, x, y, rot, flip in PLACEMENTS:
         fp = find_fp(lib_id)
         fp.SetReference(ref)
+        _parchar_modelo_3d(fp, lib_id)
         board.Add(fp)
         fp.SetPosition(pt(x, y))
         if flip:
@@ -339,6 +427,56 @@ def agregar_keepout(board):
     for x, y in rounded_rect_pts(e, e, W - e, H - e, R=CORNER_R - e):
         o.Append(mm(x), mm(y), 0, 0)
     board.Add(k)
+
+
+def agregar_keepout_npth(board):
+    """Anillo sin pistas ni vias alrededor de cada agujero NO metalizado.
+
+    POR QUE HACE FALTA: un NPTH no tiene pared de cobre, asi que la broca
+    muerde el laminado directamente y la tolerancia de taladro se come el
+    margen. Una pista que pase cerca se puede cortar en fabricacion.
+
+    KiCad lo verifica con su regla de clearance, pero DESPUES de rutear —y
+    para entonces ya hay que rehacer el ruteo. freerouting no puede evitarlo
+    solo porque estos pads NO EXISTEN en el DSN: no tienen net ni cobre, asi
+    que no se exportan, y el ruteador les pasa por al lado sin enterarse. La
+    unica forma de que los esquive es declararselos como rule area, igual que
+    el margen del borde.
+
+    Aparecio con las patas mecanicas de los tacts angulados: una pista de
+    BTN_R quedo a 0.211mm de un agujero de SW10, contra los 0.4 de la regla.
+    Los otros cuatro NPTH son los agujeros de montaje del display.
+    """
+    puestos = 0
+    for fp in board.GetFootprints():
+        for p in fp.Pads():
+            if p.GetAttribute() != pcbnew.PAD_ATTRIB_NPTH:
+                continue
+            c = p.GetPosition()
+            d = p.GetDrillSize()
+            r = max(pcbnew.ToMM(d.x), pcbnew.ToMM(d.y)) / 2 + NPTH_KEEPOUT
+            k = pcbnew.ZONE(board)
+            k.SetIsRuleArea(True)
+            k.SetDoNotAllowTracks(True)
+            k.SetDoNotAllowVias(True)
+            # El plano SI puede acercarse: KiCad ya le aplica al relleno el
+            # clearance del pad, y dejarlo fuera abriria un hueco inutil en
+            # la referencia de masa.
+            k.SetDoNotAllowCopperPour(False)
+            # El NPTH esta DENTRO de su propio anillo: sin esto KiCad reporta
+            # el pad como "elemento no permitido" y salen 8 infracciones que
+            # no significan nada.
+            k.SetDoNotAllowPads(False)
+            k.SetDoNotAllowFootprints(False)
+            k.SetLayerSet(pcbnew.LSET.AllCuMask(4))
+            o = k.Outline()
+            o.NewOutline()
+            for i in range(12):
+                a = 2 * math.pi * i / 12
+                o.Append(c.x + mm(r * math.cos(a)), c.y + mm(r * math.sin(a)))
+            board.Add(k)
+            puestos += 1
+    return puestos
 
 
 def _zona(board, layer, net, x0, y0, x1, y1, redondeada=True):
@@ -402,6 +540,28 @@ def agregar_zonas(board, nets):
     _zona(board, pcbnew.In2_Cu, nets["3V3"], m, m, W - m, H - m)
 
 
+def marcar_manuales(board):
+    """Marca DNP las piezas que suelda el usuario, no JLCPCB.
+
+    kicad-cli exporta el CPL con --exclude-dnp, asi que estas salen del
+    archivo de pick-and-place y JLCPCB deja de pedir una parte para ellas.
+
+    Las THT ya quedaban afuera por --smd-only. Esta funcion existe para las
+    que son SMD pero igual van a mano: hoy C23/C24, los 470uF de acoplo de
+    audio, porque los que ofrece la biblioteca de JLCPCB no tienen stock.
+    Sin la marca aparecen en el CPL, el portal las reporta como sin parte y
+    el pedido se traba.
+    """
+    manuales = [i[1] for i in INSTANCES if i[6].get("MANUAL")]
+    for ref in manuales:
+        fp = board.FindFootprintByReference(ref)
+        if fp is None:
+            raise SystemExit("MANUAL: no existe %s en la placa" % ref)
+        fp.SetDNP(True)
+        fp.SetExcludedFromPosFiles(True)
+    return manuales
+
+
 def main():
     board = pcbnew.NewBoard(OUT)
     setup_stackup(board)
@@ -416,7 +576,9 @@ def main():
     setup_netclasses(board)
     dibujar_contorno(board)
     n_grid, sin_net, sin_lugar = colocar(board, netmap, nets)
+    manuales = marcar_manuales(board)
     agregar_keepout(board)
+    n_npth = agregar_keepout_npth(board)
     agregar_zonas(board, nets)
 
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
@@ -427,6 +589,9 @@ def main():
           f"footprints: {len(list(board.GetFootprints()))}  "
           f"nets: {board.GetNetCount()}  zonas: {len(list(board.Zones()))}")
     print(f"empaquetados en el dorso: {n_grid - len(sin_lugar)} de {n_grid} pasivos")
+    if manuales:
+        print(f"DNP (soldadura manual, fuera del CPL): {', '.join(manuales)}")
+    print(f"keepouts NPTH: {n_npth}")
     if sin_lugar:
         print(f"AVISO: {len(sin_lugar)} sin lugar en FREE_REGIONS "
               f"(quedaron en el origen): {', '.join(sin_lugar)}")
