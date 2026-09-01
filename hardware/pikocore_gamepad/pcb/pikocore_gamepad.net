@@ -1,7 +1,7 @@
 (export (version "E")
   (design
     (source "C:\\pikocore-main\\hardware\\pikocore_gamepad\\pcb\\pikocore_gamepad.kicad_sch")
-    (date "2026-08-31T16:25:57-0400")
+    (date "2026-09-01T13:07:21-0400")
     (tool "Eeschema 9.0.4")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
