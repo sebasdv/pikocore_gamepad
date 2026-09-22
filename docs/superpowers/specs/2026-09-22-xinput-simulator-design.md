@@ -246,4 +246,3 @@ define nuevo que ve el código del firmware (usado solo por `PIKO_DMB()`).
 | MSVC no compila algún GCC-ismo del firmware | `/std:c++20`, macros en un header forzado (`/FI`) para `__attribute__` y afines; si algo exige tocar `src/`, se consulta antes. |
 | ~1 M llamadas/s a la ISR más cambios de fiber ahogan un core | La ISR es liviana (medido en la primera iteración); los cambios de fiber son ~20 k/s. Si no alcanza, se agrupan ticks sin cambiar la semántica. |
 | La orientación del LCD sale rotada o espejada | Se fija empíricamente con el dump BMP del modo headless antes de dibujar la ventana. |
-| `gpio_init(23)` como salida en `main()` (GP23 = botón L) | El shim ignora la dirección en los pines de botón: siempre leen el control. |
