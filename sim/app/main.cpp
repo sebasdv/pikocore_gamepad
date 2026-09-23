@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "app/cli.h"
+#include "app/windowed.h"
 #include "core/file_io.h"
 #include "core/press_script.h"
 #include "core/st7789.h"
@@ -66,6 +67,5 @@ int wmain(int argc, wchar_t** argv) {
     return 0;
   }
   if (cli.headless) return run_headless_cli(cli);
-  std::fprintf(stderr, "el modo con ventana llega en la Task 10; usá --headless\n");
-  return 2;
+  return run_windowed(cli);
 }

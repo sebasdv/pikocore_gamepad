@@ -114,8 +114,12 @@ endforeach()
 add_executable(pikocore_sim
   app/main.cpp
   app/cli.cpp
+  app/windowed.cpp
+  platform/audio_out.cpp
+  platform/pad_input.cpp
+  platform/sim_window.cpp
 )
-target_link_libraries(pikocore_sim PRIVATE sim_runtime)
+target_link_libraries(pikocore_sim PRIVATE sim_runtime xinput ole32 user32 gdi32 shell32 winmm)
 target_include_directories(pikocore_sim PRIVATE ${SIM_ROOT})
 target_compile_definitions(pikocore_sim PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 target_compile_options(pikocore_sim PRIVATE /W4 /utf-8)
