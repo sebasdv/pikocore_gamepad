@@ -17,7 +17,14 @@ mkdir -p "$OUT_DIR"
 PYTHON_BIN="${EMSDK_PYTHON:-python3}"
 
 GEN_DIR="$(mktemp -d)"
+OBJ_DIR="$(mktemp -d)"
+trap 'rm -rf "$GEN_DIR" "$OBJ_DIR"' EXIT
+
 mkdir -p "$GEN_DIR/doth"
+# MSVC (the native build's compiler, via sim/cmake/flatten_easing.cmake) can't handle
+# this header's `else if` chains the way clang/emcc can; flattening them is a no-op
+# for em++ but keeps this generated header at parity with the native build's, so it's
+# kept here too rather than special-cased away.
 "$PYTHON_BIN" - "$PIKO_ROOT/doth/easing.h" "$GEN_DIR/doth/easing.h" <<'PY'
 import sys
 src, dst = sys.argv[1], sys.argv[2]
@@ -84,7 +91,6 @@ INCLUDES=(
   -I "$PIKO_ROOT/src/gamepi13" -I "$PIKO_ROOT/src/gamepi13/lcd" -I "$SIM_ROOT"
 )
 
-OBJ_DIR="$(mktemp -d)"
 OBJECTS=()
 compile_one() {
   # $1 = compiler (emcc|em++), $2 = std flag (or "" for C default), $3 = source path
@@ -113,5 +119,8 @@ em++ -O2 -sASYNCIFY -sASYNCIFY_STACK_SIZE=131072 \
   -sALLOW_MEMORY_GROWTH=1 \
   -o "$OUT_DIR/pikocore_sim.js"
 
-cp "$PIKO_ROOT/build-sim/bin/amen_pad_bank.pikobank" "$OUT_DIR/amen_pad_bank.pikobank"
-echo "Built $OUT_DIR/pikocore_sim.js + amen_pad_bank.pikobank"
+# amen_pad_bank.pikobank is committed directly in web/public/sim/ (see Critical 2 of the
+# 2026-09-23 web-sim-demo final review) — it's the single source of truth, so this script
+# doesn't copy it from the native build-sim/ output; that directory may not even exist
+# (fresh clone, CI, Linux).
+echo "Built $OUT_DIR/pikocore_sim.js"
