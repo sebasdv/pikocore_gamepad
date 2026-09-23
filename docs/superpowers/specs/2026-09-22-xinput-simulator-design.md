@@ -1,7 +1,7 @@
 # pikocore-sim — simulador nativo Windows del firmware GamePi13, controlado por XInput
 
 Fecha: 2026-09-22
-Estado: propuesto, pendiente de aprobación
+Estado: implementado (plan: docs/superpowers/plans/2026-09-22-xinput-simulator.md)
 
 ## Objetivo
 
@@ -58,6 +58,14 @@ El working tree tiene cambios sin commitear del usuario en `src/main.cpp` (remap
 reset de FX). El refactor se commitea aislado aplicando solo su parche al índice
 (`git apply --cached`), sin arrastrar esos cambios.
 
+### Compatibilidad con MSVC sin tocar el firmware
+
+`doth/easing.h` tiene cadenas `else if` de cientos de eslabones y MSVC corta en
+128 niveles de anidamiento (C1061). Como cada rama hace `return`, el build del
+simulador genera una copia aplanada (`} else if (` → `}\n  if (`) en
+`build-sim/gen/doth/easing.h`, que tiene prioridad en el include path
+(`sim/cmake/flatten_easing.cmake`). El archivo original no cambia.
+
 ## 2. Shim del pico-sdk (`sim/shim/`)
 
 Headers con los mismos nombres que los del SDK (`pico/stdlib.h`, `pico/multicore.h`,
@@ -94,6 +102,12 @@ escribir se valida magic, versión y que `header_size + audio_bytes` entre en la
 de la flash; si no, se rechaza con un mensaje en la barra de estado y la flash queda como
 estaba.
 
+El loader web escribe `capacity_bytes = 16 MB` al exportar (`web/src/App.tsx`,
+`SD_BANK_CAPACITY_BYTES`), más que la capacidad real de audio (16 MB − 512 KB −
+12 KB), y `piko_audio_bank_rescan()` rechaza ese banco. El simulador corrige el
+campo al cargar. El mismo `validate_header()` del modo SD (aparcado) rechazaría
+esos archivos en el hardware.
+
 ## 3. Tiempo y concurrencia: planificador determinista
 
 **Reloj virtual** en ciclos de CPU de 248 MHz (`CLOCK_RATE`).
@@ -121,6 +135,9 @@ Consecuencias:
   punto. Se acepta porque el firmware ya tolera ambas situaciones.
 - El cómputo de `main()` cuesta 0 tiempo virtual. En el hardware cada vuelta cuesta
   algunos µs más que el `sleep_us(50)`. La diferencia es menor y se documenta.
+- Cada lectura del timer desde `main()` cuesta 32 ciclos virtuales y cede el
+  control, así un lazo que solo espera a `time_us_64()` no se cuelga con el
+  tiempo congelado.
 
 **Pacing:** el hilo de emulación produce audio en un ring buffer y corre adelantado hasta
 ~20 ms respecto de lo que ya consumió el dispositivo de audio. Si está adelantado, duerme
@@ -154,8 +171,10 @@ tearing de un frame, igual que en el panel real.
   capacitor de acople: saca el escalón de 0 → 128 del arranque y cualquier offset.
 - Salida por **WASAPI en modo compartido, event-driven**, float 32 estéreo (mono
   duplicado). Latencia objetivo: ~30 ms de punta a punta.
-- Si no hay dispositivo de audio, el simulador sigue corriendo (el pacing pasa a usar el
-  reloj de pared) y lo avisa en la barra de estado.
+- Si WASAPI no puede arrancar (por ejemplo, sin dispositivo de audio), el simulador sigue
+  corriendo y la barra de estado muestra `Sin audio (<motivo>)`. Si el dispositivo se
+  pierde a mitad de sesión, la barra pasa a `Audio perdido` y el pacing pasa a usar el
+  reloj de pared en vez del consumo del dispositivo.
 
 ## 6. Entrada
 
