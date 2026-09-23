@@ -89,13 +89,34 @@ void emulation_thread(Shared* sh, sim::AudioRing* ring, const sim::AudioOut* aud
   const clock::time_point wall0 = clock::now();
   clock::time_point speed_mark = wall0;
   uint64_t speed_cycles = 0;
+
+  // Si WASAPI falla a mitad de sesión (dispositivo desconectado, etc.),
+  // frames_consumed() deja de avanzar; a partir de ese instante repacear por
+  // reloj de pared para que la emulación siga corriendo a x1 en vez de
+  // congelarse esperando un consumo que ya no llega.
+  bool audio_lost = false;
+  uint64_t produced_at_loss = 0;
+  clock::time_point loss_mark{};
+
   while (!sh->quit) {
     apply_pending_bank(sh);
     const clock::time_point now = clock::now();
-    const uint64_t consumed =
-        audio_ok ? audio->frames_consumed()
-                 : static_cast<uint64_t>(std::chrono::duration<double>(now - wall0).count() *
-                                         sim::kAudioRate);
+    if (audio_ok && !audio_lost && audio->failed()) {
+      audio_lost = true;
+      produced_at_loss = produced;
+      loss_mark = now;
+    }
+    uint64_t consumed;
+    if (audio_lost) {
+      consumed = produced_at_loss + static_cast<uint64_t>(
+                                        std::chrono::duration<double>(now - loss_mark).count() *
+                                        sim::kAudioRate);
+    } else if (audio_ok) {
+      consumed = audio->frames_consumed();
+    } else {
+      consumed = static_cast<uint64_t>(std::chrono::duration<double>(now - wall0).count() *
+                                       sim::kAudioRate);
+    }
     if (produced < consumed + kLeadFrames) {
       m.run_until(m.now_cycles() + sim::kCpuHz / 1000);
     } else {
@@ -110,6 +131,9 @@ void emulation_thread(Shared* sh, sim::AudioRing* ring, const sim::AudioOut* aud
       speed_mark = now;
     }
   }
+  // El sink captura `produced` (local de este hilo) por referencia: soltarlo
+  // antes de volver, para no dejar al Dac apuntando a un hilo que ya murió.
+  m.dac().set_sink({});
 }
 
 }  // namespace
@@ -148,6 +172,7 @@ int run_windowed(const Cli& cli) {
   sim::AudioOut audio;
   std::string audio_err;
   const bool audio_ok = audio.start(&ring, &audio_err);
+  const std::wstring audio_err_wide = utf8_to_wide(audio_err);
   sim::PadInput pad;
   pad.start([](uint16_t mask) { sim::set_button_mask(mask); });
   std::thread emu(emulation_thread, &sh, &ring, &audio, audio_ok);
@@ -169,7 +194,7 @@ int run_windowed(const Cli& cli) {
     sh.pending_bank = std::move(blob);
     sh.pending_name = path.filename().wstring();
   };
-  hooks.status = [&sh, &pad, audio_ok] {
+  hooks.status = [&sh, &pad, &audio, audio_ok, &audio_err_wide] {
     std::wstring s = pad.connected()
                          ? L"Control XInput conectado"
                          : L"Sin control: flechas, W/A/S/D, Q/E, Enter, Backspace";
@@ -184,7 +209,13 @@ int run_windowed(const Cli& cli) {
                  : L"Banco: ninguno (arrastrá un .pikobank)";
     }
     s += L"  ·  " + bank;
-    s += audio_ok ? L"  ·  Audio WASAPI" : L"  ·  Sin audio";
+    if (audio_ok && audio.failed()) {
+      s += L"  ·  Audio perdido";
+    } else if (!audio_ok) {
+      s += L"  ·  Sin audio (" + audio_err_wide + L")";
+    } else {
+      s += L"  ·  Audio WASAPI";
+    }
     wchar_t speed[32];
     swprintf(speed, 32, L"  ·  x%.2f", sh.speed.load());
     return s + speed;

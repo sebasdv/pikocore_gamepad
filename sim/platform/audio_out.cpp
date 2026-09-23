@@ -24,10 +24,11 @@ void release(T*& p) {
 AudioOut::~AudioOut() { stop(); }
 
 bool AudioOut::start(AudioRing* ring, std::string* err) {
-  std::promise<std::string> ready;
-  std::future<std::string> result = ready.get_future();
+  ready_ = std::promise<std::string>();
+  std::future<std::string> result = ready_.get_future();
   quit_ = false;
-  thread_ = std::thread([this, ring, &ready] { run(ring, &ready); });
+  failed_ = false;
+  thread_ = std::thread([this, ring] { run(ring); });
   const std::string failure = result.get();
   if (!failure.empty()) {
     thread_.join();
@@ -42,7 +43,7 @@ void AudioOut::stop() {
   if (thread_.joinable()) thread_.join();
 }
 
-void AudioOut::run(AudioRing* ring, std::promise<std::string>* ready) {
+void AudioOut::run(AudioRing* ring) {
   CoInitializeEx(nullptr, COINIT_MULTITHREADED);
   IMMDeviceEnumerator* enumerator = nullptr;
   IMMDevice* device = nullptr;
@@ -89,17 +90,23 @@ void AudioOut::run(AudioRing* ring, std::promise<std::string>* ready) {
     std::snprintf(msg, sizeof(msg), "WASAPI falló (0x%08lx)", static_cast<unsigned long>(hr));
     failure = msg;
   }
-  ready->set_value(failure);  // después de esto no se toca más `ready`
+  ready_.set_value(failure);  // después de esto no se toca más `ready_`
 
   std::vector<float> mono(buffer_frames);
   while (failure.empty() && !quit_) {
     WaitForSingleObject(event, 100);
     UINT32 padding = 0;
-    if (FAILED(client->GetCurrentPadding(&padding))) break;
+    if (FAILED(client->GetCurrentPadding(&padding))) {
+      failed_ = true;
+      break;
+    }
     const UINT32 avail = buffer_frames - padding;
     if (avail == 0) continue;
     BYTE* data = nullptr;
-    if (FAILED(render->GetBuffer(avail, &data))) break;
+    if (FAILED(render->GetBuffer(avail, &data))) {
+      failed_ = true;
+      break;
+    }
     const size_t got = ring->pop(mono.data(), avail);
     float* out = reinterpret_cast<float*>(data);
     for (UINT32 i = 0; i < avail; ++i) {
