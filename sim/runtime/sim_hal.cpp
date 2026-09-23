@@ -6,7 +6,24 @@
 #include "core/buttons.h"
 #include "core/flash_store.h"
 #include "hw_gamepi13.h"
+// sim::Machine has two incompatible definitions with the same fully-qualified
+// name: runtime/machine.h (native build, Win32 fibers, small layout) and
+// web/fiber_shim.h (Emscripten build, emscripten/fiber.h + large embedded
+// stack buffers). This TU is shared between both build.sh (web) and
+// sim/CMakeLists.txt's sim_runtime target (native): picking the wrong header
+// for the active target is a silent ODR violation. Both objects link fine
+// (same mangled symbol names), but any inline member (now_cycles(), now_us())
+// compiled against the WRONG header reads/writes at the wrong byte offset
+// into the real (differently-laid-out) Machine object -- e.g. sim_time_us()
+// read Machine::now_ as garbage in the web build because it was compiled
+// against machine.h's small offset for now_, while fiber_shim.cpp actually
+// constructs the far-larger web Machine layout. Pick the header that matches
+// what's actually linked into this target.
+#if defined(__EMSCRIPTEN__)
+#include "web/fiber_shim.h"
+#else
 #include "runtime/machine.h"
+#endif
 #include "runtime/sim_io.h"
 #include "sim_pico.h"
 

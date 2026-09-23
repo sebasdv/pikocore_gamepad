@@ -55,9 +55,9 @@ class Machine {
 
   emscripten_fiber_t scheduler_fiber_{};
   emscripten_fiber_t main_fiber_{};
-  char scheduler_asyncify_stack_[kAsyncifyStackSize]{};
-  char main_c_stack_[kStackSize]{};
-  char main_asyncify_stack_[kAsyncifyStackSize]{};
+  alignas(16) char scheduler_asyncify_stack_[kAsyncifyStackSize]{};
+  alignas(16) char main_c_stack_[kStackSize]{};
+  alignas(16) char main_asyncify_stack_[kAsyncifyStackSize]{};
   // GetCurrentFiber() no tiene equivalente en emscripten/fiber.h: in_main() se
   // reconstruye a mano, marcando este flag justo antes/después del swap hacia
   // main_fiber_ en run_until() (ver fiber_shim.cpp).
