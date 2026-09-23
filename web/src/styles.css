@@ -711,8 +711,13 @@
   user-select: none;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 .app .gamepad-btn:active {
+  background: var(--text);
+  color: #000000;
+}
+.app .gamepad-btn[data-pressed="true"] {
   background: var(--text);
   color: #000000;
 }
@@ -775,29 +780,24 @@
 
 /* Short landscape viewports (phones in landscape) — the 70vh floor plus a
    fixed 240px canvas plus button rows can exceed the actual viewport height,
-   forcing vertical scroll. Let the layout size to available space instead,
-   and shrink the canvas/buttons so everything fits without scrolling. */
+   forcing vertical scroll. `height: 100%` doesn't work here because the
+   ancestor (main.app) has no explicit height, so it resolves to `auto` and
+   has no effect. Give `.play-tab` a real, definite height instead: 100dvh
+   minus the space above it (8px default body margin + 22px .app
+   padding-top + 36px .tab-switcher nav + 14px its margin-bottom = 80px) and
+   below it (22px .app padding-bottom + 8px default body margin = 30px) =
+   110px total, all measured via getBoundingClientRect. With a real bounded
+   height, .play-gamepad-screen .sim-demo-canvas's existing
+   max-width/max-height:100% can actually constrain the canvas to shrink, so
+   buttons stay at their normal (44px) accessibility-guideline size —
+   measured with 812x375 to still fit without scrolling. */
 @media (orientation: landscape) and (max-height: 480px) {
-  .app .play-tab,
+  .app .play-tab {
+    height: calc(100dvh - 110px);
+  }
   .app .play-content {
     min-height: 0;
     height: 100%;
-  }
-  .app .gamepad-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 14px;
-  }
-  .app .gamepad-shoulder-btn { width: 52px; height: 30px; }
-  .app .gamepad-center-btn { width: 46px; height: 24px; font-size: 10px; }
-  .app .play-gamepad-dpad,
-  .app .play-gamepad-faces {
-    grid-template-columns: repeat(3, 34px);
-    grid-template-rows: repeat(3, 34px);
-  }
-  .app .play-gamepad {
-    gap: 6px;
-    padding: 6px;
   }
 }
 
