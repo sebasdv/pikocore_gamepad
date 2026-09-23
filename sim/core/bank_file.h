@@ -18,9 +18,11 @@ uint32_t device_audio_capacity();
 
 // Valida un .pikobank con las mismas reglas que validate_header()
 // (src/PikoSampleManager.cpp). Si capacity_bytes supera la capacidad del
-// equipo, lo corrige en el blob: el loader web escribe 16 MB en ese campo al
-// exportar (web/src/App.tsx, SD_BANK_CAPACITY_BYTES), y con ese valor
-// piko_audio_bank_rescan() rechazaría el banco.
+// equipo, lo corrige en el blob. Solo hace falta para bancos exportados por
+// versiones viejas del loader web, que escribían 16 MB en ese campo
+// (SD_BANK_CAPACITY_BYTES); con ese valor piko_audio_bank_rescan() los
+// rechazaría. Las versiones actuales ya exportan la capacidad real de audio
+// (web/src/bank.ts), pero el parche se mantiene por compatibilidad.
 BankCheck check_and_patch_bank(std::vector<uint8_t>& blob);
 
 }  // namespace sim

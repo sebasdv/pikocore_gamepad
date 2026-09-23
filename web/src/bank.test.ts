@@ -4,6 +4,8 @@ import {
   BANK_MAGIC,
   BANK_MAX_SAMPLES,
   BANK_SAMPLE_RECORD_SIZE,
+  SD_BANK_CAPACITY_BYTES,
+  audioCapacityFromFlashSize,
   buildBankBlob,
   parseBankBlob,
   type BankSample,
@@ -79,6 +81,29 @@ describe('pikocore bank format', () => {
 
   it('rejects banks that exceed audio capacity', () => {
     expect(() => buildBankBlob([sample(0, new Uint8Array([1, 2]))], 1)).toThrow('Audio bank exceeds device capacity');
+  });
+
+  it('computes audio capacity the way the firmware does', () => {
+    // 16 MB flash - 512 KiB firmware reserve - 12288 header (capacity_from_flash_size()).
+    expect(audioCapacityFromFlashSize(16 * 1024 * 1024)).toBe(16_240_640);
+    expect(audioCapacityFromFlashSize(2 * 1024 * 1024)).toBe(2 * 1024 * 1024 - 512 * 1024 - BANK_HEADER_SIZE);
+    expect(audioCapacityFromFlashSize(512 * 1024 + BANK_HEADER_SIZE)).toBe(0);
+    expect(audioCapacityFromFlashSize(0)).toBe(0);
+  });
+
+  it('exports SD banks with a capacity the GamePi13 firmware accepts', () => {
+    expect(SD_BANK_CAPACITY_BYTES).toBe(16_240_640);
+    const blob = buildBankBlob([sample(0)], SD_BANK_CAPACITY_BYTES);
+    const capacity = new DataView(blob.buffer).getUint32(24, true);
+    expect(capacity).toBe(SD_BANK_CAPACITY_BYTES);
+    expect(capacity).toBeLessThan(16 * 1024 * 1024);
+  });
+
+  it('rejects SD banks larger than the device audio capacity', () => {
+    const tooBig = sample(0, new Uint8Array(SD_BANK_CAPACITY_BYTES + 1));
+    expect(() => buildBankBlob([tooBig], SD_BANK_CAPACITY_BYTES)).toThrow('Audio bank exceeds device capacity');
+    const exact = sample(0, new Uint8Array(SD_BANK_CAPACITY_BYTES));
+    expect(buildBankBlob([exact], SD_BANK_CAPACITY_BYTES)).toHaveLength(BANK_HEADER_SIZE + SD_BANK_CAPACITY_BYTES);
   });
 
   it('keeps all sample records inside the v2 header', () => {

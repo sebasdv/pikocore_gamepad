@@ -95,9 +95,10 @@ código 0).
 - `doth/easing.h` se compila desde una copia aplanada (`else if` → `if`,
   equivalente porque cada rama hace `return`) por el límite de anidamiento de
   MSVC.
-- Al cargar un `.pikobank` exportado del loader web se corrige su campo
-  `capacity_bytes` (el loader escribe 16 MB, más que la capacidad real). Ver
-  la nota en `sim/core/bank_file.h`.
+- Al cargar un `.pikobank` exportado por versiones viejas del loader web se
+  corrige su campo `capacity_bytes` (esas versiones escribían 16 MB, más que
+  la capacidad real; las actuales ya exportan la capacidad correcta). Ver la
+  nota en `sim/core/bank_file.h`.
 - Las transferencias SPI al LCD y el código del firmware no consumen tiempo
   virtual, así que redibujar la UI no frena el lazo de control como en el
   dispositivo (en el hardware un cuadro completo tarda ~90 ms a 10 MHz). La

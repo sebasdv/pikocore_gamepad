@@ -6,6 +6,21 @@ export const BANK_MAX_SAMPLES = 128;
 const BANK_FIXED_HEADER_SIZE = 32;
 export const BANK_SAMPLE_RECORD_SIZE = 64;
 export const BANK_SAMPLE_NAME_BYTES = 48;
+// Mirrors PIKO_FIRMWARE_RESERVE in src/PikoAudioBank.h: flash kept for the
+// firmware image and settings sector, ahead of the audio bank.
+export const PIKO_FIRMWARE_RESERVE_BYTES = 512 * 1024;
+export const GAMEPI13_FLASH_BYTES = 16 * 1024 * 1024;
+
+// Same math as capacity_from_flash_size() in src/PikoAudioBank.cpp.
+export function audioCapacityFromFlashSize(flashBytes: number): number {
+  if (flashBytes <= PIKO_FIRMWARE_RESERVE_BYTES + BANK_HEADER_SIZE) return 0;
+  return flashBytes - PIKO_FIRMWARE_RESERVE_BYTES - BANK_HEADER_SIZE;
+}
+
+// Audio capacity of the 16 MB GamePi13 flash (16,240,640 bytes). Exported
+// .pikobank files carry this as capacity_bytes: the firmware rejects any
+// header whose capacity_bytes exceeds its own audio capacity.
+export const SD_BANK_CAPACITY_BYTES = audioCapacityFromFlashSize(GAMEPI13_FLASH_BYTES);
 
 export interface BankSample {
   id: string;
