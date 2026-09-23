@@ -5,6 +5,7 @@
 
 #include "PikoAudioBank.h"
 #include "hardware/flash.h"
+#include "piko_barrier.h"
 #include "pico/bootrom.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
@@ -542,7 +543,7 @@ const char *gamepi_sd_file_name(uint32_t index) {
 #endif
 
 void piko_sample_manager_set_ready() {
-  __asm volatile("dmb" ::: "memory");
+  PIKO_DMB();
   command_interface_ready = true;
 }
 
@@ -558,14 +559,14 @@ void piko_sample_manager_core() {
     if (gamepi_sd_list_requested) {
       gamepi_sd_list_requested = false;
       sd_list_files();
-      __asm volatile("dmb" ::: "memory");
+      PIKO_DMB();
       gamepi_sd_list_done = true;
     }
     if (gamepi_sd_load_requested) {
       gamepi_sd_load_requested = false;
       const bool ok = sd_load_bank(gamepi_sd_load_index);
       gamepi_sd_load_ok = ok;
-      __asm volatile("dmb" ::: "memory");
+      PIKO_DMB();
       gamepi_sd_load_done = true;
     }
     if (gamepi_sd_unmount_requested) {
