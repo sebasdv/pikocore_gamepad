@@ -17,6 +17,7 @@ bool FlashStore::open(const std::filesystem::path& path, std::string* err) {
   std::memset(mem_, 0xff, size_);
   if (path.empty()) return true;
 
+#ifdef _WIN32
   std::error_code ec;
   const bool reuse = std::filesystem::exists(path, ec) &&
                      std::filesystem::file_size(path, ec) == size_;
@@ -34,6 +35,12 @@ bool FlashStore::open(const std::filesystem::path& path, std::string* err) {
     persist(0, size_);
   }
   return true;
+#else
+  // Sólo el build web usa esta rama, y siempre abre con path vacío (memoria
+  // sin archivo de respaldo): un path no vacío no está soportado acá.
+  if (err != nullptr) *err = "flash respaldada en archivo no soportada en este build";
+  return false;
+#endif
 }
 
 bool FlashStore::clamp(uint32_t offset, size_t* count) const {
@@ -56,9 +63,11 @@ void FlashStore::program(uint32_t offset, const uint8_t* data, size_t count) {
 
 void FlashStore::persist(uint32_t offset, size_t count) {
   if (file_ == nullptr) return;
+#ifdef _WIN32
   _fseeki64(file_, offset, SEEK_SET);
   std::fwrite(mem_ + offset, 1, count, file_);
   std::fflush(file_);
+#endif
 }
 
 }  // namespace sim
