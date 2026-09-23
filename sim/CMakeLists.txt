@@ -58,3 +58,19 @@ set_source_files_properties(${PIKO_ROOT}/src/main.cpp PROPERTIES
 # /W1: el firmware no es nuestro para limpiar warnings de MSVC. C4828: fonts.h
 # tiene bytes latin-1.
 target_compile_options(piko_fw PRIVATE /W1 /wd4828)
+
+# ---- núcleo del simulador (sin firmware ni Win32; testeable aislado) ----
+add_library(sim_core STATIC
+  core/st7789.cpp
+)
+target_include_directories(sim_core PUBLIC ${SIM_ROOT} ${PIKO_ROOT}/src)
+target_compile_options(sim_core PRIVATE /W4 /utf-8)
+
+enable_testing()
+add_executable(pikocore_sim_tests
+  tests/unit_main.cpp
+  tests/unit_st7789.cpp
+)
+target_link_libraries(pikocore_sim_tests PRIVATE sim_core)
+target_compile_options(pikocore_sim_tests PRIVATE /W4 /utf-8)
+add_test(NAME unit COMMAND pikocore_sim_tests)
