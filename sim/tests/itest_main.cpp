@@ -80,6 +80,8 @@ int main(int argc, char** argv) {
   if (scenario == "boot") {
     o.run_ms = 6000;
     if (!run(o, &r)) return 1;
+    expect(r.audio.size() >= 287990 && r.audio.size() <= 288010,
+           "48 kHz de audio en 6 s (cadena ISR -> DAC)");
     expect(rms(r.audio, 5000, 6000) > 0.01, "hay audio después del arranque");
     size_t lit = 0;
     for (uint16_t p : r.lcd) lit += p != 0;
@@ -88,14 +90,19 @@ int main(int argc, char** argv) {
     expect(mode_square(r, 1) == kGray, "modo 1 en gris");
   } else if (scenario == "mute") {
     // Start con un toque simple alterna mute (GAMEPI13-INTERFACE.md §2).
-    sim::parse_press_script("6000:START,6150:-START", &o.presses, &err);
+    const bool parsed = sim::parse_press_script("6000:START,6150:-START", &o.presses, &err);
+    if (!parsed) std::printf("     --press: %s\n", err.c_str());
+    expect(parsed, "guion de botones válido");
     o.run_ms = 7500;
     if (!run(o, &r)) return 1;
     expect(rms(r.audio, 5000, 6000) > 0.01, "suena antes de tocar Start");
     expect(rms(r.audio, 7000, 7500) < 0.001, "silencio después de tocar Start");
   } else if (scenario == "mode_jump") {
     // Select sostenido + Right salta directo al modo 3 (GAMEPI13-INTERFACE.md §3).
-    sim::parse_press_script("6000:SELECT,6100:RIGHT,6200:-RIGHT,6300:-SELECT", &o.presses, &err);
+    const bool parsed =
+        sim::parse_press_script("6000:SELECT,6100:RIGHT,6200:-RIGHT,6300:-SELECT", &o.presses, &err);
+    if (!parsed) std::printf("     --press: %s\n", err.c_str());
+    expect(parsed, "guion de botones válido");
     o.run_ms = 7000;
     if (!run(o, &r)) return 1;
     expect(gamepi_selector == 3, "Select+Right salta al modo 3");

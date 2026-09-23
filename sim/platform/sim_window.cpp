@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <shellapi.h>
 
+#include <string>
 #include <vector>
 
 #include "core/buttons.h"
@@ -218,8 +219,15 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     case WM_DROPFILES: {
       HDROP drop = reinterpret_cast<HDROP>(wp);
-      wchar_t path[MAX_PATH];
-      if (DragQueryFileW(drop, 0, path, MAX_PATH) > 0) g.hooks->file_dropped(path);
+      // Largo real del path (sin el terminador): rutas largas no se cortan en MAX_PATH.
+      const UINT len = DragQueryFileW(drop, 0, nullptr, 0);
+      if (len > 0) {
+        std::wstring path(len + 1, L'\0');
+        if (DragQueryFileW(drop, 0, path.data(), len + 1) > 0) {
+          path.resize(len);
+          g.hooks->file_dropped(path);
+        }
+      }
       DragFinish(drop);
       return 0;
     }

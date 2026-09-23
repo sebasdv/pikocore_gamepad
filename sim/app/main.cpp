@@ -1,4 +1,5 @@
-#include <cmath>
+#include <windows.h>
+
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -59,6 +60,9 @@ int run_headless_cli(const Cli& cli) {
 }  // namespace
 
 int wmain(int argc, wchar_t** argv) {
+  // Los mensajes en castellano salen en UTF-8 (/utf-8): que la consola no los
+  // muestre como mojibake.
+  SetConsoleOutputCP(CP_UTF8);
   Cli cli;
   std::string err;
   if (!parse_cli(argc, argv, &cli, &err)) {

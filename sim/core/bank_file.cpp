@@ -5,6 +5,12 @@
 
 #include "PikoAudioBank.h"
 
+// piko_fw se compila con PIKO_FIRMWARE_RESERVE=524288u (sim/CMakeLists.txt),
+// pero este TU no: toma el default de PikoAudioBank.h. Tienen que coincidir o
+// el simulador y el firmware verían el banco en offsets distintos.
+static_assert(PIKO_AUDIO_FLASH_OFFSET == 524288u,
+              "PIKO_AUDIO_FLASH_OFFSET no coincide con el PIKO_FIRMWARE_RESERVE de piko_fw");
+
 namespace sim {
 
 uint32_t device_audio_capacity() {
