@@ -23,6 +23,9 @@ export class PikoSim {
     );
     const mod = (await createPikoSimModule()) as PikoSimModule;
     const bankResponse = await fetch(`${import.meta.env.BASE_URL}sim/amen_pad_bank.pikobank`);
+    if (!bankResponse.ok) {
+      throw new Error(`Failed to fetch demo bank: HTTP ${bankResponse.status}`);
+    }
     const bankBytes = new Uint8Array(await bankResponse.arrayBuffer());
     const bankPtr = mod._malloc(bankBytes.length);
     mod.HEAPU8.set(bankBytes, bankPtr);
