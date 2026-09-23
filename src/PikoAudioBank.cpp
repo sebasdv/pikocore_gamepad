@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "hardware/flash.h"
+#include "piko_barrier.h"
 
 #ifndef XIP_BASE
 #define XIP_BASE 0x10000000u
@@ -148,7 +149,7 @@ bool piko_audio_bank_mutating() {
 
 void piko_audio_bank_set_mutating(bool mutating) {
   bank_mutating = mutating;
-  __asm volatile("dmb" ::: "memory");
+  PIKO_DMB();
 }
 
 uint32_t piko_audio_sample_count() {

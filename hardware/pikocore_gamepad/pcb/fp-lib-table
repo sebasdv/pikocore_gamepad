@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "gamesetup_lcsc")(type "KiCad")(uri "${KIPRJMOD}/lib/gamesetup_lcsc.pretty")(options "")(descr "Footprints LCSC/JLC verificados"))
+  (lib (name "gamesetup_fp")(type "KiCad")(uri "${KIPRJMOD}/lib/gamesetup_fp.pretty")(options "")(descr "Footprints propios de GAMESETUP V2"))
+)

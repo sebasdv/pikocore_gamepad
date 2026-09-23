@@ -25,6 +25,7 @@ import {
   BANK_SAMPLE_RATE,
   BankSample,
   buildBankBlob,
+  SD_BANK_CAPACITY_BYTES,
   croppedPcm,
   parseBankBlob,
   usedAudioBytes,
@@ -477,13 +478,11 @@ export function App() {
   function downloadBankFile() {
     if (samples.length === 0) return;
     // The downloaded .pikobank targets an SD card, not the connected device's
-    // flash -- so it must NOT be constrained by device?.capacityBytes (which
-    // is 0 when offline, the primary use case, and would spuriously throw).
-    // The header's capacityBytes field is informational (never validated on
-    // parse; the firmware validates against its own flash capacity at load),
-    // so we build against the largest platform capacity (16 MB) and only a
-    // genuine >16MB bank throws -- surfaced to the user instead of swallowed.
-    const SD_BANK_CAPACITY_BYTES = 16 * 1024 * 1024;
+    // flash, so it must work offline (device?.capacityBytes is 0 then). The
+    // firmware rejects headers whose capacity_bytes exceeds its own audio
+    // capacity, so we write the GamePi13's real audio capacity (16 MB flash
+    // minus firmware reserve and bank header), and a bank that does not fit
+    // throws -- surfaced to the user instead of swallowed.
     try {
       const bankBytes = buildBankBlob(samples, SD_BANK_CAPACITY_BYTES);
       const blob = new Blob([bankBytes as BlobPart], { type: 'application/octet-stream' });

@@ -79,8 +79,19 @@ contra flancos de subida en cualquiera de sus 4 botones ([`src/main.cpp:1693-173
 | Combo | Efecto |
 |---|---|
 | Down + Left + X + B | Alterna **clock lock** — congela `select_beat` sincronizado al contador de compás en vez de avanzar libremente |
-| Up + Down + B + A | **Reset de FX** — pone en cero filtro, distorsión y las 4 probabilidades (jump/retrig/gate/dirección) |
+| Down + Right + B + A | **Reset de FX** — pone en cero filtro, distorsión y las 4 probabilidades (jump/retrig/gate/dirección) |
 | Up + Right + Y + A | Alterna **mute / start-stop** de todo el motor (heredado del pikocore original; ver también el botón Start abajo, que hace lo mismo de forma más directa en GamePi13) |
+
+⚠️ **El reset de FX NO usa el `Up+Down+B+A` del pikocore original.** Up y Down son
+direcciones opuestas del mismo actuador en un D-pad —y en el NAV5 de
+`pikocore_gamepad`, que es un joystick de 5 vías, más todavía— así que ese combo es
+**físicamente imposible de accionar** y dejaba el reset inalcanzable. En el pikocore
+de fábrica no hay D-pad: los 8 botones musicales son pulsadores independientes en
+GPIO 4..11, y por eso cualquier combinación de 4 era válida.
+
+Se remapeó a `Down+Right+B+A`: conserva el par B+A y usa la diagonal opuesta a la del
+clock lock (`Down+Left`), para que no se confundan al accionar. Los otros dos combos
+ya eran compatibles y no se tocaron.
 
 ### El botón Start tiene doble rol
 

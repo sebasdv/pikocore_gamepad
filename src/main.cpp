@@ -19,6 +19,7 @@
 
 #include "PikoAudioBank.h"
 #include "PikoSampleManager.h"
+#include "piko_barrier.h"
 // pikocore files
 #include "doth/button.h"
 #include "doth/delay.h"
@@ -1729,7 +1730,7 @@ bool piko_set_clock_input_ittybittymidi(bool enabled) {
   clock_input_write_done = false;
   clock_input_write_ok = false;
   clock_input_write_value = enabled;
-  __asm volatile("dmb" ::: "memory");
+  PIKO_DMB();
   clock_input_write_pending = true;
 
   const absolute_time_t deadline = make_timeout_time_ms(2000);
@@ -2207,9 +2208,17 @@ int main(void) {
           do_lock_clock = !do_lock_clock;
         }
       }
-      if (button_rising[0] || button_rising[1] || button_rising[6] ||
+      // Dn+Rt+B+A y no el Up+Dn+B+A del pikocore original: Up y Dn son
+      // direcciones OPUESTAS del mismo actuador del NAV5 (joystick de 5 vias,
+      // XUNPU WS-1004), asi que ese combo es fisicamente imposible de accionar
+      // y el reset de FX quedaba inalcanzable. En el pikocore de fabrica no
+      // habia D-pad: los 8 botones musicales eran pulsadores independientes en
+      // GPIO 4..11 y cualquier combinacion de 4 era posible.
+      // Se conserva B+A (los de cara) y se usa la diagonal Dn+Rt, opuesta a la
+      // del clock lock (Dn+Lt) para que no se confundan al accionar.
+      if (button_rising[1] || button_rising[3] || button_rising[6] ||
           button_rising[7]) {
-        if (input_button[0].On() && input_button[1].On() &&
+        if (input_button[1].On() && input_button[3].On() &&
             input_button[6].On() && input_button[7].On()) {
           // reset fx
           param_set_break(0, filter_fc, distortion, probability_jump,
@@ -2273,7 +2282,7 @@ int main(void) {
             gamepi_sd_index = 0;
             gamepi_sd_hold_start_us = 0;
             gamepi_sd_list_done = false;
-            __asm volatile("dmb" ::: "memory");
+            PIKO_DMB();
             gamepi_sd_list_requested = true;
             gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_LISTING;
           }
@@ -2518,7 +2527,7 @@ int main(void) {
                 } else {
                   gamepi_sd_load_index = gamepi_sd_index;
                   gamepi_sd_load_done = false;
-                  __asm volatile("dmb" ::: "memory");
+                  PIKO_DMB();
                   gamepi_sd_load_requested = true;
                   gamepi_sd_state = GAMEPI_SD_LOADING;
                   gamepi_sd_redraw_kind = GAMEPI_SD_REDRAW_LOADING;

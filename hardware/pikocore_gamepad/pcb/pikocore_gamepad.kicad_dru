@@ -1,0 +1,38 @@
+(version 1)
+
+# Reglas de diseno propias de pikocore_gamepad.
+#
+# KiCad lee este archivo automaticamente (mismo nombre que el proyecto,
+# extension .kicad_dru) y NO lo pisa ningun script del pipeline: gen_sch.py
+# preserva el .kicad_pro y gen_pcb.py no toca las reglas custom. Editarlo a
+# mano es el flujo previsto.
+#
+# El clearance general del proyecto es 0.2mm (netclasses Default y Power) y se
+# deja asi a proposito: es un buen default y da margen de fabricacion en toda
+# la placa. Las excepciones van aca, acotadas al componente que las necesita.
+
+# ---------------------------------------------------------------- U2 SOT-563
+# El TPS61023 viene en SOT-563 (encapsulado DRL de TI), de paso 0.50mm: sus
+# pads adyacentes quedan a 0.150mm entre borde y borde. Es intrinseco al
+# encapsulado, con el footprint OFICIAL de KiCad — no es un error de
+# colocacion ni algo que se arregle moviendo la pieza.
+#
+# Sin esta regla el DRC reporta 4 infracciones de clearance (pads 1-2, 2-3,
+# 4-5 y 5-6 de U2) y, mas importante, freerouting rutea la zona del boost mas
+# conservador de lo necesario porque lee estas mismas reglas del DSN.
+#
+# FABRICABLE: JLCPCB admite 0.127mm en 2 capas y ~0.0889mm (3.5 mil) en
+# multicapa. Esta placa es de 4 capas, asi que 0.150mm entra con margen.
+# El 0.13mm de abajo es el minimo que se le permite al par de pads: queda por
+# debajo de los 0.150mm reales (para que no falle por redondeo) y por encima
+# del limite del proceso.
+# OJO con la condicion: A.Reference NO alcanza los pads de un footprint. La
+# regla se parsea sin error, se carga sin aviso y no matchea nada — el DRC
+# sigue aplicando la netclass y la excepcion parece no existir. Asi estuvo
+# escrita hasta el 2026-09-01. Para llegar a los pads va memberOfFootprint().
+#
+# Para comprobar que una regla esta viva: subile el min a 5mm y corre el DRC.
+# Si no cambia el conteo, no esta matcheando.
+(rule "U2 SOT-563 pad a pad"
+	(constraint clearance (min 0.13mm))
+	(condition "A.memberOfFootprint('U2') && B.memberOfFootprint('U2')"))
