@@ -62,6 +62,7 @@ target_compile_options(piko_fw PRIVATE /W1 /wd4828)
 # ---- núcleo del simulador (sin firmware ni Win32; testeable aislado) ----
 add_library(sim_core STATIC
   core/st7789.cpp
+  core/pwm_dac.cpp
 )
 target_include_directories(sim_core PUBLIC ${SIM_ROOT} ${PIKO_ROOT}/src)
 target_compile_options(sim_core PRIVATE /W4 /utf-8)
@@ -70,6 +71,7 @@ enable_testing()
 add_executable(pikocore_sim_tests
   tests/unit_main.cpp
   tests/unit_st7789.cpp
+  tests/unit_audio.cpp
 )
 target_link_libraries(pikocore_sim_tests PRIVATE sim_core)
 target_compile_options(pikocore_sim_tests PRIVATE /W4 /utf-8)
