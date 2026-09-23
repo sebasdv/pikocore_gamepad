@@ -17,11 +17,15 @@ int run_headless_cli(const Cli& cli) {
   sim::HeadlessOptions o;
   o.run_ms = cli.run_ms;
   o.flash_path = cli.flash;  // vacío = solo memoria
+  std::string err;
+  if (!check_flash_arg(cli, &err)) {
+    std::fprintf(stderr, "%s\n", err.c_str());
+    return 1;
+  }
   if (!cli.bank.empty() && !sim::read_file(cli.bank, &o.bank)) {
     std::fprintf(stderr, "no se pudo leer el banco\n");
     return 1;
   }
-  std::string err;
   if (!sim::parse_press_script(cli.press, &o.presses, &err)) {
     std::fprintf(stderr, "--press: %s\n", err.c_str());
     return 2;

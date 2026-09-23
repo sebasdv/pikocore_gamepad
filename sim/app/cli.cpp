@@ -1,7 +1,15 @@
 #include "app/cli.h"
 
 #include <cstdio>
-#include <cwchar>
+
+#include "core/cli_checks.h"
+#include "core/flash_store.h"
+#include "runtime/sim_io.h"
+
+namespace {
+// Tope de --run-ms y --exit-after-ms: una hora.
+constexpr uint32_t kMaxMs = 3600000;
+}  // namespace
 
 std::string narrow(const std::wstring& text) {
   std::string out;
@@ -46,9 +54,8 @@ bool parse_cli(int argc, wchar_t** argv, Cli* cli, std::string* err) {
       cli->flash = argv[++i];
       cli->flash_given = true;
     } else if (arg == L"--run-ms") {
-      cli->run_ms = static_cast<uint32_t>(std::wcstoul(argv[++i], nullptr, 10));
-      if (cli->run_ms == 0) {
-        *err = "--run-ms tiene que ser mayor que 0";
+      if (!sim::parse_uint_ms(narrow(argv[++i]), kMaxMs, &cli->run_ms)) {
+        *err = "--run-ms tiene que ser un entero entre 1 y 3600000 (ms)";
         return false;
       }
     } else if (arg == L"--press") {
@@ -60,7 +67,10 @@ bool parse_cli(int argc, wchar_t** argv, Cli* cli, std::string* err) {
     } else if (arg == L"--capture") {
       cli->capture = argv[++i];
     } else if (arg == L"--exit-after-ms") {
-      cli->exit_after_ms = static_cast<uint32_t>(std::wcstoul(argv[++i], nullptr, 10));
+      if (!sim::parse_uint_ms(narrow(argv[++i]), kMaxMs, &cli->exit_after_ms)) {
+        *err = "--exit-after-ms tiene que ser un entero entre 1 y 3600000 (ms)";
+        return false;
+      }
     } else if (!arg.empty() && arg[0] == L'-') {
       *err = "opción desconocida: " + narrow(arg);
       return false;
@@ -69,4 +79,12 @@ bool parse_cli(int argc, wchar_t** argv, Cli* cli, std::string* err) {
     }
   }
   return true;
+}
+
+bool check_flash_arg(const Cli& cli, std::string* err) {
+  // El default (junto al .exe) conserva el comportamiento de siempre: si no
+  // tiene el tamaño justo se recrea. Un --flash explícito podría ser cualquier
+  // archivo del usuario, y FlashStore::open lo pisaría.
+  if (!cli.flash_given) return true;
+  return sim::check_explicit_flash_file(cli.flash, sim::flash().size(), err);
 }

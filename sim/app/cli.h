@@ -19,5 +19,8 @@ struct Cli {
 
 bool parse_cli(int argc, wchar_t** argv, Cli* cli, std::string* err);
 void print_usage();
+// Si se pasó --flash y el archivo existe con un tamaño que no es el de la
+// flash, false con *err: no se lo pisa. Vale para headless y ventana.
+bool check_flash_arg(const Cli& cli, std::string* err);
 // Solo para textos ASCII (flags, guion de --press); lo demás pasa a '?'.
 std::string narrow(const std::wstring& text);

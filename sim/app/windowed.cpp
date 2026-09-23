@@ -155,7 +155,7 @@ int run_windowed(const Cli& cli) {
   Shared sh;
   std::string err;
   const std::filesystem::path flash_path = cli.flash_given ? cli.flash : default_flash_path();
-  if (!sim::flash().open(flash_path, &err)) {
+  if (!check_flash_arg(cli, &err) || !sim::flash().open(flash_path, &err)) {
     MessageBoxW(nullptr, utf8_to_wide(err).c_str(), L"pikocore-sim", MB_ICONERROR);
     timeEndPeriod(1);
     return 1;
