@@ -658,6 +658,15 @@
   justify-content: center;
   height: 100%;
   max-height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.app .play-gamepad-screen .sim-demo-canvas {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .app .play-gamepad-dpad,
@@ -761,6 +770,34 @@
   }
   .app .play-content {
     display: none;
+  }
+}
+
+/* Short landscape viewports (phones in landscape) — the 70vh floor plus a
+   fixed 240px canvas plus button rows can exceed the actual viewport height,
+   forcing vertical scroll. Let the layout size to available space instead,
+   and shrink the canvas/buttons so everything fits without scrolling. */
+@media (orientation: landscape) and (max-height: 480px) {
+  .app .play-tab,
+  .app .play-content {
+    min-height: 0;
+    height: 100%;
+  }
+  .app .gamepad-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+  .app .gamepad-shoulder-btn { width: 52px; height: 30px; }
+  .app .gamepad-center-btn { width: 46px; height: 24px; font-size: 10px; }
+  .app .play-gamepad-dpad,
+  .app .play-gamepad-faces {
+    grid-template-columns: repeat(3, 34px);
+    grid-template-rows: repeat(3, 34px);
+  }
+  .app .play-gamepad {
+    gap: 6px;
+    padding: 6px;
   }
 }
 
