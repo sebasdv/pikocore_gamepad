@@ -55,6 +55,13 @@ class Machine {
 
   emscripten_fiber_t scheduler_fiber_{};
   emscripten_fiber_t main_fiber_{};
+  // emscripten/fiber.h documents no alignment requirement for these buffers,
+  // and Emscripten's own test_fibers.cpp only aligns the C stack, not the
+  // asyncify stacks. Empirically, without alignas(16) here emscripten_fiber_swap
+  // never transferred control into main_fiber_ at all (run_until() advanced
+  // now_ via the PWM ISR loop, but the firmware's main() never executed a
+  // single instruction). Keep all three aligned; removing this is not safe
+  // just because the header doesn't require it in writing.
   alignas(16) char scheduler_asyncify_stack_[kAsyncifyStackSize]{};
   alignas(16) char main_c_stack_[kStackSize]{};
   alignas(16) char main_asyncify_stack_[kAsyncifyStackSize]{};
