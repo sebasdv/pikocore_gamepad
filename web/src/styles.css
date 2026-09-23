@@ -595,8 +595,13 @@
   color: var(--muted);
 }
 
+/* Same inverted-block idiom as .status.bad: this theme signals "pay
+   attention" with contrast, not color. */
 .app .sim-demo-error {
-  color: var(--text);
+  border: 2px solid var(--text);
+  background: var(--text);
+  color: #000000;
+  padding: 8px 10px;
 }
 
 .app .empty {
