@@ -62,3 +62,7 @@ src/gamepi13/*.txt
 
 # Salida de gen_fab.py: se regenera desde el .kicad_pcb en un comando.
 hardware/pikocore_gamepad/pcb/fab/
+
+# Simulador de PC (sim/)
+build-sim/
+pikocore_sim_flash.bin
