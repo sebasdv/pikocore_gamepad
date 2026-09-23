@@ -2208,9 +2208,17 @@ int main(void) {
           do_lock_clock = !do_lock_clock;
         }
       }
-      if (button_rising[0] || button_rising[1] || button_rising[6] ||
+      // Dn+Rt+B+A y no el Up+Dn+B+A del pikocore original: Up y Dn son
+      // direcciones OPUESTAS del mismo actuador del NAV5 (joystick de 5 vias,
+      // XUNPU WS-1004), asi que ese combo es fisicamente imposible de accionar
+      // y el reset de FX quedaba inalcanzable. En el pikocore de fabrica no
+      // habia D-pad: los 8 botones musicales eran pulsadores independientes en
+      // GPIO 4..11 y cualquier combinacion de 4 era posible.
+      // Se conserva B+A (los de cara) y se usa la diagonal Dn+Rt, opuesta a la
+      // del clock lock (Dn+Lt) para que no se confundan al accionar.
+      if (button_rising[1] || button_rising[3] || button_rising[6] ||
           button_rising[7]) {
-        if (input_button[0].On() && input_button[1].On() &&
+        if (input_button[1].On() && input_button[3].On() &&
             input_button[6].On() && input_button[7].On()) {
           // reset fx
           param_set_break(0, filter_fc, distortion, probability_jump,
