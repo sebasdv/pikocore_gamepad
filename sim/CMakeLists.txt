@@ -109,3 +109,13 @@ target_compile_definitions(pikocore_sim_itest PRIVATE _CRT_SECURE_NO_WARNINGS)
 foreach(scenario boot mute mode_jump hotload)
   add_test(NAME itest_${scenario} COMMAND pikocore_sim_itest ${scenario})
 endforeach()
+
+# ---- el simulador ----
+add_executable(pikocore_sim
+  app/main.cpp
+  app/cli.cpp
+)
+target_link_libraries(pikocore_sim PRIVATE sim_runtime)
+target_include_directories(pikocore_sim PRIVATE ${SIM_ROOT})
+target_compile_definitions(pikocore_sim PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+target_compile_options(pikocore_sim PRIVATE /W4 /utf-8)
