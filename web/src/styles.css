@@ -609,7 +609,28 @@
   padding: 8px 10px;
 }
 
-.play-gamepad {
+.app .tab-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.app .tab-switcher button {
+  height: 36px;
+  padding: 0 18px;
+  border: 2px solid var(--border-strong);
+  background: var(--control);
+  color: var(--text);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.app .tab-switcher button.active {
+  background: var(--text);
+  color: #000000;
+}
+
+.app .play-gamepad {
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-rows: auto 1fr auto;
@@ -625,12 +646,12 @@
   justify-items: center;
 }
 
-.play-gamepad-l { grid-area: l; justify-self: start; }
-.play-gamepad-r { grid-area: r; justify-self: end; }
-.play-gamepad-dpad { grid-area: dpad; }
-.play-gamepad-faces { grid-area: faces; }
-.play-gamepad-center { grid-area: center; display: flex; gap: 8px; }
-.play-gamepad-screen {
+.app .play-gamepad-l { grid-area: l; justify-self: start; }
+.app .play-gamepad-r { grid-area: r; justify-self: end; }
+.app .play-gamepad-dpad { grid-area: dpad; }
+.app .play-gamepad-faces { grid-area: faces; }
+.app .play-gamepad-center { grid-area: center; display: flex; gap: 8px; }
+.app .play-gamepad-screen {
   grid-area: screen;
   display: flex;
   align-items: center;
@@ -639,34 +660,34 @@
   max-height: 100%;
 }
 
-.play-gamepad-dpad,
-.play-gamepad-faces {
+.app .play-gamepad-dpad,
+.app .play-gamepad-faces {
   display: grid;
   grid-template-columns: repeat(3, 44px);
   grid-template-rows: repeat(3, 44px);
 }
-.play-gamepad-dpad {
+.app .play-gamepad-dpad {
   grid-template-areas:
     ".    up   ."
     "left .    right"
     ".    down .";
 }
-.play-gamepad-faces {
+.app .play-gamepad-faces {
   grid-template-areas:
     ".     top    ."
     "left  .      right"
     ".     bottom .";
 }
-.gamepad-dpad-up { grid-area: up; }
-.gamepad-dpad-left { grid-area: left; }
-.gamepad-dpad-right { grid-area: right; }
-.gamepad-dpad-down { grid-area: down; }
-.gamepad-face-top { grid-area: top; }
-.gamepad-face-left { grid-area: left; }
-.gamepad-face-right { grid-area: right; }
-.gamepad-face-bottom { grid-area: bottom; }
+.app .gamepad-dpad-up { grid-area: up; }
+.app .gamepad-dpad-left { grid-area: left; }
+.app .gamepad-dpad-right { grid-area: right; }
+.app .gamepad-dpad-down { grid-area: down; }
+.app .gamepad-face-top { grid-area: top; }
+.app .gamepad-face-left { grid-area: left; }
+.app .gamepad-face-right { grid-area: right; }
+.app .gamepad-face-bottom { grid-area: bottom; }
 
-.gamepad-btn {
+.app .gamepad-btn {
   width: 44px;
   height: 44px;
   border: 2px solid var(--border-strong);
@@ -682,24 +703,24 @@
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
 }
-.gamepad-btn:active {
+.app .gamepad-btn:active {
   background: var(--text);
   color: #000000;
 }
-.gamepad-shoulder-btn { width: 64px; height: 40px; }
-.gamepad-center-btn { width: 60px; height: 32px; font-size: 12px; }
+.app .gamepad-shoulder-btn { width: 64px; height: 40px; }
+.app .gamepad-center-btn { width: 60px; height: 32px; font-size: 12px; }
 
-.play-tab {
+.app .play-tab {
   position: relative;
   width: 100%;
   min-height: 70vh;
 }
 
-.play-rotate-hint {
+.app .play-rotate-hint {
   display: none;
 }
 
-.play-content {
+.app .play-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -708,7 +729,7 @@
   min-height: 70vh;
 }
 
-.play-start-screen {
+.app .play-start-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -717,19 +738,19 @@
   padding: 24px;
 }
 
-.play-button {
+.app .play-button {
   height: 48px;
   padding: 0 28px;
   font-size: 16px;
 }
 
-.play-error {
+.app .play-error {
   max-width: 480px;
   margin: 24px;
 }
 
 @media (orientation: portrait) {
-  .play-rotate-hint {
+  .app .play-rotate-hint {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -738,7 +759,7 @@
     padding: 24px;
     color: var(--muted);
   }
-  .play-content {
+  .app .play-content {
     display: none;
   }
 }

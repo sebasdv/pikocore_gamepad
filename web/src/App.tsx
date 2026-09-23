@@ -7,7 +7,6 @@ import {
   FolderOpen,
   Gamepad2,
   HardDrive,
-  Monitor,
   Pause,
   Play,
   Plus,
@@ -32,7 +31,7 @@ import {
   usedAudioBytes,
 } from './bank';
 import { DeviceInfo, PikocoreSerial, isCompatibleFirmware } from './serial';
-import { SimDemo } from './sim/SimDemo';
+import { PlayTab } from './sim/PlayTab';
 import ittybittymidiConnection from './assets/ittybittymidi_connection.jpg';
 import pikocoreInstructions from './assets/pikocore_instructions.png';
 
@@ -76,6 +75,7 @@ interface TransferDetail {
 }
 
 export function App() {
+  const [tab, setTab] = useState<'loader' | 'play'>('loader');
   const [samples, setSamples] = useState<BankSample[]>([]);
   const [device, setDevice] = useState<DeviceInfo | null>(null);
   const [connected, setConnected] = useState(false);
@@ -94,7 +94,6 @@ export function App() {
   const [debugOpen, setDebugOpen] = useState(false);
   const [ittybittymidiInfoOpen, setIttybittymidiInfoOpen] = useState(false);
   const [controlsInfoOpen, setControlsInfoOpen] = useState(false);
-  const [simDemoOpen, setSimDemoOpen] = useState(false);
   const debugOpenRef = useRef(false);
   const debugEntriesRef = useRef<string[]>([]);
   const debugFlushTimerRef = useRef<number | null>(null);
@@ -762,6 +761,27 @@ export function App() {
 
   return (
     <main className="app">
+      <nav className="tab-switcher">
+        <button
+          type="button"
+          className={tab === 'loader' ? 'active' : undefined}
+          aria-pressed={tab === 'loader'}
+          onClick={() => setTab('loader')}
+        >
+          Loader
+        </button>
+        <button
+          type="button"
+          className={tab === 'play' ? 'active' : undefined}
+          aria-pressed={tab === 'play'}
+          onClick={() => setTab('play')}
+        >
+          Play
+        </button>
+      </nav>
+
+      {tab === 'loader' ? (
+        <>
       <header className="topbar">
         <div>
           <h1>pikocore loader</h1>
@@ -886,15 +906,6 @@ export function App() {
             aria-label="Show pikocore gamepad controls"
           >
             <Gamepad2 size={18} />
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => setSimDemoOpen((open) => !open)}
-            title={simDemoOpen ? 'Hide the in-browser simulator' : 'Try pikocore in your browser'}
-            aria-label={simDemoOpen ? 'Hide the in-browser simulator' : 'Try pikocore in your browser'}
-            aria-pressed={simDemoOpen}
-          >
-            <Monitor size={18} />
           </button>
           <button
             className="icon-button debug-toggle"
@@ -1067,13 +1078,6 @@ export function App() {
         </section>
       ) : null}
 
-      {simDemoOpen ? (
-        <section className="sim-demo-section">
-          <div className="sim-demo-title">Try it in your browser</div>
-          <SimDemo />
-        </section>
-      ) : null}
-
       <section
         className="sample-list"
         onDragOver={(event) => event.preventDefault()}
@@ -1125,6 +1129,10 @@ export function App() {
           sebasdv
         </a>
       </footer>
+        </>
+      ) : (
+        <PlayTab />
+      )}
     </main>
   );
 }
