@@ -35,8 +35,47 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
     startedRef.current = true;
     setStatus('loading');
 
+    // Critical fix: the AudioContext must be created (and resume() called) as the very
+    // first synchronous operations of the click handler, before any `await`. Safari's
+    // autoplay policy only allows a context to leave "suspended" when resume() happens
+    // within the synchronous scope of a user gesture — creating it after the WASM module
+    // has been fetched/instantiated (an await away) falls outside that window and the
+    // context can stay suspended forever on iOS Safari.
+    const audioContext = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
+    void audioContext.resume();
+
+    // Important fix: attach input listeners to `window`, not the canvas. PlayTab only
+    // mounts the canvas once status becomes 'ready', so canvas-scoped listeners set up
+    // here (before that point) would silently never attach. Window-scoped listeners work
+    // regardless of PlayTab's render state and don't need element focus to receive events.
+    const resumeAudio = () => {
+      void audioContext.resume();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      // Don't hijack keys typed into a real input/textarea elsewhere on the page.
+      const target = event.target as HTMLElement | null;
+      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return;
+      resumeAudio();
+      const bit = keyToButtonBit(event.code);
+      if (bit != null) {
+        keyMaskRef.current |= bit;
+        event.preventDefault();
+      }
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return;
+      const bit = keyToButtonBit(event.code);
+      if (bit != null) {
+        keyMaskRef.current &= ~bit;
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('pointerdown', resumeAudio);
+
     let cancelled = false;
-    let audioContext: AudioContext | null = null;
     let workletNode: AudioWorkletNode | null = null;
 
     async function boot() {
@@ -45,7 +84,6 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
         if (cancelled) return;
         simRef.current = sim;
 
-        audioContext = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
         await audioContext.audioWorklet.addModule(`${import.meta.env.BASE_URL}sim/sim-audio-worklet.js`);
         if (cancelled) return;
         workletNode = new AudioWorkletNode(audioContext, 'sim-audio-processor');
@@ -57,31 +95,6 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
           }
         };
 
-        const resumeAudio = () => {
-          void audioContext?.resume();
-        };
-
-        const onKeyDown = (event: KeyboardEvent) => {
-          resumeAudio();
-          const bit = keyToButtonBit(event.code);
-          if (bit != null) {
-            keyMaskRef.current |= bit;
-            event.preventDefault();
-          }
-        };
-        const onKeyUp = (event: KeyboardEvent) => {
-          const bit = keyToButtonBit(event.code);
-          if (bit != null) {
-            keyMaskRef.current &= ~bit;
-            event.preventDefault();
-          }
-        };
-        const canvas = canvasRef.current;
-        canvas?.setAttribute('tabindex', '0');
-        canvas?.addEventListener('keydown', onKeyDown);
-        canvas?.addEventListener('keyup', onKeyUp);
-        canvas?.addEventListener('pointerdown', resumeAudio);
-
         const onGamepadConnected = (event: GamepadEvent) => {
           gamepadIndexRef.current = event.gamepad.index;
         };
@@ -92,7 +105,6 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
         window.addEventListener('gamepaddisconnected', onGamepadDisconnected);
 
         setStatus('ready');
-        canvas?.focus();
 
         let lastFrameTime = performance.now();
         const tick = () => {
@@ -140,9 +152,6 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
         rafRef.current = requestAnimationFrame(tick);
 
         return () => {
-          canvas?.removeEventListener('keydown', onKeyDown);
-          canvas?.removeEventListener('keyup', onKeyUp);
-          canvas?.removeEventListener('pointerdown', resumeAudio);
           window.removeEventListener('gamepadconnected', onGamepadConnected);
           window.removeEventListener('gamepaddisconnected', onGamepadDisconnected);
         };
@@ -156,9 +165,12 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
     teardownRef.current = () => {
       cancelled = true;
       cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('pointerdown', resumeAudio);
       void cleanupPromise.then((cleanup) => cleanup?.());
       workletNode?.disconnect();
-      void audioContext?.close();
+      void audioContext.close();
     };
     // extraMaskRef is a stable ref object identity for the lifetime of the caller
     // (created once via useRef in PlayTab) — safe to omit from deps in practice,
