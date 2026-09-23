@@ -8,7 +8,7 @@ class SimAudioProcessor extends AudioWorkletProcessor {
     // (this runs on the audio thread — keep it O(1) per process() call).
     this.queuedFrames = 0;
     // Backstop cap (Critical 1, defensive layer 2): the main thread throttles how much
-    // audio it produces based on our reported queue depth (see SimDemo.tsx), but if that
+    // audio it produces based on our reported queue depth (see usePikoSim.ts), but if that
     // throttle is ever bypassed or lags, never let the queue grow past ~100ms of audio —
     // drop the oldest chunks instead of growing unboundedly.
     this.maxQueuedFrames = Math.round(sampleRate * 0.1);
