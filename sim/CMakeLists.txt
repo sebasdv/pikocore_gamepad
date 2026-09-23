@@ -63,16 +63,24 @@ target_compile_options(piko_fw PRIVATE /W1 /wd4828)
 add_library(sim_core STATIC
   core/st7789.cpp
   core/pwm_dac.cpp
+  core/flash_store.cpp
+  core/bank_file.cpp
 )
 target_include_directories(sim_core PUBLIC ${SIM_ROOT} ${PIKO_ROOT}/src)
 target_compile_options(sim_core PRIVATE /W4 /utf-8)
+# flash_store.cpp usa _wfopen (no _wfopen_s) para poder pasarle un modo
+# ("r+b"/"w+b") elegido en tiempo de ejecución.
+target_compile_definitions(sim_core PRIVATE _CRT_SECURE_NO_WARNINGS)
 
 enable_testing()
 add_executable(pikocore_sim_tests
   tests/unit_main.cpp
   tests/unit_st7789.cpp
   tests/unit_audio.cpp
+  tests/unit_flash_bank.cpp
+  tests/synth_bank.cpp
 )
 target_link_libraries(pikocore_sim_tests PRIVATE sim_core)
 target_compile_options(pikocore_sim_tests PRIVATE /W4 /utf-8)
+target_compile_definitions(pikocore_sim_tests PRIVATE _CRT_SECURE_NO_WARNINGS)
 add_test(NAME unit COMMAND pikocore_sim_tests)
