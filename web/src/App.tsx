@@ -7,6 +7,7 @@ import {
   FolderOpen,
   Gamepad2,
   HardDrive,
+  Monitor,
   Pause,
   Play,
   Plus,
@@ -31,6 +32,7 @@ import {
   usedAudioBytes,
 } from './bank';
 import { DeviceInfo, PikocoreSerial, isCompatibleFirmware } from './serial';
+import { SimDemo } from './sim/SimDemo';
 import ittybittymidiConnection from './assets/ittybittymidi_connection.jpg';
 import pikocoreInstructions from './assets/pikocore_instructions.png';
 
@@ -92,6 +94,7 @@ export function App() {
   const [debugOpen, setDebugOpen] = useState(false);
   const [ittybittymidiInfoOpen, setIttybittymidiInfoOpen] = useState(false);
   const [controlsInfoOpen, setControlsInfoOpen] = useState(false);
+  const [simDemoOpen, setSimDemoOpen] = useState(false);
   const debugOpenRef = useRef(false);
   const debugEntriesRef = useRef<string[]>([]);
   const debugFlushTimerRef = useRef<number | null>(null);
@@ -885,6 +888,15 @@ export function App() {
             <Gamepad2 size={18} />
           </button>
           <button
+            className="icon-button"
+            onClick={() => setSimDemoOpen((open) => !open)}
+            title={simDemoOpen ? 'Hide the in-browser simulator' : 'Try pikocore in your browser'}
+            aria-label={simDemoOpen ? 'Hide the in-browser simulator' : 'Try pikocore in your browser'}
+            aria-pressed={simDemoOpen}
+          >
+            <Monitor size={18} />
+          </button>
+          <button
             className="icon-button debug-toggle"
             onClick={toggleDebug}
             title={debugOpen ? 'Hide serial debug messages' : 'Show serial debug messages'}
@@ -1052,6 +1064,13 @@ export function App() {
           ) : (
             <div className="debug-empty">No serial messages yet</div>
           )}
+        </section>
+      ) : null}
+
+      {simDemoOpen ? (
+        <section className="sim-demo-section">
+          <div className="sim-demo-title">Try it in your browser</div>
+          <SimDemo />
         </section>
       ) : null}
 

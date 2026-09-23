@@ -559,6 +559,46 @@
   color: var(--muted-2);
 }
 
+.app .sim-demo-section {
+  margin: 0 0 14px;
+  padding: 10px;
+  border: 2px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.app .sim-demo-title {
+  color: var(--debug-title);
+  margin-bottom: 8px;
+}
+
+.app .sim-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.app .sim-demo-canvas {
+  image-rendering: pixelated;
+  width: 240px;
+  height: 240px;
+  outline: none;
+  background: #000000;
+  border: 2px solid var(--border);
+}
+
+.app .sim-demo-legend {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85em;
+  color: var(--muted);
+}
+
+.app .sim-demo-error {
+  color: var(--text);
+}
+
 .app .empty {
   min-height: 260px;
   border: 2px dashed var(--border-strong);
