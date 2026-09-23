@@ -88,3 +88,23 @@ target_link_libraries(pikocore_sim_tests PRIVATE sim_core)
 target_compile_options(pikocore_sim_tests PRIVATE /W4 /utf-8)
 target_compile_definitions(pikocore_sim_tests PRIVATE _CRT_SECURE_NO_WARNINGS)
 add_test(NAME unit COMMAND pikocore_sim_tests)
+
+# ---- runtime: conecta el firmware con el simulador ----
+add_library(sim_runtime STATIC
+  runtime/machine.cpp
+  runtime/sim_hal.cpp
+  runtime/firmware_glue.cpp
+  runtime/bank_hotload.cpp
+  runtime/headless.cpp
+)
+target_link_libraries(sim_runtime PUBLIC piko_fw sim_core)
+target_compile_definitions(sim_runtime PRIVATE PIKO_GAMEPI13=1 PIKO_GAMEPI13_SD=0 NOMINMAX WIN32_LEAN_AND_MEAN)
+target_compile_options(sim_runtime PRIVATE /W4 /utf-8)
+
+add_executable(pikocore_sim_itest tests/itest_main.cpp tests/synth_bank.cpp)
+target_link_libraries(pikocore_sim_itest PRIVATE sim_runtime)
+target_include_directories(pikocore_sim_itest PRIVATE ${SIM_ROOT}/tests)
+target_compile_options(pikocore_sim_itest PRIVATE /W4 /utf-8)
+foreach(scenario boot)
+  add_test(NAME itest_${scenario} COMMAND pikocore_sim_itest ${scenario})
+endforeach()
