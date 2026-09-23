@@ -139,9 +139,13 @@ Consecuencias:
   control, así un lazo que solo espera a `time_us_64()` no se cuelga con el
   tiempo congelado.
 
-**Pacing:** el hilo de emulación produce audio en un ring buffer y corre adelantado hasta
-~20 ms respecto de lo que ya consumió el dispositivo de audio. Si está adelantado, duerme
-~1 ms. El tiempo virtual sigue al real en promedio. En modo headless (§7) no hay pacing y
+**Pacing:** el hilo de emulación produce audio en un ring buffer y corre de a 1 ms virtual
+mientras el ring tenga menos de 20 ms de audio; si ya los tiene, duerme ~1 ms. Se pacea
+por el nivel real del ring y no por la cuenta de frames que consumió WASAPI, porque esa
+cuenta incluye el silencio que se inserta en cada underrun (arranque, carga en caliente)
+y pacear contra ella acumularía esa latencia para siempre. Sin audio, o con el audio
+perdido, se pacea por reloj de pared con el mismo adelanto. La decisión está en
+`sim/core/pacing.{h,cpp}`. El tiempo virtual sigue al real en promedio. En modo headless (§7) no hay pacing y
 corre a la máxima velocidad posible.
 
 ## 4. LCD: emulador de ST7789
@@ -174,7 +178,7 @@ tearing de un frame, igual que en el panel real.
 - Si WASAPI no puede arrancar (por ejemplo, sin dispositivo de audio), el simulador sigue
   corriendo y la barra de estado muestra `Sin audio (<motivo>)`. Si el dispositivo se
   pierde a mitad de sesión, la barra pasa a `Audio perdido` y el pacing pasa a usar el
-  reloj de pared en vez del consumo del dispositivo.
+  reloj de pared en vez del nivel del ring.
 
 ## 6. Entrada
 

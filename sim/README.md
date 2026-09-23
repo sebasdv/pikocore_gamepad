@@ -81,8 +81,8 @@ código 0).
   ejemplo, sin dispositivo de audio), la barra de estado muestra
   `Sin audio (<motivo>)` y el simulador sigue corriendo. Si el dispositivo se
   pierde a mitad de sesión, la barra pasa a mostrar `Audio perdido` y el
-  ritmo de simulación se apoya en el reloj de pared en lugar del consumo del
-  dispositivo.
+  ritmo de simulación se apoya en el reloj de pared en lugar del nivel del
+  buffer de audio.
 - El LCD es un emulador de ST7789 alimentado por el SPI real de
   `LCD_1in3.c`.
 
@@ -98,3 +98,12 @@ código 0).
 - Al cargar un `.pikobank` exportado del loader web se corrige su campo
   `capacity_bytes` (el loader escribe 16 MB, más que la capacidad real). Ver
   la nota en `sim/core/bank_file.h`.
+- Las transferencias SPI al LCD y el código del firmware no consumen tiempo
+  virtual, así que redibujar la UI no frena el lazo de control como en el
+  dispositivo (en el hardware un cuadro completo tarda ~90 ms a 10 MHz). La
+  respuesta del simulador durante un redibujado es optimista.
+- Si el dispositivo de audio se pierde a mitad de sesión, el simulador sigue
+  corriendo sin audio (la barra muestra `Audio perdido`) hasta que se lo
+  reinicia.
+- Latencia botón → sonido: ~20 ms de emulación adelantada más el buffer de
+  WASAPI.
