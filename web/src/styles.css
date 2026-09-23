@@ -609,6 +609,86 @@
   padding: 8px 10px;
 }
 
+.play-gamepad {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "l      .      r"
+    "dpad   screen faces"
+    "dpad   center faces";
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  align-items: center;
+  justify-items: center;
+}
+
+.play-gamepad-l { grid-area: l; justify-self: start; }
+.play-gamepad-r { grid-area: r; justify-self: end; }
+.play-gamepad-dpad { grid-area: dpad; }
+.play-gamepad-faces { grid-area: faces; }
+.play-gamepad-center { grid-area: center; display: flex; gap: 8px; }
+.play-gamepad-screen {
+  grid-area: screen;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  max-height: 100%;
+}
+
+.play-gamepad-dpad,
+.play-gamepad-faces {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+}
+.play-gamepad-dpad {
+  grid-template-areas:
+    ".    up   ."
+    "left .    right"
+    ".    down .";
+}
+.play-gamepad-faces {
+  grid-template-areas:
+    ".     top    ."
+    "left  .      right"
+    ".     bottom .";
+}
+.gamepad-dpad-up { grid-area: up; }
+.gamepad-dpad-left { grid-area: left; }
+.gamepad-dpad-right { grid-area: right; }
+.gamepad-dpad-down { grid-area: down; }
+.gamepad-face-top { grid-area: top; }
+.gamepad-face-left { grid-area: left; }
+.gamepad-face-right { grid-area: right; }
+.gamepad-face-bottom { grid-area: bottom; }
+
+.gamepad-btn {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--border-strong);
+  background: var(--control);
+  color: var(--text);
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  padding: 0;
+  user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.gamepad-btn:active {
+  background: var(--text);
+  color: #000000;
+}
+.gamepad-shoulder-btn { width: 64px; height: 40px; }
+.gamepad-center-btn { width: 60px; height: 32px; font-size: 12px; }
+
 .app .empty {
   min-height: 260px;
   border: 2px dashed var(--border-strong);
