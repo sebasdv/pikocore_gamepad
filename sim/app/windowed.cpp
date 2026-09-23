@@ -17,6 +17,7 @@
 #include "core/bank_file.h"
 #include "core/file_io.h"
 #include "core/flash_store.h"
+#include "core/pacing.h"
 #include "platform/audio_out.h"
 #include "platform/pad_input.h"
 #include "platform/sim_window.h"
@@ -85,15 +86,16 @@ void emulation_thread(Shared* sh, sim::AudioRing* ring, const sim::AudioOut* aud
   });
   m.boot(&piko_firmware_main);
 
-  constexpr uint64_t kLeadFrames = sim::kAudioRate * 30 / 1000;  // 30 ms por delante
+  // ~20 ms de emulación por delante de lo que suena (spec, "Pacing").
+  constexpr uint64_t kLeadFrames = sim::kAudioRate * 20 / 1000;
   const clock::time_point wall0 = clock::now();
   clock::time_point speed_mark = wall0;
   uint64_t speed_cycles = 0;
 
-  // Si WASAPI falla a mitad de sesión (dispositivo desconectado, etc.),
-  // frames_consumed() deja de avanzar; a partir de ese instante repacear por
-  // reloj de pared para que la emulación siga corriendo a x1 en vez de
-  // congelarse esperando un consumo que ya no llega.
+  // Si WASAPI falla a mitad de sesión (dispositivo desconectado, etc.), el
+  // ring deja de vaciarse; a partir de ese instante repacear por reloj de
+  // pared para que la emulación siga corriendo a x1 en vez de congelarse
+  // esperando un consumo que ya no llega.
   bool audio_lost = false;
   uint64_t produced_at_loss = 0;
   clock::time_point loss_mark{};
@@ -106,18 +108,24 @@ void emulation_thread(Shared* sh, sim::AudioRing* ring, const sim::AudioOut* aud
       produced_at_loss = produced;
       loss_mark = now;
     }
-    uint64_t consumed;
+    // Con audio se pacea por el nivel real del ring, no por frames_consumed():
+    // este cuenta también el silencio que WASAPI mete en cada underrun
+    // (arranque, carga en caliente), y pacear contra él dejaría esa latencia
+    // acumulada para siempre, hasta el tope del ring.
+    sim::PaceState pace;
+    pace.audio_running = audio_ok && !audio_lost;
+    pace.ring_fill = ring->size();
+    pace.produced = produced;
+    const auto frames_since = [now](clock::time_point t) {
+      return static_cast<uint64_t>(std::chrono::duration<double>(now - t).count() *
+                                   sim::kAudioRate);
+    };
     if (audio_lost) {
-      consumed = produced_at_loss + static_cast<uint64_t>(
-                                        std::chrono::duration<double>(now - loss_mark).count() *
-                                        sim::kAudioRate);
-    } else if (audio_ok) {
-      consumed = audio->frames_consumed();
-    } else {
-      consumed = static_cast<uint64_t>(std::chrono::duration<double>(now - wall0).count() *
-                                       sim::kAudioRate);
+      pace.wall_frames = produced_at_loss + frames_since(loss_mark);
+    } else if (!audio_ok) {
+      pace.wall_frames = frames_since(wall0);
     }
-    if (produced < consumed + kLeadFrames) {
+    if (sim::should_step(pace, kLeadFrames)) {
       m.run_until(m.now_cycles() + sim::kCpuHz / 1000);
     } else {
       Sleep(1);

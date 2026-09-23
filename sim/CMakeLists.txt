@@ -68,6 +68,7 @@ add_library(sim_core STATIC
   core/buttons.cpp
   core/press_script.cpp
   core/file_io.cpp
+  core/pacing.cpp
 )
 target_include_directories(sim_core PUBLIC ${SIM_ROOT} ${PIKO_ROOT}/src)
 target_compile_options(sim_core PRIVATE /W4 /utf-8)
@@ -83,6 +84,7 @@ add_executable(pikocore_sim_tests
   tests/unit_flash_bank.cpp
   tests/synth_bank.cpp
   tests/unit_input_io.cpp
+  tests/unit_pacing.cpp
 )
 target_link_libraries(pikocore_sim_tests PRIVATE sim_core)
 target_compile_options(pikocore_sim_tests PRIVATE /W4 /utf-8)
