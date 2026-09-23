@@ -41,7 +41,13 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
     // within the synchronous scope of a user gesture — creating it after the WASM module
     // has been fetched/instantiated (an await away) falls outside that window and the
     // context can stay suspended forever on iOS Safari.
-    const audioContext = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
+    let audioContext: AudioContext;
+    try {
+      audioContext = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return;
+    }
     void audioContext.resume();
 
     // Important fix: attach input listeners to `window`, not the canvas. PlayTab only
@@ -51,10 +57,19 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
     const resumeAudio = () => {
       void audioContext.resume();
     };
+    // Don't hijack keys aimed at a real interactive element elsewhere on the page (typing
+    // in an input, or Enter/Space activating a focused button/link like the tab switcher).
+    // The gamepad's own touch buttons are also <button> elements, so a button/link is only
+    // treated as "elsewhere" when it's outside .play-gamepad — that keeps keyboard input
+    // working even if focus lands on one of our own buttons.
+    const isBlockedInteractiveTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (/^(input|textarea|select)$/i.test(target.tagName)) return true;
+      if (/^(button|a)$/i.test(target.tagName)) return !target.closest('.play-gamepad');
+      return false;
+    };
     const onKeyDown = (event: KeyboardEvent) => {
-      // Don't hijack keys typed into a real input/textarea elsewhere on the page.
-      const target = event.target as HTMLElement | null;
-      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return;
+      if (isBlockedInteractiveTarget(event.target)) return;
       resumeAudio();
       const bit = keyToButtonBit(event.code);
       if (bit != null) {
@@ -63,8 +78,7 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
       }
     };
     const onKeyUp = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return;
+      if (isBlockedInteractiveTarget(event.target)) return;
       const bit = keyToButtonBit(event.code);
       if (bit != null) {
         keyMaskRef.current &= ~bit;
