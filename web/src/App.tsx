@@ -1131,7 +1131,7 @@ export function App() {
       </footer>
         </>
       ) : (
-        <PlayTab />
+        <PlayTab onExit={() => setTab('loader')} />
       )}
     </main>
   );

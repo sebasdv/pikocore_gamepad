@@ -4,12 +4,20 @@ import { GamepadControls } from './GamepadControls';
 
 const LCD_SIZE = 240;
 
-export function PlayTab() {
+export function PlayTab({ onExit }: { onExit: () => void }) {
   const touchMaskRef = useRef(0);
   const { canvasRef, status, error, start } = usePikoSim(touchMaskRef);
+  // Once the user taps Play the tab takes over the whole viewport (see .is-playing in
+  // styles.css); errors stay in the normal page flow so the tab switcher is still reachable.
+  const isPlaying = !error && status !== 'idle';
 
   return (
-    <div className="play-tab">
+    <div className={isPlaying ? 'play-tab is-playing' : 'play-tab'}>
+      {isPlaying ? (
+        <button type="button" className="play-exit" onClick={onExit} aria-label="Exit" title="Exit">
+          ✕
+        </button>
+      ) : null}
       <div className="play-rotate-hint">
         <span>Rotate your phone to play</span>
       </div>

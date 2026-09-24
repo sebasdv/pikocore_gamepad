@@ -630,50 +630,148 @@
   color: #000000;
 }
 
-.app .play-gamepad {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "l      .      r"
-    "dpad   screen faces"
-    "dpad   center faces";
-  gap: 12px;
+/* Play tab. While playing (loading + ready) the tab becomes a fixed, viewport-
+   filling overlay: it doesn't depend on the loader page's padding / tab switcher,
+   and — because inset:0 gives it a *definite* height — the percentage heights
+   below actually resolve (the earlier `height:100%` fixes didn't, since main.app
+   has an auto height). Every control is sized from --u, which scales with the
+   dynamic viewport height, so the layout fits phone-landscape heights (~300px
+   with the browser bar showing) instead of using fixed px sizes. */
+.app .play-tab {
+  position: relative;
+  width: 100%;
+  min-height: 70vh;
+}
+
+.app .play-tab.is-playing {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  background: #000000;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Tucked in the top-left corner so it never covers the LCD, and far from the
+   game buttons so it can't be hit by accident mid-combo. */
+.app .play-exit {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 4px);
+  left: calc(env(safe-area-inset-left) + 4px);
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.app .play-rotate-hint {
+  display: none;
+}
+
+.app .play-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 12px;
+  min-height: 70vh;
+}
+
+.app .play-tab.is-playing .play-content {
+  min-height: 0;
+}
+
+.app .play-start-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+}
+
+.app .play-button {
+  height: 48px;
+  padding: 0 28px;
+  font-size: 16px;
+}
+
+.app .play-hint {
+  max-width: 360px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.app .play-error {
+  max-width: 480px;
+  margin: 24px;
+}
+
+.app .play-gamepad {
+  --u: clamp(40px, 15dvh, 60px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "left screen right"
+    "left center right";
+  gap: 6px 10px;
+  width: 100%;
+  height: 100%;
+  padding: 8px 12px;
   align-items: center;
   justify-items: center;
 }
 
-.app .play-gamepad-l { grid-area: l; justify-self: start; }
-.app .play-gamepad-r { grid-area: r; justify-self: end; }
-.app .play-gamepad-dpad { grid-area: dpad; }
-.app .play-gamepad-faces { grid-area: faces; }
+/* L / R sit at the top of the side columns (above the D-pad / face diamond)
+   instead of in their own row, which used to cost ~50px of vertical space. */
+.app .play-gamepad-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+.app .play-gamepad-left { grid-area: left; }
+.app .play-gamepad-right { grid-area: right; }
 .app .play-gamepad-center { grid-area: center; display: flex; gap: 8px; }
+
 .app .play-gamepad-screen {
   grid-area: screen;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   height: 100%;
-  max-height: 100%;
   min-height: 0;
   min-width: 0;
 }
 
 .app .play-gamepad-screen .sim-demo-canvas {
+  height: 100%;
   width: auto;
-  height: auto;
   max-width: 100%;
-  max-height: 100%;
+  max-height: min(100%, 480px);
+  aspect-ratio: 1 / 1;
 }
 
 .app .play-gamepad-dpad,
 .app .play-gamepad-faces {
   display: grid;
-  grid-template-columns: repeat(3, 44px);
-  grid-template-rows: repeat(3, 44px);
+  grid-template-columns: repeat(3, var(--u));
+  grid-template-rows: repeat(3, var(--u));
 }
 .app .play-gamepad-dpad {
   grid-template-areas:
@@ -697,8 +795,8 @@
 .app .gamepad-face-bottom { grid-area: bottom; }
 
 .app .gamepad-btn {
-  width: 44px;
-  height: 44px;
+  width: var(--u, 44px);
+  height: var(--u, 44px);
   border: 2px solid var(--border-strong);
   background: var(--control);
   color: var(--text);
@@ -721,47 +819,8 @@
   background: var(--text);
   color: #000000;
 }
-.app .gamepad-shoulder-btn { width: 64px; height: 40px; }
-.app .gamepad-center-btn { width: 60px; height: 32px; font-size: 12px; }
-
-.app .play-tab {
-  position: relative;
-  width: 100%;
-  min-height: 70vh;
-}
-
-.app .play-rotate-hint {
-  display: none;
-}
-
-.app .play-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  min-height: 70vh;
-}
-
-.app .play-start-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-  padding: 24px;
-}
-
-.app .play-button {
-  height: 48px;
-  padding: 0 28px;
-  font-size: 16px;
-}
-
-.app .play-error {
-  max-width: 480px;
-  margin: 24px;
-}
+.app .gamepad-shoulder-btn { width: calc(var(--u, 44px) * 1.6); height: calc(var(--u, 44px) * 0.85); }
+.app .gamepad-center-btn { width: calc(var(--u, 44px) * 1.6); height: calc(var(--u, 44px) * 0.85); font-size: 12px; }
 
 @media (orientation: portrait) {
   .app .play-rotate-hint {
@@ -773,31 +832,12 @@
     padding: 24px;
     color: var(--muted);
   }
+  .app .play-tab.is-playing .play-rotate-hint {
+    min-height: 100%;
+    height: 100%;
+  }
   .app .play-content {
     display: none;
-  }
-}
-
-/* Short landscape viewports (phones in landscape) — the 70vh floor plus a
-   fixed 240px canvas plus button rows can exceed the actual viewport height,
-   forcing vertical scroll. `height: 100%` doesn't work here because the
-   ancestor (main.app) has no explicit height, so it resolves to `auto` and
-   has no effect. Give `.play-tab` a real, definite height instead: 100dvh
-   minus the space above it (8px default body margin + 22px .app
-   padding-top + 36px .tab-switcher nav + 14px its margin-bottom = 80px) and
-   below it (22px .app padding-bottom + 8px default body margin = 30px) =
-   110px total, all measured via getBoundingClientRect. With a real bounded
-   height, .play-gamepad-screen .sim-demo-canvas's existing
-   max-width/max-height:100% can actually constrain the canvas to shrink, so
-   buttons stay at their normal (44px) accessibility-guideline size —
-   measured with 812x375 to still fit without scrolling. */
-@media (orientation: landscape) and (max-height: 480px) {
-  .app .play-tab {
-    height: calc(100dvh - 110px);
-  }
-  .app .play-content {
-    min-height: 0;
-    height: 100%;
   }
 }
 

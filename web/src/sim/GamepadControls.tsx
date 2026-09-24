@@ -66,29 +66,29 @@ export function GamepadControls({
 }) {
   return (
     <div className="play-gamepad">
-      <div className="play-gamepad-l">
+      <div className="play-gamepad-side play-gamepad-left">
         <TouchButton bit={BUTTON_BITS.L} maskRef={maskRef} label="L" className="gamepad-shoulder-btn" />
-      </div>
-      <div className="play-gamepad-r">
-        <TouchButton bit={BUTTON_BITS.R} maskRef={maskRef} label="R" className="gamepad-shoulder-btn" />
-      </div>
-      <div className="play-gamepad-dpad">
-        <TouchButton bit={BUTTON_BITS.UP} maskRef={maskRef} label="↑" className="gamepad-dpad-up" />
-        <TouchButton bit={BUTTON_BITS.LEFT} maskRef={maskRef} label="←" className="gamepad-dpad-left" />
-        <TouchButton bit={BUTTON_BITS.RIGHT} maskRef={maskRef} label="→" className="gamepad-dpad-right" />
-        <TouchButton bit={BUTTON_BITS.DOWN} maskRef={maskRef} label="↓" className="gamepad-dpad-down" />
+        <div className="play-gamepad-dpad">
+          <TouchButton bit={BUTTON_BITS.UP} maskRef={maskRef} label="↑" className="gamepad-dpad-up" />
+          <TouchButton bit={BUTTON_BITS.LEFT} maskRef={maskRef} label="←" className="gamepad-dpad-left" />
+          <TouchButton bit={BUTTON_BITS.RIGHT} maskRef={maskRef} label="→" className="gamepad-dpad-right" />
+          <TouchButton bit={BUTTON_BITS.DOWN} maskRef={maskRef} label="↓" className="gamepad-dpad-down" />
+        </div>
       </div>
       <div className="play-gamepad-screen">{children}</div>
       <div className="play-gamepad-center">
         <TouchButton bit={BUTTON_BITS.SELECT} maskRef={maskRef} label="Select" className="gamepad-center-btn" />
         <TouchButton bit={BUTTON_BITS.START} maskRef={maskRef} label="Start" className="gamepad-center-btn" />
       </div>
-      <div className="play-gamepad-faces">
-        {/* Position-based mapping, matching keyboard.ts exactly: top=X, right=A, bottom=B, left=Y */}
-        <TouchButton bit={BUTTON_BITS.X} maskRef={maskRef} label="X" className="gamepad-face-top" />
-        <TouchButton bit={BUTTON_BITS.Y} maskRef={maskRef} label="Y" className="gamepad-face-left" />
-        <TouchButton bit={BUTTON_BITS.A} maskRef={maskRef} label="A" className="gamepad-face-right" />
-        <TouchButton bit={BUTTON_BITS.B} maskRef={maskRef} label="B" className="gamepad-face-bottom" />
+      <div className="play-gamepad-side play-gamepad-right">
+        <TouchButton bit={BUTTON_BITS.R} maskRef={maskRef} label="R" className="gamepad-shoulder-btn" />
+        <div className="play-gamepad-faces">
+          {/* Position-based mapping, matching keyboard.ts exactly: top=X, right=A, bottom=B, left=Y */}
+          <TouchButton bit={BUTTON_BITS.X} maskRef={maskRef} label="X" className="gamepad-face-top" />
+          <TouchButton bit={BUTTON_BITS.Y} maskRef={maskRef} label="Y" className="gamepad-face-left" />
+          <TouchButton bit={BUTTON_BITS.A} maskRef={maskRef} label="A" className="gamepad-face-right" />
+          <TouchButton bit={BUTTON_BITS.B} maskRef={maskRef} label="B" className="gamepad-face-bottom" />
+        </div>
       </div>
     </div>
   );
