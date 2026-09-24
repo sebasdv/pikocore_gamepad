@@ -381,6 +381,8 @@
 .app .info-modal {
   width: min(720px, 100%);
   max-height: calc(100vh - 44px);
+  max-height: calc(100dvh - 44px);
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
   gap: 12px;
   overflow: auto;
@@ -430,7 +432,7 @@
 /* Device controls reference table (help modal) */
 .app .controls-table {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 8px 16px;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 13px;
@@ -993,6 +995,30 @@
     flex: 1 1 100%;
     min-width: 0;
     max-width: 100%;
+  }
+
+  .app .modal-backdrop {
+    padding: 12px;
+  }
+
+  .app .info-modal {
+    max-height: calc(100dvh - 24px);
+  }
+
+  /* Stack each control above its description so nothing is pushed past the screen edge. */
+  .app .controls-table {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+
+  .app .controls-table dt {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .app .controls-table dd {
+    margin-bottom: 8px;
+    overflow-wrap: anywhere;
   }
 
   .app .sample-meta {
