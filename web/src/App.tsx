@@ -33,6 +33,7 @@ import {
 import { DeviceInfo, PikocoreSerial, isCompatibleFirmware } from './serial';
 import { PlayTab } from './sim/PlayTab';
 import { setCustomBank } from './sim/simBank';
+import { loadStudioSamples, saveStudioSamples } from './studioStore';
 import ittybittymidiConnection from './assets/ittybittymidi_connection.jpg';
 import pikocoreInstructions from './assets/pikocore_instructions.png';
 
@@ -142,6 +143,27 @@ export function App() {
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
   }, [playingId]);
+
+  // Offline ("studio") edits persist across reloads. Device banks are not saved: they live on the
+  // device, and a connect must not overwrite the samples the user prepared offline.
+  const connectedRef = useRef(false);
+  connectedRef.current = connected;
+  const studioLoadedRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    void loadStudioSamples().then((saved) => {
+      if (cancelled) return;
+      if (saved.length > 0 && !connectedRef.current) setSamples((current) => (current.length === 0 ? saved : current));
+      studioLoadedRef.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    if (!studioLoadedRef.current || connectedRef.current) return;
+    void saveStudioSamples(samples);
+  }, [samples]);
 
   const capacity = device?.capacityBytes ?? null;
   const used = useMemo(() => usedAudioBytes(samples), [samples]);
