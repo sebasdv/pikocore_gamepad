@@ -17,21 +17,28 @@ export class PikoSim {
     private readonly audioScratchPtr: number,
   ) {}
 
-  static async create(): Promise<PikoSim> {
+  static async create(customBankBytes?: Uint8Array): Promise<PikoSim> {
     const { default: createPikoSimModule } = await import(
       /* @vite-ignore */ `${import.meta.env.BASE_URL}sim/pikocore_sim.js`
     );
     const mod = (await createPikoSimModule()) as PikoSimModule;
-    const bankResponse = await fetch(`${import.meta.env.BASE_URL}sim/amen_pad_bank.pikobank`);
-    if (!bankResponse.ok) {
-      throw new Error(`Failed to fetch demo bank: HTTP ${bankResponse.status}`);
+    let bankBytes = customBankBytes;
+    if (!bankBytes) {
+      const bankResponse = await fetch(`${import.meta.env.BASE_URL}sim/amen_pad_bank.pikobank`);
+      if (!bankResponse.ok) {
+        throw new Error(`Failed to fetch demo bank: HTTP ${bankResponse.status}`);
+      }
+      bankBytes = new Uint8Array(await bankResponse.arrayBuffer());
     }
-    const bankBytes = new Uint8Array(await bankResponse.arrayBuffer());
     const bankPtr = mod._malloc(bankBytes.length);
     mod.HEAPU8.set(bankBytes, bankPtr);
     const ok = mod.ccall('piko_init', 'number', ['number', 'number'], [bankPtr, bankBytes.length]);
     mod._free(bankPtr);
-    if (!ok) throw new Error('Bundled demo bank was rejected by the firmware');
+    if (!ok) {
+      throw new Error(
+        customBankBytes ? 'Your bank was rejected by the firmware (too large or invalid)' : 'Bundled demo bank was rejected by the firmware',
+      );
+    }
     const audioScratchPtr = mod._malloc(AUDIO_SCRATCH_FRAMES * 4);
     return new PikoSim(mod, audioScratchPtr);
   }

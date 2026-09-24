@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { keyToButtonBit } from './keyboard';
 import { pollGamepadMask } from './gamepad';
 import { PikoSim } from './simModule';
+import { getCustomBank } from './simBank';
 
 const LCD_SIZE = 240;
 const AUDIO_SAMPLE_RATE = 48000;
@@ -94,7 +95,7 @@ export function usePikoSim(extraMaskRef: { current: number }): UsePikoSimResult 
 
     async function boot() {
       try {
-        const sim = await PikoSim.create();
+        const sim = await PikoSim.create(getCustomBank()?.bytes);
         if (cancelled) return;
         simRef.current = sim;
 

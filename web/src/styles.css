@@ -1049,3 +1049,9 @@
     grid-template-columns: repeat(4, 34px);
   }
 }
+
+.app .play-bank {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}

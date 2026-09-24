@@ -32,6 +32,7 @@ import {
 } from './bank';
 import { DeviceInfo, PikocoreSerial, isCompatibleFirmware } from './serial';
 import { PlayTab } from './sim/PlayTab';
+import { setCustomBank } from './sim/simBank';
 import ittybittymidiConnection from './assets/ittybittymidi_connection.jpg';
 import pikocoreInstructions from './assets/pikocore_instructions.png';
 
@@ -147,7 +148,9 @@ export function App() {
   const overCapacity = capacity != null && used > capacity;
   const usageRatio = capacity != null && capacity > 0 ? Math.min(1, used / capacity) : 0;
   const showStatusSpinner = busy && status.kind === 'idle';
-  const bankEditingDisabled = !connected || busy || incompatibleDevice != null;
+  // Samples can be edited offline too: the bank can be tried in the Play simulator or downloaded
+  // for an SD card without a device attached.
+  const bankEditingDisabled = busy || incompatibleDevice != null;
   const uploadNeedsSync = connected && incompatibleDevice == null && bankDirty;
   const uploadDisabled = !connected || incompatibleDevice != null || busy || overCapacity || (!uploadNeedsSync && samples.length === 0);
   const selectedFirmware = firmwareOptions.find((option) => option.file === firmwareFile) ?? firmwareOptions[0];
@@ -438,11 +441,8 @@ export function App() {
   }
 
   async function addFiles(fileList: FileList | File[]) {
-    if (!connected) {
-      setStatus({
-        text: incompatibleDevice ? 'Firmware update required before adding audio' : 'Connect to a pikocore before adding audio',
-        kind: 'warn',
-      });
+    if (incompatibleDevice) {
+      setStatus({ text: 'Firmware update required before adding audio', kind: 'warn' });
       return;
     }
     const files = Array.from(fileList).filter((file) => file.type.startsWith('audio/') || /\.(aif|aiff|wav|mp3|flac|ogg)$/i.test(file.name));
@@ -497,6 +497,17 @@ export function App() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       setStatus({ text: `Downloaded bank.pikobank (${samples.length} samples)`, kind: 'good' });
+    } catch (error) {
+      setStatus({ text: errorMessage(error), kind: 'bad' });
+    }
+  }
+
+  function tryInSimulator() {
+    if (samples.length === 0) return;
+    try {
+      const bytes = buildBankBlob(samples, SD_BANK_CAPACITY_BYTES);
+      setCustomBank({ bytes, sampleCount: samples.length });
+      setTab('play');
     } catch (error) {
       setStatus({ text: errorMessage(error), kind: 'bad' });
     }
@@ -804,7 +815,7 @@ export function App() {
           <label
             className={`button ${bankEditingDisabled ? 'disabled' : ''}`}
             data-tour="add"
-            title={connected ? 'Add audio files to the sample list' : 'Connect to a pikocore before adding audio'}
+            title="Add audio files to the sample list"
           >
             <Plus size={18} />
             Add
@@ -836,6 +847,14 @@ export function App() {
           >
             <Download size={18} />
             Download bank
+          </button>
+          <button
+            onClick={tryInSimulator}
+            disabled={samples.length === 0}
+            title="Load the current sample bank into the Play tab simulator"
+          >
+            <Gamepad2 size={18} />
+            Try in simulator
           </button>
           <button
             data-tour="read"
@@ -1083,13 +1102,6 @@ export function App() {
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault();
-          if (!connected) {
-            setStatus({
-              text: incompatibleDevice ? 'Firmware update required before adding audio' : 'Connect to a pikocore before adding audio',
-              kind: 'warn',
-            });
-            return;
-          }
           void addFiles(event.dataTransfer.files);
         }}
       >

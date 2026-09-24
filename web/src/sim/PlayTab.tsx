@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { usePikoSim } from './usePikoSim';
 import { GamepadControls } from './GamepadControls';
+import { setCustomBank, useCustomBank } from './simBank';
 import { enterFullscreen, exitFullscreen, fullscreenSupported } from './fullscreen';
 
 const LCD_SIZE = 240;
 
 export function PlayTab({ onExit }: { onExit: () => void }) {
   const touchMaskRef = useRef(0);
+  const customBank = useCustomBank();
   const { canvasRef, status, error, start } = usePikoSim(touchMaskRef);
   // Once the user taps Play the tab takes over the whole viewport (see .is-playing in
   // styles.css); errors stay in the normal page flow so the tab switcher is still reachable.
@@ -42,6 +44,16 @@ export function PlayTab({ onExit }: { onExit: () => void }) {
           <div className="play-start-screen">
             <h2>pikocore — play in your browser</h2>
             <p>Try the device right here, no install needed.</p>
+            {customBank ? (
+              <p className="play-bank">
+                Your bank: {customBank.sampleCount} sample{customBank.sampleCount === 1 ? '' : 's'}{' '}
+                <button type="button" className="text-button" onClick={() => setCustomBank(null)}>
+                  Use demo bank
+                </button>
+              </p>
+            ) : (
+              <p className="play-bank">Demo bank. Add samples in the Loader tab and choose "Try in simulator".</p>
+            )}
             <button type="button" className="primary play-button" onClick={handlePlay}>
               Play
             </button>
