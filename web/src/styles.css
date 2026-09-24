@@ -971,9 +971,28 @@
     display: grid;
   }
 
+  .app .topbar,
+  .app .sample-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .app .toolbar {
     width: 100%;
+    min-width: 0;
     justify-content: flex-start;
+  }
+
+  /* Flash-size select + UF2 + Boot: wrap instead of pushing Boot past the screen edge. */
+  .app .firmware-download {
+    flex-wrap: wrap;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app .firmware-download select {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .app .sample-meta {
