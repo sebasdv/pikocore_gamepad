@@ -1,6 +1,7 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePikoSim } from './usePikoSim';
 import { GamepadControls } from './GamepadControls';
+import { enterFullscreen, exitFullscreen, fullscreenSupported } from './fullscreen';
 
 const LCD_SIZE = 240;
 
@@ -11,10 +12,23 @@ export function PlayTab({ onExit }: { onExit: () => void }) {
   // styles.css); errors stay in the normal page flow so the tab switcher is still reachable.
   const isPlaying = !error && status !== 'idle';
 
+  // Both calls must run synchronously inside the click: start() creates the AudioContext and
+  // enterFullscreen() calls requestFullscreen(), and each needs the user gesture to be active.
+  const handlePlay = () => {
+    start();
+    void enterFullscreen();
+  };
+  const handleExit = () => {
+    exitFullscreen();
+    onExit();
+  };
+  // Leaving the tab by any other route must not strand the browser in fullscreen.
+  useEffect(() => () => exitFullscreen(), []);
+
   return (
     <div className={isPlaying ? 'play-tab is-playing' : 'play-tab'}>
       {isPlaying ? (
-        <button type="button" className="play-exit" onClick={onExit} aria-label="Exit" title="Exit">
+        <button type="button" className="play-exit" onClick={handleExit} aria-label="Exit" title="Exit">
           ✕
         </button>
       ) : null}
@@ -28,9 +42,12 @@ export function PlayTab({ onExit }: { onExit: () => void }) {
           <div className="play-start-screen">
             <h2>pikocore — play in your browser</h2>
             <p>Try the device right here, no install needed.</p>
-            <button type="button" className="primary play-button" onClick={start}>
+            <button type="button" className="primary play-button" onClick={handlePlay}>
               Play
             </button>
+            {!fullscreenSupported() ? (
+              <p className="play-hint">On iPhone, tap Share → Add to Home Screen to play in full screen.</p>
+            ) : null}
           </div>
         ) : status === 'loading' ? (
           <div className="play-start-screen">
