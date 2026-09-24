@@ -745,7 +745,9 @@
   left: 50%;
 }
 .app .play-gamepad-side .side-top { top: 0; transform: translateX(-50%); }
-.app .play-gamepad-side .side-mid { top: 50%; transform: translate(-50%, -50%); }
+/* Centered in the gap between the shoulder button (0.85u tall, top) and the 3u cross (bottom):
+   midpoint = (0.85u + 100% - 3u) / 2, so a thumb on the cross never grazes it. */
+.app .play-gamepad-side .side-mid { top: calc(50% - var(--u) * 1.075); transform: translate(-50%, -50%); }
 .app .play-gamepad-side .side-bottom { bottom: 0; transform: translateX(-50%); }
 
 .app .play-gamepad-screen {
