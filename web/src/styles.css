@@ -717,39 +717,38 @@
   margin: 24px;
 }
 
+/* Each side column stacks a shoulder button (top), Select/Start (mid-height) and the cross
+   (bottom); the screen between them gets the full viewport height. --u is the touch unit:
+   sized so the bottom cross (3u) plus the mid button still fit in the lower half. */
 .app .play-gamepad {
-  --u: clamp(40px, 15dvh, 60px);
+  --u: clamp(38px, calc((50dvh - 16px) / 3.4), 60px);
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-rows: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "left screen right"
-    "left center right";
-  gap: 6px 10px;
+  grid-template-columns: calc(var(--u) * 3) minmax(0, 1fr) calc(var(--u) * 3);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0 10px;
   width: 100%;
   height: 100%;
   padding: 8px 12px;
-  align-items: center;
-  justify-items: center;
 }
 
-/* L / R sit at the top of the side columns (above the D-pad / face diamond)
-   instead of in their own row, which used to cost ~50px of vertical space. */
 .app .play-gamepad-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  position: relative;
   height: 100%;
   min-height: 0;
 }
-.app .play-gamepad-left { grid-area: left; }
-.app .play-gamepad-right { grid-area: right; }
-.app .play-gamepad-center { grid-area: center; display: flex; gap: 8px; }
+/* Extra .play-gamepad-side in the selectors: the chamfer rule below sets position:relative on
+   .gamepad-btn with the same specificity and comes later, which would otherwise win. */
+.app .play-gamepad-side .side-top,
+.app .play-gamepad-side .side-mid,
+.app .play-gamepad-side .side-bottom {
+  position: absolute;
+  left: 50%;
+}
+.app .play-gamepad-side .side-top { top: 0; transform: translateX(-50%); }
+.app .play-gamepad-side .side-mid { top: 50%; transform: translate(-50%, -50%); }
+.app .play-gamepad-side .side-bottom { bottom: 0; transform: translateX(-50%); }
 
 .app .play-gamepad-screen {
-  grid-area: screen;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -767,40 +766,40 @@
   aspect-ratio: 1 / 1;
 }
 
-.app .play-gamepad-dpad,
-.app .play-gamepad-faces {
-  display: grid;
-  grid-template-columns: repeat(3, var(--u));
-  grid-template-rows: repeat(3, var(--u));
+/* 45° chamfered corners. The white outline is the element's own (clipped) background and the
+   ::before layer is the same polygon inset by the border width, so the diagonal edges get a
+   uniform outline too — a plain `border` would be cut off by clip-path at the corners. The
+   inner chamfer leg is c - b*(2 - sqrt(2)) ≈ c - 1.17px for a 2px border. */
+.app .gamepad-btn,
+.app .cluster-arm {
+  --c: calc(var(--u, 44px) * 0.2);
+  --ci: calc(var(--c) - 1.17px);
+  position: relative;
+  isolation: isolate;
+  background: var(--border-strong);
+  border: 0;
+  color: var(--text);
+  clip-path: polygon(
+    var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)),
+    calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c)
+  );
 }
-.app .play-gamepad-dpad {
-  grid-template-areas:
-    ".    up   ."
-    "left .    right"
-    ".    down .";
+.app .gamepad-btn::before,
+.app .cluster-arm::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  background: var(--control);
+  clip-path: polygon(
+    var(--ci) 0, calc(100% - var(--ci)) 0, 100% var(--ci), 100% calc(100% - var(--ci)),
+    calc(100% - var(--ci)) 100%, var(--ci) 100%, 0 calc(100% - var(--ci)), 0 var(--ci)
+  );
 }
-.app .play-gamepad-faces {
-  grid-template-areas:
-    ".     top    ."
-    "left  .      right"
-    ".     bottom .";
-}
-.app .gamepad-dpad-up { grid-area: up; }
-.app .gamepad-dpad-left { grid-area: left; }
-.app .gamepad-dpad-right { grid-area: right; }
-.app .gamepad-dpad-down { grid-area: down; }
-.app .gamepad-face-top { grid-area: top; }
-.app .gamepad-face-left { grid-area: left; }
-.app .gamepad-face-right { grid-area: right; }
-.app .gamepad-face-bottom { grid-area: bottom; }
 
 .app .gamepad-btn {
   width: var(--u, 44px);
   height: var(--u, 44px);
-  border: 2px solid var(--border-strong);
-  background: var(--control);
-  color: var(--text);
-  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -811,16 +810,50 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
 }
-.app .gamepad-btn:active {
-  background: var(--text);
-  color: #000000;
-}
-.app .gamepad-btn[data-pressed="true"] {
-  background: var(--text);
-  color: #000000;
-}
 .app .gamepad-shoulder-btn { width: calc(var(--u, 44px) * 1.6); height: calc(var(--u, 44px) * 0.85); }
-.app .gamepad-center-btn { width: calc(var(--u, 44px) * 1.6); height: calc(var(--u, 44px) * 0.85); font-size: 12px; }
+.app .gamepad-center-btn { width: calc(var(--u, 44px) * 1.6); height: calc(var(--u, 44px) * 0.7); font-size: 11px; }
+
+.app .gamepad-btn:active,
+.app .gamepad-btn[data-pressed="true"] { color: #000000; }
+.app .gamepad-btn:active::before,
+.app .gamepad-btn[data-pressed="true"]::before { background: var(--text); }
+
+/* Cross (D-pad) and diamond (face buttons): one touch surface, a 3x3 grid whose four edge
+   cells are the arms. The arms carry no glyph — their position already says which way they
+   point; the face diamond only adds its letter. */
+.app .gamepad-cluster {
+  display: grid;
+  grid-template-columns: repeat(3, var(--u));
+  grid-template-rows: repeat(3, var(--u));
+  grid-template-areas:
+    ".    up    ."
+    "left .     right"
+    ".    down  .";
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+.app .cluster-arm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  pointer-events: none;
+}
+.app .cluster-arm-up { grid-area: up; }
+.app .cluster-arm-down { grid-area: down; }
+.app .cluster-arm-left { grid-area: left; }
+.app .cluster-arm-right { grid-area: right; }
+.app .gamepad-cluster[data-up="true"] .cluster-arm-up,
+.app .gamepad-cluster[data-down="true"] .cluster-arm-down,
+.app .gamepad-cluster[data-left="true"] .cluster-arm-left,
+.app .gamepad-cluster[data-right="true"] .cluster-arm-right { color: #000000; }
+.app .gamepad-cluster[data-up="true"] .cluster-arm-up::before,
+.app .gamepad-cluster[data-down="true"] .cluster-arm-down::before,
+.app .gamepad-cluster[data-left="true"] .cluster-arm-left::before,
+.app .gamepad-cluster[data-right="true"] .cluster-arm-right::before { background: var(--text); }
 
 @media (orientation: portrait) {
   .app .play-rotate-hint {
