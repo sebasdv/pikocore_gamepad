@@ -172,6 +172,27 @@ void __dvi_func(dvi_scanbuf_main_16bpp)(struct dvi_inst *inst) {
 	__builtin_unreachable();
 }
 
+// pikocore: variant that pulls each scanline from a callback instead of
+// q_colour_valid, so the producer can live on this same core. Also starts the
+// DVI output once the first scanline is encoded (what hello_dvi does from a
+// separate core-1 wrapper).
+void __dvi_func(dvi_scanbuf_main_16bpp_cb)(struct dvi_inst *inst, uint32_t *(*next_line)(uint y)) {
+	uint y = 0;
+	bool started = false;
+	const uint frame_lines = inst->timing->v_active_lines / DVI_VERTICAL_REPEAT;
+	while (1) {
+		_dvi_prepare_scanline_16bpp(inst, next_line(y));
+		if (!started) {
+			dvi_start(inst);
+			started = true;
+		}
+		if (++y == frame_lines) {
+			y = 0;
+		}
+	}
+	__builtin_unreachable();
+}
+
 static void __dvi_func(dvi_dma_irq_handler)(struct dvi_inst *inst) {
 	// Every fourth interrupt marks the start of the horizontal active region. We
 	// now have until the end of this region to generate DMA blocklist for next

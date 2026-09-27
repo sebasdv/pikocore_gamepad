@@ -8,6 +8,15 @@ option(PIKO_GAMEPI13 "Build for Waveshare RP2350-PiZero + GamePi13" OFF)
 # inalcanzable: cero actividad de SD en runtime. El codigo queda intacto -- basta
 # poner esto en ON para reactivarlo. Cargar samples por USB (.pikobank) no se ve
 # afectado. Ver docs/superpowers/specs/2026-07-20-*-design.md.
+# Espejo del LCD por HDMI (DVI/PicoDVI por PIO, pines 32-38 del socket de la
+# RP2350-PiZero). OJO: ocupa el core 1 para codificar video, asi que en este
+# build NO corre el sample manager (carga de bancos por USB / SD).
+option(PIKO_HDMI_ONLY "Diagnostic: HDMI colour bars only, no pikocore" OFF)
+option(PIKO_HDMI_BARS "Diagnostic: full firmware, but HDMI shows colour bars" OFF)
+option(PIKO_HDMI_NOAUDIO "Diagnostic: never enable the audio PWM IRQ" OFF)
+option(PIKO_HDMI_XIP "Diagnostic: run from flash (XIP) instead of copy_to_ram" OFF)
+option(PIKO_HDMI_EARLY "Diagnostic: start HDMI right after the clock setup" OFF)
+option(PIKO_GAMEPI13_HDMI "Mirror the GamePi13 LCD to the HDMI port (takes core 1)" OFF)
 option(PIKO_GAMEPI13_SD "Enable the Browse SD mode (mode 8) on GamePi13" OFF)
 if(PIKO_GAMEPI13)
 	list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/boards)
@@ -60,7 +69,11 @@ target_link_libraries(${PROJECT_NAME}
 
 set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
 
-pico_set_binary_type(${PROJECT_NAME} copy_to_ram)
+if(PIKO_HDMI_XIP)
+	pico_set_binary_type(${PROJECT_NAME} default)
+else()
+	pico_set_binary_type(${PROJECT_NAME} copy_to_ram)
+endif()
 pico_enable_stdio_usb(${PROJECT_NAME} 0)
 pico_enable_stdio_uart(${PROJECT_NAME} 0)
 
@@ -93,6 +106,30 @@ if(PIKO_GAMEPI13)
 		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/lcd
 	)
 	target_link_libraries(${PROJECT_NAME} hardware_spi)
+
+	if(PIKO_GAMEPI13_HDMI)
+		set(DVI_DIR ${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/01-DVI)
+		target_compile_definitions(${PROJECT_NAME} PRIVATE
+			PIKO_GAMEPI13_HDMI=1
+			PIKO_HDMI_ONLY=$<BOOL:${PIKO_HDMI_ONLY}>
+			PIKO_HDMI_BARS=$<BOOL:${PIKO_HDMI_BARS}>
+			PIKO_HDMI_EARLY=$<BOOL:${PIKO_HDMI_EARLY}>
+			PIKO_HDMI_NOAUDIO=$<BOOL:${PIKO_HDMI_NOAUDIO}>
+			PICO_PIO_USE_GPIO_BASE=1
+			DVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg)
+		target_sources(${PROJECT_NAME} PRIVATE
+			${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/hdmi_mirror.cpp
+			${DVI_DIR}/libdvi/dvi.c
+			${DVI_DIR}/libdvi/dvi_serialiser.c
+			${DVI_DIR}/libdvi/dvi_timing.c
+			${DVI_DIR}/libdvi/tmds_encode.S
+			${DVI_DIR}/libdvi/tmds_encode.c)
+		target_include_directories(${PROJECT_NAME} PRIVATE
+			${DVI_DIR}/libdvi ${DVI_DIR}/include ${DVI_DIR}/assets)
+		target_link_libraries(${PROJECT_NAME} hardware_interp pico_util)
+		pico_generate_pio_header(${PROJECT_NAME} ${DVI_DIR}/libdvi/dvi_serialiser.pio)
+		pico_generate_pio_header(${PROJECT_NAME} ${DVI_DIR}/libdvi/tmds_encode_1bpp.pio)
+	endif()
 
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src
 		${CMAKE_CURRENT_BINARY_DIR}/no-OS-FatFS)

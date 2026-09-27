@@ -36,7 +36,13 @@
 #include "doth/trigger_out.h"
 
 // constants
+#if PIKO_GAMEPI13_HDMI
+// Exact VGA timing (25.2 MHz pixel clock); many TVs reject the 24.8 MHz that
+// 248 MHz gives. Costs ~1.6% sample pitch in this build.
+#define CLOCK_RATE 252000
+#else
 #define CLOCK_RATE 248000
+#endif
 #define SAMPLE_RATE 24000
 #define BPM_SAMPLED 165
 #define SAMPLES_PER_BEAT 4364
@@ -52,6 +58,9 @@
 #define HEAD_SHIFT 10  // crossfade time in samples (2^HEAD_SHIFT)
 #if PIKO_GAMEPI13
 #include "hw_gamepi13.h"
+#if PIKO_GAMEPI13_HDMI
+#include "hdmi_mirror.h"
+#endif
 #define AUDIO_PIN GAMEPI_AUDIO_PIN
 #define LED_PIN GAMEPI_LED_PIN
 #define CLOCK_PIN GAMEPI_CLOCK_PIN
@@ -1743,6 +1752,13 @@ bool piko_set_clock_input_ittybittymidi(bool enabled) {
 int main(void) {
   // Set the final system clock before USB init.
   set_sys_clock_khz(CLOCK_RATE, true);
+#if PIKO_GAMEPI13_HDMI && PIKO_HDMI_ONLY
+  gamepi_hdmi_start();  // diagnostic: colour bars, nothing else runs
+  while (true) tight_loop_contents();
+#endif
+#if PIKO_GAMEPI13_HDMI && PIKO_HDMI_EARLY
+  gamepi_hdmi_start();
+#endif
   tusb_init();
   irq_set_priority(USBCTRL_IRQ, 0x00);
   piko_audio_bank_init();
@@ -1774,7 +1790,14 @@ int main(void) {
   gamepi_spi1_mutex_init();
 #endif
   multicore_lockout_victim_init();
+#if PIKO_GAMEPI13_HDMI
+  // Core 1 is the DVI encoder in this build; no sample manager / USB loading.
+#if !PIKO_HDMI_EARLY
+  gamepi_hdmi_start();
+#endif
+#else
   multicore_launch_core1(piko_sample_manager_core);
+#endif
 
   // initialize clocking and PWM interrupts
   // overclock at a multiple of sampling rate
@@ -1976,8 +1999,10 @@ int main(void) {
 
   piko_sample_manager_set_ready();
   pwm_clear_irq(audio_pin_slice);
+#if !PIKO_HDMI_NOAUDIO
   pwm_set_irq_enabled(audio_pin_slice, true);
   irq_set_enabled(PWM_IRQ_WRAP, true);
+#endif
 
   // control loop
   while (1) {

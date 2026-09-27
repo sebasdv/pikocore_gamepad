@@ -616,6 +616,8 @@ static void draw_widget(uint8_t i, const GamepiUiState &s) {
   }
 }
 
+const uint8_t *gamepi_ui_framebuffer() { return fb; }
+
 void gamepi_ui_init() {
   gamepi_lcd_dev_init();
   LCD_1IN3_Init(HORIZONTAL);

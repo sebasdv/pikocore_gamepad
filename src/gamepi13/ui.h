@@ -44,6 +44,8 @@ struct GamepiUiState {
 };
 
 void gamepi_ui_init();                      // LCD init + splash (blocking ~2 s, call before audio IRQ is enabled)
+// Raw LCD framebuffer (RGB565 big-endian, panel-native / pre-rotation layout). Read-only view for the HDMI mirror.
+const uint8_t *gamepi_ui_framebuffer();
 void gamepi_ui_tick(const GamepiUiState &s);  // call once per 250 Hz control tick
 
 // Browse-SD mode (modo 8 del selector). Todas reusan el panel del overlay;
