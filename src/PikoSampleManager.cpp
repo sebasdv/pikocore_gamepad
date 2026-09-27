@@ -1,0 +1,630 @@
+#include "PikoSampleManager.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "PikoAudioBank.h"
+#include "hardware/flash.h"
+#include "piko_barrier.h"
+#include "pico/bootrom.h"
+#include "pico/multicore.h"
+#include "pico/stdlib.h"
+#include "tusb.h"
+
+#if PIKO_GAMEPI13
+#include "ff.h"
+#include "hw_config.h"
+#include "sd_card.h"
+#endif
+
+void do_stop_everything();
+void do_start_everything();
+bool piko_clock_input_ittybittymidi();
+bool piko_set_clock_input_ittybittymidi(bool enabled);
+
+extern "C" void tud_cdc_line_coding_cb(uint8_t itf,
+                                       cdc_line_coding_t const* line_coding) {
+  if (itf == 0 && line_coding != nullptr && line_coding->bit_rate == 1200) {
+    reset_usb_boot(0, 0);
+  }
+}
+
+#ifndef XIP_BASE
+#define XIP_BASE 0x10000000u
+#endif
+
+namespace {
+
+static constexpr uint32_t kFlashSectorSize = 4096u;
+static constexpr uint32_t kFlashPageSize = 256u;
+static constexpr uint32_t kReadChunkSize = 1024u;
+static constexpr uint8_t kReadAck = 'A';
+static constexpr uint32_t kReadTimeoutMs = 15000u;
+static constexpr uint32_t kWriteTimeoutMs = 5000u;
+static constexpr uint8_t kCdcInterface = 0;
+static constexpr uint32_t kCdcPacketBytes = 64u;
+static constexpr uint32_t kCdcSmallWriteThreshold = 512u;
+
+uint8_t header_staging[PIKO_BANK_HEADER_SIZE] __attribute__((aligned(4)));
+uint8_t page_buf[kFlashPageSize] __attribute__((aligned(4)));
+volatile bool command_interface_ready = false;
+
+struct ScopedPlaybackMute {
+  ScopedPlaybackMute() {
+    piko_audio_bank_set_mutating(true);
+  }
+
+  ~ScopedPlaybackMute() {
+    piko_audio_bank_set_mutating(false);
+  }
+};
+
+void service_usb() {
+  tud_task();
+}
+
+bool serial_connected() {
+  return tud_ready() && tud_cdc_n_connected(kCdcInterface);
+}
+
+int read_byte_timeout(uint32_t timeout_ms) {
+  const absolute_time_t deadline = make_timeout_time_ms(timeout_ms);
+  while (!time_reached(deadline)) {
+    service_usb();
+    if (!serial_connected()) {
+      return PICO_ERROR_TIMEOUT;
+    }
+    if (tud_cdc_n_available(kCdcInterface) > 0) {
+      uint8_t value = 0;
+      if (tud_cdc_n_read(kCdcInterface, &value, 1) == 1) {
+        return value;
+      }
+    }
+    sleep_us(100);
+  }
+  return PICO_ERROR_TIMEOUT;
+}
+
+bool read_exact(uint8_t* dst, uint32_t len, uint32_t timeout_ms) {
+  for (uint32_t i = 0; i < len; ++i) {
+    const int value = read_byte_timeout(timeout_ms);
+    if (value == PICO_ERROR_TIMEOUT) {
+      return false;
+    }
+    dst[i] = static_cast<uint8_t>(value);
+  }
+  return true;
+}
+
+void write_bytes(const void* data, uint32_t len) {
+  const uint8_t* bytes = static_cast<const uint8_t*>(data);
+  uint32_t sent = 0;
+  while (sent < len) {
+    service_usb();
+    if (!serial_connected()) {
+      return;
+    }
+
+    const uint32_t available = tud_cdc_n_write_available(kCdcInterface);
+    if (available == 0) {
+      tud_cdc_n_write_flush(kCdcInterface);
+      sleep_us(100);
+      continue;
+    }
+
+    const uint32_t limit =
+        len <= kCdcSmallWriteThreshold && available > kCdcPacketBytes
+            ? kCdcPacketBytes
+            : available;
+    const uint32_t remaining = len - sent;
+    const uint32_t chunk = remaining < limit ? remaining : limit;
+    const uint32_t written = tud_cdc_n_write(kCdcInterface, bytes + sent, chunk);
+    if (written == 0) {
+      sleep_us(100);
+      continue;
+    }
+    sent += written;
+    tud_cdc_n_write_flush(kCdcInterface);
+    service_usb();
+    if (len <= kCdcSmallWriteThreshold) {
+      sleep_us(100);
+    }
+  }
+}
+
+void write_u32(uint32_t value) {
+  write_bytes(&value, sizeof(value));
+}
+
+void write_str(const char* text) {
+  write_bytes(text, static_cast<uint32_t>(strlen(text)));
+}
+
+void flush_serial() {
+  tud_cdc_n_write_flush(kCdcInterface);
+  for (uint8_t i = 0; i < 4; ++i) {
+    service_usb();
+    sleep_us(50);
+  }
+}
+
+void send_sync() {
+  write_str("SYNC\n");
+  flush_serial();
+}
+
+[[noreturn]] void handle_bootloader_reset() {
+  do_stop_everything();
+  write_str("OK\n");
+  flush_serial();
+  sleep_ms(100);
+  reset_usb_boot(0, 0);
+  while (true) {
+    tight_loop_contents();
+  }
+}
+
+bool validate_header(const PikoBankHeader& header, uint32_t total_len) {
+  if (total_len < PIKO_BANK_HEADER_SIZE) {
+    return false;
+  }
+  const uint32_t audio_bytes = total_len - PIKO_BANK_HEADER_SIZE;
+  if (header.magic != PIKO_BANK_MAGIC ||
+      header.version != PIKO_BANK_VERSION ||
+      header.header_size != PIKO_BANK_HEADER_SIZE ||
+      header.sample_rate != PIKO_BANK_SAMPLE_RATE ||
+      header.sample_count > PIKO_BANK_MAX_SAMPLES ||
+      header.audio_bytes != audio_bytes ||
+      header.audio_bytes > piko_audio_capacity_bytes() ||
+      header.capacity_bytes > piko_audio_capacity_bytes()) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < header.sample_count; ++i) {
+    const PikoBankSampleRecord& record = header.samples[i];
+    if (record.frame_count == 0 || record.source_bpm == 0 ||
+        record.beat_count == 0 || record.offset > header.audio_bytes ||
+        record.frame_count > header.audio_bytes - record.offset) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// core0 runs the main loop and the audio PWM ISR continuously from flash
+// (XIP) -- flash_range_erase/program from core1 without pausing core0 first
+// is a documented pico-sdk hazard (both cores contend for the same physical
+// flash chip) that can corrupt the write. multicore_lockout_victim_init()
+// is called once on core0 in src/main.cpp before core1 launches.
+void safe_flash_erase(uint32_t offset, size_t size) {
+  multicore_lockout_start_blocking();
+  flash_range_erase(offset, size);
+  multicore_lockout_end_blocking();
+}
+
+void safe_flash_program(uint32_t offset, const uint8_t* data, size_t size) {
+  multicore_lockout_start_blocking();
+  flash_range_program(offset, data, size);
+  multicore_lockout_end_blocking();
+}
+
+void handle_info() {
+  // Refresh the RAM view of the bank from flash before reporting. The
+  // boot-time rescan has been observed (RP2350-PiZero) caching a wrong,
+  // zeroed view of a header that reads back fine later in the same boot;
+  // 'I' runs on every loader connect, so this both self-heals that state
+  // and doubles as a diagnostic (if info disagrees with a subsequent 'R'
+  // stream, reads are still diverging). Guarded so it can't race an
+  // in-flight write on this same core.
+  if (!piko_audio_bank_mutating()) {
+    piko_audio_bank_set_mutating(true);
+    piko_audio_bank_rescan();
+    piko_audio_bank_set_mutating(false);
+  }
+  char info[256];
+  uint32_t used = 0;
+  int n = snprintf(info + used, sizeof(info) - used,
+                   "PIKO1 FW %s F %lu R %lu S %lu A %lu C %lu U %lu SR %lu N %lu CLOCK_INPUT %s PROTO 1 BANK_VERSION %lu BANK_HEADER_SIZE %lu BANK_MAX_SAMPLES %lu\nEND\n",
+                   PIKO_FIRMWARE_VERSION,
+                   static_cast<unsigned long>(piko_flash_total_bytes()),
+                   static_cast<unsigned long>(PIKO_FIRMWARE_RESERVE),
+                   static_cast<unsigned long>(piko_settings_flash_offset()),
+                   static_cast<unsigned long>(piko_audio_flash_offset()),
+                   static_cast<unsigned long>(piko_audio_capacity_bytes()),
+                   static_cast<unsigned long>(piko_audio_audio_bytes()),
+                   static_cast<unsigned long>(PIKO_BANK_SAMPLE_RATE),
+                   static_cast<unsigned long>(piko_audio_sample_count()),
+                   piko_clock_input_ittybittymidi() ? "MIDI" : "CLOCK",
+                   static_cast<unsigned long>(PIKO_BANK_VERSION),
+                   static_cast<unsigned long>(PIKO_BANK_HEADER_SIZE),
+                   static_cast<unsigned long>(PIKO_BANK_MAX_SAMPLES));
+  if (n < 0 || static_cast<uint32_t>(n) >= sizeof(info) - used) {
+    return;
+  }
+  used += static_cast<uint32_t>(n);
+
+  write_u32(used);
+  write_bytes(info, used);
+  flush_serial();
+}
+
+void handle_read() {
+  if (!piko_audio_bank_valid()) {
+    write_u32(0);
+    flush_serial();
+    return;
+  }
+
+  const uint32_t total_len = PIKO_BANK_HEADER_SIZE + piko_audio_audio_bytes();
+  ScopedPlaybackMute playback_mute;
+  write_u32(total_len);
+  flush_serial();
+  const uint8_t* src =
+      reinterpret_cast<const uint8_t*>(XIP_BASE + PIKO_AUDIO_FLASH_OFFSET);
+
+  uint32_t sent = 0;
+  while (sent < total_len) {
+    const uint32_t chunk =
+        total_len - sent < kReadChunkSize ? total_len - sent : kReadChunkSize;
+    write_bytes(src + sent, chunk);
+    flush_serial();
+    const int ack = read_byte_timeout(kReadTimeoutMs);
+    if (ack != kReadAck) {
+      send_sync();
+      return;
+    }
+    sent += chunk;
+  }
+  write_str("DONE\n");
+  flush_serial();
+}
+
+void erase_bank_header() {
+  piko_audio_bank_set_mutating(true);
+  safe_flash_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
+  piko_audio_bank_rescan();
+  piko_audio_bank_set_mutating(false);
+}
+
+void drain_rejected_write(uint32_t remaining) {
+  while (remaining > 0) {
+    uint8_t scratch[32];
+    const uint32_t chunk = remaining < sizeof(scratch) ? remaining : sizeof(scratch);
+    if (!read_exact(scratch, chunk, kWriteTimeoutMs)) {
+      return;
+    }
+    remaining -= chunk;
+  }
+}
+
+void handle_write() {
+  uint8_t len_buf[4];
+  if (!read_exact(len_buf, sizeof(len_buf), kWriteTimeoutMs)) {
+    write_str("TIMEOUT\n");
+    flush_serial();
+    return;
+  }
+  uint32_t total_len = 0;
+  memcpy(&total_len, len_buf, sizeof(total_len));
+
+  if (total_len < PIKO_BANK_HEADER_SIZE ||
+      total_len > PIKO_BANK_HEADER_SIZE + piko_audio_capacity_bytes()) {
+    write_str("ERR\n");
+    flush_serial();
+    drain_rejected_write(total_len);
+    return;
+  }
+
+  write_str("OK\n");
+  flush_serial();
+
+  if (!read_exact(header_staging, PIKO_BANK_HEADER_SIZE, kWriteTimeoutMs)) {
+    write_str("TIMEOUT\n");
+    flush_serial();
+    return;
+  }
+
+  const PikoBankHeader* header =
+      reinterpret_cast<const PikoBankHeader*>(header_staging);
+  if (!validate_header(*header, total_len)) {
+    write_str("ERR\n");
+    flush_serial();
+    drain_rejected_write(total_len - PIKO_BANK_HEADER_SIZE);
+    return;
+  }
+
+  piko_audio_bank_set_mutating(true);
+
+  safe_flash_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
+
+  uint32_t bytes_written = PIKO_BANK_HEADER_SIZE;
+  uint32_t audio_flash_off = PIKO_AUDIO_FLASH_OFFSET + PIKO_BANK_HEADER_SIZE;
+  uint32_t next_erase = audio_flash_off;
+
+  while (bytes_written < total_len) {
+    const uint32_t remaining = total_len - bytes_written;
+    const uint32_t page_fill = remaining < kFlashPageSize ? remaining : kFlashPageSize;
+    memset(page_buf, 0xff, sizeof(page_buf));
+    if (!read_exact(page_buf, page_fill, kWriteTimeoutMs)) {
+      piko_audio_bank_rescan();
+      piko_audio_bank_set_mutating(false);
+      write_str("TIMEOUT\n");
+      flush_serial();
+      return;
+    }
+
+    const uint32_t page_off = audio_flash_off + (bytes_written - PIKO_BANK_HEADER_SIZE);
+    if (page_off >= next_erase) {
+      safe_flash_erase(next_erase, kFlashSectorSize);
+      next_erase += kFlashSectorSize;
+    }
+    safe_flash_program(page_off, page_buf, sizeof(page_buf));
+    bytes_written += page_fill;
+  }
+
+  memset(page_buf, 0xff, sizeof(page_buf));
+  for (uint32_t offset = 0; offset < PIKO_BANK_HEADER_SIZE; offset += kFlashPageSize) {
+    memcpy(page_buf, header_staging + offset, kFlashPageSize);
+    safe_flash_program(PIKO_AUDIO_FLASH_OFFSET + offset, page_buf, sizeof(page_buf));
+  }
+
+  piko_audio_bank_rescan();
+  piko_audio_bank_set_mutating(false);
+  write_str("OK\n");
+  flush_serial();
+}
+
+void handle_clock_input_mode() {
+  const int value = read_byte_timeout(kWriteTimeoutMs);
+  if (value == PICO_ERROR_TIMEOUT || (value != 0 && value != 1)) {
+    write_str("ERR\n");
+    flush_serial();
+    return;
+  }
+  if (!piko_set_clock_input_ittybittymidi(value == 1)) {
+    write_str("ERR\n");
+    flush_serial();
+    return;
+  }
+  write_str("OK\n");
+  flush_serial();
+}
+
+#if PIKO_GAMEPI13
+constexpr uint32_t kMaxSdFiles = 32;
+constexpr uint32_t kSdFilenameLen = 64;
+
+char sd_file_names[kMaxSdFiles][kSdFilenameLen];
+uint32_t sd_file_count_internal = 0;
+FATFS sd_fatfs;
+bool sd_mounted = false;
+
+bool sd_mount() {
+  if (sd_mounted) return true;
+  const FRESULT fr = f_mount(&sd_fatfs, sd_get_drive_prefix(sd_get_by_num(0)), 1);
+  sd_mounted = (fr == FR_OK);
+  return sd_mounted;
+}
+
+void sd_unmount() {
+  if (!sd_mounted) return;
+  f_unmount(sd_get_drive_prefix(sd_get_by_num(0)));
+  sd_mounted = false;
+}
+
+// Case-insensitive ".pikobank" suffix check without pulling in strings.h.
+bool has_pikobank_extension(const char *name) {
+  static const char kExt[] = ".pikobank";
+  const uint32_t ext_len = sizeof(kExt) - 1;
+  const uint32_t len = strlen(name);
+  if (len <= ext_len) return false;
+  const char *suffix = name + (len - ext_len);
+  for (uint32_t i = 0; i < ext_len; ++i) {
+    char a = suffix[i];
+    const char b = kExt[i];
+    if (a >= 'A' && a <= 'Z') a = static_cast<char>(a + 32);
+    if (a != b) return false;
+  }
+  return true;
+}
+
+void sd_list_files() {
+  sd_file_count_internal = 0;
+  if (!sd_mount()) return;
+  DIR dir;
+  if (f_opendir(&dir, sd_get_drive_prefix(sd_get_by_num(0))) != FR_OK) return;
+  FILINFO fno;
+  while (sd_file_count_internal < kMaxSdFiles &&
+         f_readdir(&dir, &fno) == FR_OK && fno.fname[0] != 0) {
+    if (fno.fattrib & AM_DIR) continue;
+    if (!has_pikobank_extension(fno.fname)) continue;
+    strncpy(sd_file_names[sd_file_count_internal], fno.fname, kSdFilenameLen - 1);
+    sd_file_names[sd_file_count_internal][kSdFilenameLen - 1] = '\0';
+    sd_file_count_internal++;
+  }
+  f_closedir(&dir);
+}
+
+// Mirrors handle_write()'s validate+erase+program sequence, sourcing bytes
+// from an SD file instead of the USB serial link. Reuses the same
+// header_staging/page_buf staging buffers and the same safe_flash_* helpers
+// (multicore-lockout protected, see Fase 2) -- no new flash-writing logic.
+bool sd_load_bank(uint32_t index) {
+  if (index >= sd_file_count_internal) return false;
+  if (!sd_mount()) return false;
+
+  FIL fil;
+  if (f_open(&fil, sd_file_names[index], FA_READ) != FR_OK) return false;
+
+  const uint32_t total_len = static_cast<uint32_t>(f_size(&fil));
+  if (total_len < PIKO_BANK_HEADER_SIZE ||
+      total_len > PIKO_BANK_HEADER_SIZE + piko_audio_capacity_bytes()) {
+    f_close(&fil);
+    return false;
+  }
+
+  UINT br = 0;
+  if (f_read(&fil, header_staging, PIKO_BANK_HEADER_SIZE, &br) != FR_OK ||
+      br != PIKO_BANK_HEADER_SIZE) {
+    f_close(&fil);
+    return false;
+  }
+
+  const PikoBankHeader *header =
+      reinterpret_cast<const PikoBankHeader *>(header_staging);
+  if (!validate_header(*header, total_len)) {
+    f_close(&fil);
+    return false;
+  }
+
+  piko_audio_bank_set_mutating(true);
+
+  safe_flash_erase(PIKO_AUDIO_FLASH_OFFSET, PIKO_BANK_HEADER_SIZE);
+
+  uint32_t bytes_written = PIKO_BANK_HEADER_SIZE;
+  uint32_t audio_flash_off = PIKO_AUDIO_FLASH_OFFSET + PIKO_BANK_HEADER_SIZE;
+  uint32_t next_erase = audio_flash_off;
+  bool ok = true;
+
+  while (bytes_written < total_len) {
+    const uint32_t remaining = total_len - bytes_written;
+    const uint32_t page_fill =
+        remaining < kFlashPageSize ? remaining : kFlashPageSize;
+    memset(page_buf, 0xff, sizeof(page_buf));
+    if (f_read(&fil, page_buf, page_fill, &br) != FR_OK || br != page_fill) {
+      ok = false;
+      break;
+    }
+    const uint32_t page_off =
+        audio_flash_off + (bytes_written - PIKO_BANK_HEADER_SIZE);
+    if (page_off >= next_erase) {
+      safe_flash_erase(next_erase, kFlashSectorSize);
+      next_erase += kFlashSectorSize;
+    }
+    safe_flash_program(page_off, page_buf, sizeof(page_buf));
+    bytes_written += page_fill;
+  }
+
+  if (ok) {
+    memset(page_buf, 0xff, sizeof(page_buf));
+    for (uint32_t offset = 0; offset < PIKO_BANK_HEADER_SIZE;
+         offset += kFlashPageSize) {
+      memcpy(page_buf, header_staging + offset, kFlashPageSize);
+      safe_flash_program(PIKO_AUDIO_FLASH_OFFSET + offset, page_buf,
+                         sizeof(page_buf));
+    }
+    piko_audio_bank_rescan();
+  }
+
+  piko_audio_bank_set_mutating(false);
+  f_close(&fil);
+  return ok;
+}
+#endif  // PIKO_GAMEPI13
+
+}  // namespace
+
+#if PIKO_GAMEPI13
+volatile bool gamepi_sd_list_requested = false;
+volatile bool gamepi_sd_list_done = false;
+volatile bool gamepi_sd_load_requested = false;
+volatile uint32_t gamepi_sd_load_index = 0;
+volatile bool gamepi_sd_load_done = false;
+volatile bool gamepi_sd_load_ok = false;
+volatile bool gamepi_sd_unmount_requested = false;
+
+uint32_t gamepi_sd_file_count() { return sd_file_count_internal; }
+
+const char *gamepi_sd_file_name(uint32_t index) {
+  static const char kEmpty[] = "";
+  if (index >= sd_file_count_internal) return kEmpty;
+  return sd_file_names[index];
+}
+#endif
+
+void piko_sample_manager_set_ready() {
+  PIKO_DMB();
+  command_interface_ready = true;
+}
+
+void piko_sample_manager_core() {
+  while (true) {
+    service_usb();
+
+#if PIKO_GAMEPI13
+    // Checked BEFORE the serial_connected() early-continue below: SD
+    // browsing must work with no USB/PC attached at all, which is the whole
+    // point of this feature. If this moved below the USB check, standalone
+    // use would silently never service these requests.
+    if (gamepi_sd_list_requested) {
+      gamepi_sd_list_requested = false;
+      sd_list_files();
+      PIKO_DMB();
+      gamepi_sd_list_done = true;
+    }
+    if (gamepi_sd_load_requested) {
+      gamepi_sd_load_requested = false;
+      const bool ok = sd_load_bank(gamepi_sd_load_index);
+      gamepi_sd_load_ok = ok;
+      PIKO_DMB();
+      gamepi_sd_load_done = true;
+    }
+    if (gamepi_sd_unmount_requested) {
+      gamepi_sd_unmount_requested = false;
+      sd_unmount();
+    }
+#endif
+
+    if (!serial_connected()) {
+      sleep_ms(1);
+      continue;
+    }
+    if (!command_interface_ready) {
+      sleep_ms(1);
+      continue;
+    }
+
+    const int value = read_byte_timeout(1);
+    if (value == PICO_ERROR_TIMEOUT) {
+      continue;
+    }
+
+    switch (value & 0xff) {
+      case 'X':
+        send_sync();
+        break;
+      case 'I':
+        handle_info();
+        break;
+      case 'R':
+        handle_read();
+        break;
+      case 'W':
+        handle_write();
+        break;
+      case 'E':
+        erase_bank_header();
+        write_str("OK\n");
+        flush_serial();
+        break;
+      case 'S':
+        do_stop_everything();
+        write_str("OK\n");
+        flush_serial();
+        break;
+      case 'B':
+        do_stop_everything();
+        handle_info();
+        do_start_everything();
+        break;
+      case 'C':
+        handle_clock_input_mode();
+        break;
+      case 'U':
+        handle_bootloader_reset();
+        break;
+      default:
+        break;
+    }
+  }
+}
