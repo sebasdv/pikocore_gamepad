@@ -11,7 +11,7 @@
 #include "pico/stdlib.h"
 #include "tusb.h"
 
-#if PIKO_GAMEPI13
+#if PIKO_GAMEPI13 && !PIKO_GAMEPAD
 #include "ff.h"
 #include "hw_config.h"
 #include "sd_card.h"
@@ -396,6 +396,15 @@ constexpr uint32_t kSdFilenameLen = 64;
 
 char sd_file_names[kMaxSdFiles][kSdFilenameLen];
 uint32_t sd_file_count_internal = 0;
+
+#if PIKO_GAMEPAD
+// The pikocore_gamepad carrier PCB has no microSD socket. Mode 8 is
+// unreachable there (PIKO_GAMEPI13_SD is forced to 0 in CMake); these stubs
+// only keep core1's request loop below linking without FatFs.
+void sd_unmount() {}
+void sd_list_files() { sd_file_count_internal = 0; }
+bool sd_load_bank(uint32_t) { return false; }
+#else
 FATFS sd_fatfs;
 bool sd_mounted = false;
 
@@ -520,6 +529,7 @@ bool sd_load_bank(uint32_t index) {
   f_close(&fil);
   return ok;
 }
+#endif  // PIKO_GAMEPAD
 #endif  // PIKO_GAMEPI13
 
 }  // namespace

@@ -4,7 +4,13 @@ Source of truth: `hardware/pikocore_gamepad/pcb/pinmap.py` (forked from
 `C:\midigame\GAMESETUP\pcb\pinmap.py` — see
 `docs/superpowers/plans/2026-08-11-pikocore-gamepad-pcb-fork.md`). Any change to a
 net name or GPIO assignment must be made in `pinmap.py` first — `checks/run_all.py`'s
-G-2/G-4 gates catch drift between it, the schematic, and the firmware config.h stub.
+G-2/G-4 gates catch drift between it, the schematic, and the firmware board config.
+
+Firmware side: [`src/boards/pikocore_gamepad/config.h`](../../src/boards/pikocore_gamepad/config.h)
+holds one `#define PIN_<NET> <gpio>` per row of the table below and nothing else named
+`PIN_*` — that file is what gate G-4 (`checks/check_pinmap.py`) diffs against `pinmap.py`.
+`src/hw_gamepi13.h` maps those onto the names the shared GamePi13 input/UI layer uses
+when built with `-DPIKO_GAMEPAD=ON` (see `hardware/pikocore_gamepad/README.md`).
 
 | GPIO | Net name | Function |
 |---|---|---|
@@ -32,8 +38,8 @@ G-2/G-4 gates catch drift between it, the schematic, and the firmware config.h s
 | GP21 | `JACK_DET` | Headphone jack detect (0 = plug inserted, needs pull-up) |
 | GP22 | `DAC_XSMT` | DAC mute control (starts muted via 100k pulldown) |
 | GP26 | `BTN_OK` | NAV5 center press (confirm/select) |
-| GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate) |
-| GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor) |
+| GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate). Firmware parks pikocore's clock-in (GP27, pull-up) and trigger-out (GP28) here so the stock engine code runs unchanged; wire a jack and they just work |
+| GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor). Firmware uses the GP25 onboard LED as the beat LED |
 
 The electrical topology is the same one the superseded from-scratch plan called for
 — each button switches its GPIO net to GND, and firmware enables `gpio_pull_up()` on

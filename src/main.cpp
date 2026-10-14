@@ -61,7 +61,16 @@
 #if PIKO_GAMEPI13_HDMI
 #include "hdmi_mirror.h"
 #endif
+#if PIKO_GAMEPAD
+// Carrier PCB: no PWM audio pin. The engine ticks off a free PWM slice and
+// the samples go out over I2S (see audio_i2s.h for how the two cadences
+// are reconciled).
+#include "gamepad/audio_i2s.h"
+#define AUDIO_TICK_SLICE GAMEPI_AUDIO_TICK_SLICE
+#define audio_out(v) gamepad_i2s_write(v)
+#else
 #define AUDIO_PIN GAMEPI_AUDIO_PIN
+#endif
 #define LED_PIN GAMEPI_LED_PIN
 #define CLOCK_PIN GAMEPI_CLOCK_PIN
 #define TRIGO_PIN GAMEPI_TRIGO_PIN
@@ -78,6 +87,11 @@
 #endif
 #define CLOCK_PIN 22  // clock in pin
 #define TRIGO_PIN 21  // trigger out pin
+#endif
+#ifndef AUDIO_TICK_SLICE
+// PWM audio: the slice driving AUDIO_PIN is also the engine's tick source.
+#define AUDIO_TICK_SLICE pwm_gpio_to_slice_num(AUDIO_PIN)
+#define audio_out(v) pwm_set_gpio_level(AUDIO_PIN, (v))
 #endif
 #define MAIN_LOOP_HZ 4
 #define MAIN_LOOP_DELAY 50
@@ -933,15 +947,15 @@ void sync_timestretch_sample_selection() {
  * PWM INTERRUPT LOGIC (main audio thread)
  */
 void pwm_interrupt_handler() {
-  pwm_clear_irq(pwm_gpio_to_slice_num(AUDIO_PIN));
+  pwm_clear_irq(AUDIO_TICK_SLICE);
 
   if (piko_audio_bank_mutating() || piko_audio_sample_count() == 0) {
-    pwm_set_gpio_level(AUDIO_PIN, 128);
+    audio_out(128);
     return;
   }
 
   if ((!do_sync_play && is_syncing) || do_mute) {
-    pwm_set_gpio_level(AUDIO_PIN, 128);
+    audio_out(128);
     return;
     // bool do_manual_hit = false;
     // if (do_mute) {
@@ -1205,7 +1219,7 @@ void pwm_interrupt_handler() {
   }
   const bool audio_tick = audio_clk >= static_cast<uint16_t>(audio_tick_thresh);
   if (!audio_tick && !beat_onset) {
-    pwm_set_gpio_level(AUDIO_PIN, audio_now);
+    audio_out(audio_now);
     return;
   }
 
@@ -1544,7 +1558,7 @@ void pwm_interrupt_handler() {
     // <dither>
     // audio_now = ditherer.Update(audio_now);
     // </dither>
-  pwm_set_gpio_level(AUDIO_PIN, audio_now);
+  audio_out(audio_now);
 }
 
 void print_buf(const uint8_t *buf, size_t len) {
@@ -1801,8 +1815,25 @@ int main(void) {
 
   // initialize clocking and PWM interrupts
   // overclock at a multiple of sampling rate
+#if PIKO_GAMEPAD
+  // DAC_XSMT boots low (100k pulldown on the PCB = soft-muted) and stays low
+  // until the I2S clocks run and the engine has ticked -- see the unmute next
+  // to the IRQ enable below. The speaker amp starts off; the control loop
+  // switches it with the headphone jack.
+  gpio_init(PIN_DAC_XSMT);
+  gpio_set_dir(PIN_DAC_XSMT, GPIO_OUT);
+  gpio_put(PIN_DAC_XSMT, 0);
+  gpio_init(PIN_SPK_SHDN);
+  gpio_set_dir(PIN_SPK_SHDN, GPIO_OUT);
+  gpio_put(PIN_SPK_SHDN, 0);
+  gpio_init(PIN_JACK_DET);
+  gpio_set_dir(PIN_JACK_DET, GPIO_IN);
+  gpio_pull_up(PIN_JACK_DET);
+  gamepad_i2s_init();
+#else
   gpio_set_function(AUDIO_PIN, GPIO_FUNC_PWM);
-  int audio_pin_slice = pwm_gpio_to_slice_num(AUDIO_PIN);
+#endif
+  int audio_pin_slice = AUDIO_TICK_SLICE;
   pwm_clear_irq(audio_pin_slice);
   irq_set_priority(PWM_IRQ_WRAP, 0xc0);
   irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_interrupt_handler);
@@ -1820,7 +1851,7 @@ int main(void) {
   pwm_config_set_clkdiv(&config, 1.0f);
   pwm_config_set_wrap(&config, 250);
   pwm_init(audio_pin_slice, &config, true);
-  pwm_set_gpio_level(AUDIO_PIN, 0);
+  audio_out(0);
 
   // setup gpio pins
   gpio_init(LED_PIN);
@@ -1866,7 +1897,11 @@ int main(void) {
     input_knob[i].Init(i, 50);
   }
   btn_select.Init(GAMEPI_BTN_SELECT, 10);
+#if PIKO_GAMEPAD
+  btn_start.Init(GAMEPI_BTN_START, 10, GAMEPI_BTN_OK);  // NAV5 centre = Start
+#else
   btn_start.Init(GAMEPI_BTN_START, 10);
+#endif
   btn_l.Init(GAMEPI_BTN_L, 10);
   btn_r.Init(GAMEPI_BTN_R, 10);
   gamepi_ui_init();
@@ -2002,6 +2037,13 @@ int main(void) {
 #if !PIKO_HDMI_NOAUDIO
   pwm_set_irq_enabled(audio_pin_slice, true);
   irq_set_enabled(PWM_IRQ_WRAP, true);
+#endif
+#if PIKO_GAMEPAD
+  // Unmute only now: BCK/LRCK have been running since gamepad_i2s_init() and
+  // the ISR has already pushed real samples (or 128 = silence), so the
+  // PCM5102A's soft-unmute ramps into the live signal instead of a DC step.
+  sleep_ms(10);
+  gpio_put(PIN_DAC_XSMT, 1);
 #endif
 
   // control loop
@@ -2281,6 +2323,10 @@ int main(void) {
       btn_start.Read();
       btn_l.Read();
       btn_r.Read();
+#if PIKO_GAMEPAD
+      // Speaker amp follows the jack switch: JACK_DET reads 0 with a plug in.
+      gpio_put(PIN_SPK_SHDN, gpio_get(PIN_JACK_DET));
+#endif
       if (btn_select.Changed(true)) {
         if (btn_select.Rising()) {
           gamepi_select_used_as_modifier = false;

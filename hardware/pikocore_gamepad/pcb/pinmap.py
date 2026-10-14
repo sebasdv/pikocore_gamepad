@@ -2,10 +2,10 @@
 """Asignacion GPIO -> funcion de la PCB V2. Fuente de verdad del pinout.
 
 gen_sch.py lo consume para armar las nets del socket del MCU, y
-checks/check_pinmap.py lo contrasta contra el config.h de firmware que apunte
-CONFIG_H en ese script (hoy un stub en firmware_pin_stub/, hasta que exista el
-repin real): si los dos se separan, la placa y el firmware dejan de coincidir
-sin ningun error visible.
+checks/check_pinmap.py lo contrasta contra el board config real del firmware
+(src/boards/pikocore_gamepad/config.h, target PIKO_GAMEPAD de CMake): si los
+dos se separan, la placa y el firmware dejan de coincidir sin ningun error
+visible.
 
 El RP2350-Plus es pin-compatible con la Raspberry Pi Pico y expone GP0-GP22
 y GP26-GP28. GP23/24/25 son internos del modulo (MODE del MP28164, sensado

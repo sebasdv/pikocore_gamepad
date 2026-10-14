@@ -65,3 +65,6 @@ hardware/pikocore_gamepad/pcb/fab/
 
 # HDMI-mirror build output
 build-hdmi/
+
+# pikocore_gamepad carrier-PCB build output (PIKO_GAMEPAD=ON)
+build-gamepad/

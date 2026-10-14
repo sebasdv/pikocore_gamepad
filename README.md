@@ -57,6 +57,8 @@ Flash `build-gamepi/pikocore.uf2` (hold BOOTSEL while plugging in USB).
 
 The original, unmodified stock-hardware build (potentiometers, no LCD) still works
 from the same tree — see the [upstream build instructions](#upstream-pikocore) below.
+The custom carrier-PCB variant (RP2350-Plus + I2S DAC) builds with
+`-DPIKO_GAMEPAD=ON` instead — see [hardware/pikocore_gamepad/README.md](hardware/pikocore_gamepad/README.md).
 
 ## Loading samples
 
