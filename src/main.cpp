@@ -1897,11 +1897,7 @@ int main(void) {
     input_knob[i].Init(i, 50);
   }
   btn_select.Init(GAMEPI_BTN_SELECT, 10);
-#if PIKO_GAMEPAD
-  btn_start.Init(GAMEPI_BTN_START, 10, GAMEPI_BTN_OK);  // NAV5 centre = Start
-#else
   btn_start.Init(GAMEPI_BTN_START, 10);
-#endif
   btn_l.Init(GAMEPI_BTN_L, 10);
   btn_r.Init(GAMEPI_BTN_R, 10);
   gamepi_ui_init();

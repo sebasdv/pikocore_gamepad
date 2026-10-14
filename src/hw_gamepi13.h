@@ -32,11 +32,10 @@
 #define GAMEPI_BTN_START PIN_BTN_START
 #define GAMEPI_BTN_L PIN_BTN_L
 #define GAMEPI_BTN_R PIN_BTN_R
-// NAV5 centre press: a second Start (Button::Init(pin, debounce, alt_pin)).
-#define GAMEPI_BTN_OK PIN_BTN_OK
-
-// LCD ST7789 1.3" 240x240 on SPI0, 7-pin module: no CS line (tied low on
-// the panel), so EPD_CS_PIN is -1 and dev_shim.c skips it.
+// LCD ST7789 1.3" 240x240 (DM-TFT13-377, 24-pin FPC, 4-SPI) on SPI0. CS is
+// tied to GND on the PCB (always selected), so EPD_CS_PIN is -1 and
+// dev_shim.c skips it. Backlight: GP7 PWM drives an NMOS (1 = on, same
+// polarity as the GamePi13). TE (PIN_LCD_TE, GP26) is routed but unused.
 #define GAMEPI_LCD_CS_PIN -1
 #define GAMEPI_LCD_CLK_PIN PIN_LCD_SCK
 #define GAMEPI_LCD_MOSI_PIN PIN_LCD_MOSI

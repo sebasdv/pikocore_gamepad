@@ -78,8 +78,14 @@ class TestSimbolos(unittest.TestCase):
         for name, s in netlist.SYMS.items():
             self.assertTrue(s["ref"], f"{name}: falta ref")
 
+    # Piezas MECANICAS que existen solo por su contorno (se pegan, no se
+    # sueldan). Cualquier otro simbolo sin pines es un olvido.
+    SIN_PINES = {"LCD_PANEL"}
+
     def test_cada_simbolo_tiene_al_menos_un_pin(self):
         for name, s in netlist.SYMS.items():
+            if name in self.SIN_PINES:
+                continue
             self.assertTrue(s["pins"], f"{name}: no tiene pines")
 
     def test_ningun_simbolo_repite_numero_de_pin(self):
@@ -133,31 +139,25 @@ class TestSimboloMcu(unittest.TestCase):
 
 class TestSimboloLcd(unittest.TestCase):
 
-    def test_tiene_siete_pines_en_el_orden_del_modulo(self):
-        self.assertEqual(pin_names("LCD_ST7789"),
-                         ["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"])
+    def test_el_conector_tiene_los_24_pines_del_panel_mas_dos_anclajes(self):
+        n = pin_names("LCD_FPC24")
+        self.assertEqual(len(n), 26)
+        self.assertEqual(n[24:], ["MP", "MP"])
 
-    def test_el_orden_coincide_con_el_footprint(self):
-        # El simbolo y el footprint viven en archivos distintos. Si divergen,
-        # el esquematico y la placa se cablean distinto y no lo agarra ni el
-        # ERC ni el DRC: la netlist es coherente consigo misma en los dos.
-        self.assertEqual(pin_names("LCD_ST7789"), gen_fp.LCD_PIN_NAMES)
+    def test_el_pinout_es_el_del_datasheet_del_panel(self):
+        # DM-TFT13-377 24P, "3. Pin Definition". Un pin corrido aca es un
+        # panel que no enciende, y no lo ve ni el ERC ni el DRC.
+        n = pin_names("LCD_FPC24")
+        self.assertEqual(n[:12], ["LEDA", "LEDK", "GND", "VDD", "VDDIO", "IM",
+                                  "RESET", "CS", "SCL", "D/C", "RD", "SDA"])
+        self.assertEqual(n[12:20], [f"DB{k}" for k in range(8)])
+        self.assertEqual(n[20:24], ["TE", "NC", "GND", "GND"])
 
-    def test_no_tiene_pin_cs(self):
-        # El modulo de 7 pines esta siempre seleccionado. Que no exista el pin
-        # es lo que fuerza que la microSD vaya a otro SPI.
-        self.assertNotIn("CS", pin_names("LCD_ST7789"))
+    def test_el_panel_es_una_pieza_sin_pines(self):
+        self.assertEqual(pin_names("LCD_PANEL"), [])
 
-
-class TestSimboloNav(unittest.TestCase):
-
-    def test_tiene_seis_pines(self):
-        self.assertEqual(len(netlist.SYMS["NAV_WS1004"]["pins"]), 6)
-
-    def test_sigue_el_pinout_del_datasheet(self):
-        # WS-1004-ARL10026: 1=COM 2=LEFT 3=CENTRO 4=UP 5=RIGHT 6=DOWN.
-        self.assertEqual(pin_names("NAV_WS1004"),
-                         ["COM", "LEFT", "CENTER", "UP", "RIGHT", "DOWN"])
+    def test_el_nmos_tiene_el_pinout_sot23(self):
+        self.assertEqual(pin_names("Q_NMOS"), ["G", "S", "D"])
 
 
 class TestSimboloTact(unittest.TestCase):
@@ -475,24 +475,30 @@ class TestPuentesDeTact(unittest.TestCase):
 
 class TestInstanciasEntrada(unittest.TestCase):
 
-    def test_hay_nueve_switches_fisicos(self):
-        # 6 tacts verticales (X/Y/A/B + Start/Select) + 2 gatillos angulados
-        # (L/R) + 1 NAV5 (reemplaza los 4 tacts del D-pad).
+    def test_hay_doce_switches_fisicos(self):
+        # 10 tacts verticales (D-pad 4 + X/Y/A/B 4 + Start/Select 2) + 2
+        # gatillos angulados (L/R). El D-pad volvio a ser cuatro tacts: el
+        # NAV5 de 5 vias no permitia pulsar dos direcciones a la vez.
         vert = [i for i in netlist.INSTANCES if i[0] == "SW_Push"]
         ang = [i for i in netlist.INSTANCES if i[0] == "SW_Push_RA"]
-        nav = [i for i in netlist.INSTANCES if i[0] == "NAV_WS1004"]
-        self.assertEqual(len(vert), 6)
+        self.assertEqual(len(vert), 10)
         self.assertEqual(len(ang), 2)
-        self.assertEqual(len(nav), 1)
-        self.assertEqual(len(vert) + len(ang) + len(nav), 9)
+        self.assertNotIn("NAV_WS1004", {i[0] for i in netlist.INSTANCES})
 
-    def test_hay_trece_botones_logicos(self):
-        # X/Y/A/B (4) + Start/Select (2) + L/R (2) + NAV5 (5: 4 direcciones +
-        # BTN_OK) = 13, aunque solo sean 9 piezas fisicas.
-        logicos = {sig for _, sig in netlist.TACTS}
-        logicos |= {"BTN_L", "BTN_R"}
-        logicos |= {"DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT", "BTN_OK"}
-        self.assertEqual(len(logicos), 13)
+    def test_hay_doce_botones_logicos(self):
+        # D-pad (4) + X/Y/A/B (4) + Start/Select (2) + L/R (2) = 12, uno por
+        # pieza fisica: sin BTN_OK, que era el centro del NAV5.
+        logicos = {sig for _, sig in netlist.TACTS} | {"BTN_L", "BTN_R"}
+        self.assertEqual(len(logicos), 12)
+        self.assertNotIn("BTN_OK", logicos)
+
+    def test_el_dpad_son_cuatro_tacts_con_su_direccion(self):
+        for ref, sig in (("SW1", "DPAD_UP"), ("SW2", "DPAD_DOWN"),
+                         ("SW3", "DPAD_LEFT"), ("SW4", "DPAD_RIGHT")):
+            n = nets_of(ref)
+            self.assertEqual(n["1"], sig)
+            self.assertEqual(n["2"], "GND")
+            pinmap.gpio_of(sig)   # la net tiene un GPIO real detras
 
     def test_los_gatillos_son_los_angulados(self):
         # L y R se aprietan de costado desde el borde: si quedaran verticales
@@ -526,26 +532,6 @@ class TestInstanciasEntrada(unittest.TestCase):
                              f"{inst[1]}: tiene que usar un pin de cada par")
             self.assertNotEqual(n["1"], "GND", f"{inst[1]}: pin 1 es la senal")
             self.assertEqual(n["2"], "GND", f"{inst[1]}: pin 2 va a masa")
-
-    def test_el_comun_del_nav5_va_a_masa(self):
-        self.assertEqual(nets_of("SW13")["1"], "GND")
-
-    def test_el_nav5_cablea_las_5_direcciones_correctas(self):
-        # Las 4 direcciones ya estaban en el pinmap desde el fork original
-        # (heredadas del D-pad); BTN_OK es nuevo en este plan.
-        n = nets_of("SW13")
-        self.assertEqual(n["2"], "DPAD_LEFT")
-        self.assertEqual(n["3"], "BTN_OK")
-        self.assertEqual(n["4"], "DPAD_UP")
-        self.assertEqual(n["5"], "DPAD_RIGHT")
-        self.assertEqual(n["6"], "DPAD_DOWN")
-
-    def test_las_5_nets_del_nav5_existen_en_el_pinmap(self):
-        # gpio_of() falla fuerte (KeyError) si la funcion no esta asignada:
-        # esto verifica que las 5 nets del NAV5 tengan un GPIO real detras,
-        # no un nombre que quedo mal escrito.
-        for func in ("DPAD_LEFT", "BTN_OK", "DPAD_UP", "DPAD_RIGHT", "DPAD_DOWN"):
-            pinmap.gpio_of(func)  # no debe lanzar KeyError
 
 class TestInstanciaMcu(unittest.TestCase):
 
@@ -582,22 +568,45 @@ class TestInstanciaMcu(unittest.TestCase):
 
 class TestInstanciaDisplay(unittest.TestCase):
 
-    def test_se_alimenta_de_3v3(self):
+    def test_se_alimenta_de_3v3_y_elige_4_spi(self):
         n = nets_of("J4")
-        self.assertEqual(n["1"], "GND")
-        self.assertEqual(n["2"], "3V3")
+        self.assertEqual(n["4"], "3V3")    # VDD
+        self.assertEqual(n["5"], "3V3")    # VDDIO
+        self.assertEqual(n["6"], "3V3")    # IM = 1 -> 4-SPI
 
     def test_el_spi_y_el_control_llegan_del_mcu(self):
         n = nets_of("J4")
-        self.assertEqual(n["3"], "LCD_SCK")
-        self.assertEqual(n["4"], "LCD_MOSI")
-        self.assertEqual(n["5"], "LCD_RES")
-        self.assertEqual(n["6"], "LCD_DC")
+        self.assertEqual(n["9"], "LCD_SCK")
+        self.assertEqual(n["12"], "LCD_MOSI")
+        self.assertEqual(n["7"], "LCD_RES")
+        self.assertEqual(n["10"], "LCD_DC")   # WR = D/C en 4-SPI
+        self.assertEqual(n["21"], "LCD_TE")
 
-    def test_el_backlight_va_al_gpio_y_no_a_3v3(self):
-        # Fijarlo a 3V3 dejaria el mayor consumidor de la placa siempre al
-        # maximo, sin forma de apagar la pantalla por firmware.
-        self.assertEqual(nets_of("J4")["7"], "LCD_BLK")
+    def test_cs_rd_y_el_bus_paralelo_van_a_masa(self):
+        # CS a masa = siempre seleccionado (como el modulo de 7 pines). En
+        # 4-SPI el datasheet manda RD y DB0-7 a masa.
+        n = nets_of("J4")
+        self.assertEqual(n["8"], "GND")
+        self.assertEqual(n["11"], "GND")
+        for k in range(13, 21):
+            self.assertEqual(n[str(k)], "GND", f"DB{k - 13}")
+        self.assertEqual(n["22"], netlist.NC)
+
+    def test_el_backlight_lo_conmuta_el_gpio_por_el_nmos(self):
+        # Fijar los LED a un riel dejaria el mayor consumidor de la placa
+        # siempre al maximo, sin forma de apagar la pantalla por firmware.
+        self.assertEqual(nets_of("J4")["2"], "BL_K")
+        q = nets_of("Q1")
+        self.assertEqual(q["1"], "LCD_BLK")
+        self.assertEqual(q["2"], "GND")
+        self.assertEqual(q["3"], "BL_K")
+        self.assertEqual(nets_of("R21"), {"1": "VSYS", "2": "BL_A"})
+        self.assertEqual(nets_of("J4")["1"], "BL_A")
+
+    def test_el_panel_es_manual_y_sin_nets(self):
+        inst = next(i for i in netlist.INSTANCES if i[1] == "LCD1")
+        self.assertEqual(inst[5], {})
+        self.assertTrue(inst[6].get("MANUAL"))
 
 
 def instancias_de(sym):

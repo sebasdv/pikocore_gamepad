@@ -64,8 +64,14 @@ señal; que discrepen es un bug en uno de los dos y hay que perseguirlo.
 
 ```bash
 cd hardware/pikocore_gamepad/pcb
-KIPY="$LOCALAPPDATA/Programs/KiCad/9.0/bin/python.exe"
-KICLI="$LOCALAPPDATA/Programs/KiCad/9.0/bin/kicad-cli.exe"
+# KiCad 9 puede estar por usuario (%LOCALAPPDATA%) o para toda la maquina
+# (Program Files). En Git Bash usa la forma /c/... — $LOCALAPPDATA trae
+# barras invertidas y la concatenacion no se puede ejecutar.
+KIPY="/c/Program Files/KiCad/9.0/bin/python.exe"
+KICLI="/c/Program Files/KiCad/9.0/bin/kicad-cli.exe"
+[ -x "$KIPY" ] || KIPY="$(cygpath "$LOCALAPPDATA")/Programs/KiCad/9.0/bin/python.exe"
+[ -x "$KICLI" ] || KICLI="$(cygpath "$LOCALAPPDATA")/Programs/KiCad/9.0/bin/kicad-cli.exe"
+# Las rutas de archivo que se pasan a python de Windows van como C:/..., no /c/...
 
 # G-F — primero, con cualquier python, sin KiCad
 python ../../../.claude/skills/pcb-verify/scripts/check_freshness.py .

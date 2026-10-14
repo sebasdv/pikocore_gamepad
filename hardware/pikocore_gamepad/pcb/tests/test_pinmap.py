@@ -34,8 +34,7 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
     def test_quedan_exactamente_dos_pines_libres(self):
-        # GP26 ahora es BTN_OK (centro del NAV5): de los 3 GPIO con ADC que
-        # quedaban reservados, solo 2 siguen libres.
+        # GP27/28, con ADC. GP26 es LCD_TE (tearing effect del panel).
         self.assertEqual(len(pinmap.FREE), 2)
 
     def test_los_libres_no_chocan_con_los_asignados(self):
@@ -50,14 +49,12 @@ class TestPinmap(unittest.TestCase):
         self.assertEqual(expuestos - declarados, set(),
                          "GPIO expuestos sin declarar")
 
-    def test_los_dos_pines_con_adc_restantes_quedan_libres(self):
-        # GP26/27/28 son los unicos con ADC del header. GP26 ahora es BTN_OK;
-        # GP27/28 deben seguir disponibles en el header de expansion.
+    def test_quedan_dos_pines_con_adc_libres(self):
+        # GP26/27/28 son los unicos con ADC del header. GP26 es LCD_TE;
+        # GP27/28 siguen disponibles (sensado de bateria, por ejemplo).
         for g in (27, 28):
             self.assertIn(g, pinmap.FREE)
-
-    def test_btn_ok_toma_el_gpio_26(self):
-        self.assertEqual(pinmap.gpio_of("BTN_OK"), 26)
+        self.assertEqual(pinmap.gpio_of("LCD_TE"), 26)
 
     def test_el_pin_fisico_del_header_se_deriva_bien(self):
         # GP0 es el pin 1 del header tipo Pico; GP22 es el pin 29.

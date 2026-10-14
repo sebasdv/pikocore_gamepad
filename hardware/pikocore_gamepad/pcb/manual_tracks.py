@@ -33,8 +33,23 @@ import sys
 
 import pcbnew
 
+from placements import PLACEMENTS
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
+
+# Las coordenadas de abajo son RELATIVAS a la posicion de cada pieza en
+# placements.py, no absolutas: cuando el layout cambio de 120 a 100mm el
+# lazo del boost se corrio 5mm y las pistas absolutas habrian quedado al
+# aire (verificar_extremos lo habria detectado, pero recien al correr).
+_POS = {ref: (x, y) for ref, _, x, y, *_ in PLACEMENTS}
+U2X, U2Y = _POS["U2"]
+
+
+def _u2(dx, dy):
+    """Punto a (dx, dy) del origen de U2."""
+    return (round(U2X + dx, 3), round(U2Y + dy, 3))
+
 
 # clave -> dict(net, capa, ancho_mm, puntos, via)
 #
@@ -73,14 +88,14 @@ PISTAS = {
     # VSYS_F llega a los pines 2 (EN) y 3 (VIN). EN atado a VIN es lo que hace
     # que el riel analogico arranque sin depender del firmware.
     "U2_VSYS_F_2": dict(net="VSYS_F", capa="B.Cu", ancho=0.20, via=False,
-                        puntos=[(64.287, 6.00), (63.40, 6.00),
-                                (61.20, 6.00)]),
+                        puntos=[_u2(-0.713, 0.00), _u2(-1.60, 0.00),
+                                _u2(-3.80, 0.00)]),
     # Termina en el punto de union con la ruta de arriba, no en un pad: por eso
     # lleva via=True (que saltea la verificacion del extremo final) mas
     # sin_via=True (que evita poner la via en si).
     "U2_VSYS_F_3": dict(net="VSYS_F", capa="B.Cu", ancho=0.20, via=True,
                         sin_via=True,
-                        puntos=[(64.287, 5.50), (63.40, 5.50), (62.60, 6.00)]),
+                        puntos=[_u2(-0.713, -0.50), _u2(-1.60, -0.50), _u2(-2.40, 0.00)]),
     # GND sale hacia +X y baja a una via al plano de In1, que es lo que TI
     # recomienda para masa en vez de una pista lateral.
     "U2_GND": dict(net="GND", capa="B.Cu", ancho=0.20, via=True,
@@ -89,7 +104,7 @@ PISTAS = {
                    # riesgo de corto 5V-GND en fabricacion. La revision de
                    # codigo lo encontro; verificar_extremos no compara las
                    # entradas de PISTAS entre si, solo contra pads.
-                   puntos=[(65.713, 5.50), (66.30, 5.50), (66.30, 4.10)]),
+                   puntos=[_u2(0.713, -0.50), _u2(1.30, -0.50), _u2(1.30, -1.90)]),
     # VOUT sale del chip HACIA ABAJO y ahi lo toma el ruteador.
     #
     # Antes esta pista llegaba sola hasta C5.1, subiendo por x=67.00. Con eso
@@ -108,10 +123,47 @@ PISTAS = {
     #
     # Termina al aire a proposito (via=True + sin_via=True saltea la
     # verificacion del extremo sin poner via): sale del canal apretado del
-    # SOT-563 con 0.20 y desde (66.60, 7.80) ya hay lugar para los 0.40 de
+    # SOT-563 con 0.20 y desde _u2(1.60, 1.80) ya hay lugar para los 0.40 de
     # la netclass Power, asi que freerouting completa el resto.
-    "U2_5V": dict(net="5V", capa="B.Cu", ancho=0.20, via=True, sin_via=True,
-                  puntos=[(65.713, 6.50), (66.60, 6.50), (66.60, 7.80)]),
+    # Desde la placa de 100mm con D-pad de 4 tacts la pista ya no termina al
+    # aire: freerouting dejo este tramo sin cerrar en dos corridas seguidas
+    # (la red de FB baja por x=U2+0.0 desde R4 hasta el pin 1 y hace de
+    # pared, y la fila de pasivos en y=2.5 cierra por arriba). Sigue por
+    # debajo de L1 —entre sus dos pads hay 1.55mm— y sube hasta C5.1, el
+    # bulk de salida. Termina SOBRE un pad, asi que verificar_extremos lo
+    # controla en las dos puntas.
+    # SOLO TRAMOS A 0/45/90 GRADOS: con un tramo a otro angulo (hubo uno de
+    # dx=-0.85, dy=-1.10) freerouting 2.4.1 cae en un bucle de normalizacion
+    # ("reached 2000 iterations for net '5V'"), tira un NullPointerException
+    # y aborta el ruteo a mitad de camino.
+    "U2_5V": dict(net="5V", capa="B.Cu", ancho=0.20, via=False,
+                  puntos=[_u2(0.713, 0.50), _u2(1.60, 0.50), _u2(1.60, 1.80),
+                          _u2(4.40, 1.80), _u2(4.40, -2.65), _u2(3.55, -3.50)]),
+    # L1.1 (VSYS_F, del lado derecho de U2) tiene que llegar a L2.2 y a los
+    # pines 2/3 (lado izquierdo). Por arriba lo tapan la red de FB y los
+    # pasivos; por abajo pasa entre el codo del 5V (y=U2+1.8) y los pines
+    # THT del LCD (y=9.6, borde del pad en 8.75): 0.25 de ancho en y=8.35
+    # deja 0.27 a cada lado. Mismo motivo que arriba: dos corridas seguidas
+    # de freerouting lo dejaron abierto.
+    "L1_VSYS_F": dict(net="VSYS_F", capa="B.Cu", ancho=0.25, via=False,
+                      puntos=[_u2(5.80, 0.00), _u2(5.80, 2.35),
+                              _u2(-3.80, 2.35), _u2(-3.80, 0.00)]),
+    # C7.1 (100nF de salida) esta al otro lado del pad de GND de C5, en la
+    # misma fila: 5V pasa por ARRIBA de C5.2, a y=1.35 (0.28 al pad, 0.75 al
+    # borde de la placa). Tambien lo dejo freerouting abierto una de cada dos
+    # corridas. Con esta, todo el lazo del boost va a mano.
+    "C7_5V": dict(net="5V", capa="B.Cu", ancho=0.30, via=False,
+                  puntos=[_u2(3.55, -3.50), _u2(3.55, -4.65),
+                          _u2(7.425, -4.65), _u2(7.425, -3.50)]),
+    # C4.1 (el 10uF de entrada) tambien es VSYS_F y queda del otro lado de
+    # L2.1 (VSYS), en la misma fila. Pasa por ARRIBA de L2, por el corredor
+    # de 0.9mm que queda entre la fila de pasivos (y=2.5) y los pads del
+    # inductor: y=4.2 deja 0.28 al pad de L2.1 y 0.8 a R5. Es exactamente el
+    # camino que freerouting eligio solo en la primera corrida de la placa
+    # de 100mm y no volvio a encontrar en las siguientes.
+    "C4_VSYS_F": dict(net="VSYS_F", capa="B.Cu", ancho=0.40, via=False,
+                      puntos=[_u2(-11.575, 0.00), _u2(-11.575, -1.80),
+                              _u2(-5.60, -1.80), _u2(-3.80, 0.00)]),
     # El nodo de conmutacion, en linea recta: 2.29mm, el minimo posible entre
     # los dos pads. Va a mano y no lo decide el ruteador porque es la pista
     # mas critica del boost — antes salia por donde encontraba hueco, y una
@@ -122,7 +174,7 @@ PISTAS = {
     # a 0.9A de pico son 5.6 miliohm y 4.5mW sobre 2.29mm, o sea nada, y mas
     # ancho no entra entre los pads vecinos.
     "U2_BOOST_SW": dict(net="BOOST_SW", capa="B.Cu", ancho=0.20, via=False,
-                        puntos=[(65.713, 6.00), (68.000, 6.00)]),
+                        puntos=[_u2(0.713, 0.00), _u2(3.00, 0.00)]),
 }
 
 
@@ -145,13 +197,13 @@ PISTAS = {
 #
 # El par de MASA no necesita puente: son pads THT y la zona de GND los une
 # al plano por si misma.
+# El puente va del pad 1 en el origen del footprint al otro pad 1, 6.5mm a
+# la derecha (SW_PUSH_6mm). La lista de tacts es la de netlist.py y la
+# posicion la de placements.py: no hay una tercera copia que mantener.
+from netlist import TACTS
 PUENTES_TACT = {
-    "SW5":  ("BTN_X",      (90.000, 42.500), (96.500, 42.500)),
-    "SW6":  ("BTN_Y",      (77.500, 55.000), (84.000, 55.000)),
-    "SW7":  ("BTN_A",     (102.500, 55.000), (109.000, 55.000)),
-    "SW8":  ("BTN_B",      (90.000, 67.500), (96.500, 67.500)),
-    "SW11": ("BTN_START",  (30.000, 27.390), (36.500, 27.390)),
-    "SW12": ("BTN_SELECT", (90.000, 27.390), (96.500, 27.390)),
+    ref: (net, _POS[ref], (round(_POS[ref][0] + 6.5, 3), _POS[ref][1]))
+    for ref, net in TACTS
 }
 for _sw, (_net, _a, _b) in PUENTES_TACT.items():
     PISTAS["%s_PUENTE" % _sw] = dict(net=_net, capa="F.Cu", ancho=0.20,
@@ -252,7 +304,10 @@ def main():
             v.SetPosition(pcbnew.VECTOR2I(mm(pts[-1][0]), mm(pts[-1][1])))
             v.SetViaType(pcbnew.VIATYPE_THROUGH)
             v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
-            v.SetWidth(mm(VIA_D))
+            # Con capa: en KiCad 9.0.1 SetWidth(int) dispara un assert
+            # modal ("called without a layer argument") y el script queda
+            # colgado esperando un click que en CLI nadie da.
+            v.SetWidth(pcbnew.PADSTACK.ALL_LAYERS, mm(VIA_D))
             v.SetDrill(mm(VIA_DRILL))
             v.SetNet(nc)
             board.Add(v)

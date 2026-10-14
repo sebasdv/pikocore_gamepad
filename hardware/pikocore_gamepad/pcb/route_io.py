@@ -96,10 +96,14 @@ def limpiar_outlines(dsn_path):
         txt = f.read()
     total = 0
     for nombre in SIN_OUTLINE:
-        marca = f'(image "{nombre}"'
-        i = txt.find(marca)
-        if i < 0:
+        # Desde que gen_pcb.py pone la libreria en el FPID, KiCad exporta la
+        # imagen como "Package_TO_SOT_SMD:SOT-563" (y si no la pone, como
+        # "SOT-563" a secas). Se aceptan las dos formas.
+        m = re.search(r'\(image "(?:[^"]*:)?%s"' % re.escape(nombre), txt)
+        if not m:
             continue
+        marca = m.group(0)
+        i = m.start()
         # el bloque de la imagen termina donde empieza la siguiente
         j = txt.find('(image "', i + len(marca))
         if j < 0:

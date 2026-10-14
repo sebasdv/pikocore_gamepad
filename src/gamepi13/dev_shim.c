@@ -18,7 +18,7 @@ mutex_t gamepi_spi1_mutex;
 void gamepi_spi1_mutex_init(void) { mutex_init(&gamepi_spi1_mutex); }
 
 void DEV_Digital_Write(UWORD Pin, UBYTE Value) {
-  if (Pin == (UWORD)-1) return;  // pikocore_gamepad: 7-pin LCD, no CS line
+  if (Pin == (UWORD)-1) return;  // pikocore_gamepad: LCD CS tied to GND, no pin
   gpio_put(Pin, Value);
 }
 UBYTE DEV_Digital_Read(UWORD Pin) { return gpio_get(Pin); }

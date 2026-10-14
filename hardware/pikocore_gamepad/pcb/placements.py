@@ -24,25 +24,45 @@ from params import v
 BOARD_W = v("BOARD_W")
 BOARD_H = v("BOARD_H")
 
-# El modulo LCD mide 27.78 de ancho y su origen de footprint es el pad 1, que
-# esta a 6.27 del borde izquierdo del modulo. Para centrarlo en la placa:
-#   borde izq del modulo = (90 - 27.78)/2 = 31.11  ->  pad 1 = 37.38
-_LCD_X = (BOARD_W - 27.78) / 2 + 6.27
-_LCD_Y = 8.0 + 1.60          # 8mm de margen superior + la fila de pines
+# Panel desnudo (ver gen_fp.py): el origen del footprint es el CENTRO del
+# area activa. Centrado en X; el borde superior del vidrio (BL) a 3.0mm del
+# borde de la placa, que es lo que pide el estudio ergonomico (2026-10-14):
+# cuanto mas arriba la imagen, mas lejos quedan los pulgares del vidrio.
+_PANEL_TOP = 3.0
+_LCD_X = BOARD_W / 2
+_LCD_Y = _PANEL_TOP + v("PANEL_AA_OFF_TOP") + v("PANEL_AA") / 2   # 16.26
 
 PLACEMENTS = [
     # ================================================ FRENTE: display
-    ("J4",  "gamesetup_fp:LCD_ST7789_240x240_7P",       _LCD_X, _LCD_Y, 0, False),
+    ("LCD1", "gamesetup_fp:LCD_LH133T_24P",             _LCD_X, _LCD_Y, 0, False),
+    # Conector del FPC, en el FRENTE, debajo del panel. El flex sale por el
+    # borde inferior del vidrio (y=32.22) y llega desplegado hasta 47.15
+    # (PANEL_FPC_LEN), con los contactos en los ultimos 2mm: con rot 180 los
+    # pads del conector quedan en y = 44.6 + 1.62 = 46.2, o sea justo donde
+    # caen los contactos del flex sin plegarlo. La entrada del conector mira
+    # hacia el panel (-Y). Cuerpo x 42.25..57.75: entre Up (termina en 30) y
+    # X (empieza en 70), y por encima de Select (empieza en 49).
+    # rot 180 asume contactos del FPC hacia la placa: LCD_FPC_PIN_ORDER.
+    ("J4",  "gamesetup_lcsc:FPC-SMD_24P-P0.50_FPC-05FB-24PH20",
+      _LCD_X,   44.60, 180, False),
 
     # ================================================ FRENTE: controles
-    # NAV5 (reemplaza el D-pad de 4 tacts): espejado con el diamante X/Y/A/B,
-    # mismo eje Y=83. Ver spec 2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md.
-    ("SW13", "gamesetup_lcsc:SW-TH_WS-1004-ARL10026",      30.00,   55.00, 0, False),
-    # X/Y/A/B en diamante, abajo a la derecha.
-    ("SW5", "Button_Switch_THT:SW_PUSH_6mm",   90.00,   42.50, 0, False),  # X
-    ("SW6", "Button_Switch_THT:SW_PUSH_6mm",   77.50,   55.00, 0, False),  # Y
-    ("SW7", "Button_Switch_THT:SW_PUSH_6mm",  102.50,   55.00, 0, False),  # A
-    ("SW8", "Button_Switch_THT:SW_PUSH_6mm",   90.00,   67.50, 0, False),  # B
+    # D-pad: cuatro tacts 6x6 en cruz, con el cuerpo centrado en X=30 y el
+    # mismo paso de 12.5mm que el rombo X/Y/A/B (espejo exacto respecto del
+    # centro de la placa, X=50). Reemplaza al NAV5 de 5 vias (2026-10-14):
+    # un solo actuador no permite diagonales ni Up+Down+B+A / Down+Left+X+B.
+    ("SW1", "Button_Switch_THT:SW_PUSH_6mm",   23.75,   38.45, 0, False),  # UP    cuerpo (27.0, 40.7)
+    ("SW3", "Button_Switch_THT:SW_PUSH_6mm",   11.25,   50.95, 0, False),  # LEFT  cuerpo (14.5, 53.2)
+    ("SW4", "Button_Switch_THT:SW_PUSH_6mm",   36.25,   50.95, 0, False),  # RIGHT cuerpo (39.5, 53.2)
+    ("SW2", "Button_Switch_THT:SW_PUSH_6mm",   23.75,   63.45, 0, False),  # DOWN  cuerpo (27.0, 65.7)
+    # X/Y/A/B en diamante, abajo a la derecha. El origen del SW_PUSH_6mm es
+    # el pad 1 y el cuerpo esta centrado en (x+3.25, y+2.25): con x=66.75 el
+    # cuerpo queda en X=70, espejo del NAV5 (X=30) respecto del centro de la
+    # placa de 100mm. Antes (placa de 120) el rombo estaba en x=90.
+    ("SW5", "Button_Switch_THT:SW_PUSH_6mm",   69.75,   38.45, 0, False),  # X     cuerpo (73.0, 40.7)
+    ("SW6", "Button_Switch_THT:SW_PUSH_6mm",   57.25,   50.95, 0, False),  # Y     cuerpo (60.5, 53.2)
+    ("SW7", "Button_Switch_THT:SW_PUSH_6mm",   82.25,   50.95, 0, False),  # A     cuerpo (85.5, 53.2)
+    ("SW8", "Button_Switch_THT:SW_PUSH_6mm",   69.75,   63.45, 0, False),  # B     cuerpo (73.0, 65.7)
     # L / R: tact ANGULADO en el borde SUPERIOR, que es donde caen los indices
     # con la placa apaisada. La rotacion NO viaja por el DXF (una cruz no tiene
     # orientacion), asi que se fija aca:
@@ -55,9 +75,9 @@ PLACEMENTS = [
     # +X del origen. Con los DOS a rot 0 ese desbalance cae del mismo lado en
     # ambos, asi que no hay nada que compensar en Y (que es lo que si hacia
     # falta cuando estaban en los laterales con rot 90/270).
-    # Las X de abajo ya vienen compensadas desde el DXF: 20.25 y 95.25 ponen
-    # los CUERPOS centrados en 22.50 y 97.50, o sea a 22.50 de cada borde de
-    # la placa de 120mm, simetricos respecto del centro X=60.
+    # Las X de abajo ya vienen compensadas: 20.25 y 75.25 ponen los CUERPOS
+    # centrados en 22.50 y 77.50, o sea a 22.50 de cada borde de la placa de
+    # 100mm, simetricos respecto del centro X=50 (el test lo verifica).
     # Y=1.87 y no 0.88: con 0.88 los PADS quedaban a 0.01mm del borde, o sea
     # cobre practicamente sobre la linea de corte (la regla del proyecto pide
     # 1.0mm y el min_copper_edge_clearance de KiCad, 0.5). Corridos a 1.87 los
@@ -66,10 +86,13 @@ PLACEMENTS = [
     ("SW9",  "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS",
        20.25,    1.89, 0,  False),  # L -> cuerpo x 18.70..26.30
     ("SW10", "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS",
-      95.25,    1.89, 0, False),  # R -> cuerpo x 93.70..101.30
-    # START / SELECT al centro.
-    ("SW11", "Button_Switch_THT:SW_PUSH_6mm",   30.00,   27.39, 0, False),
-    ("SW12", "Button_Switch_THT:SW_PUSH_6mm",   90.00,   27.39, 0, False),
+      75.25,    1.89, 0, False),  # R -> cuerpo x 73.70..81.30
+    # SELECT y START apilados en la columna central, debajo del panel y del
+    # conector del FPC: cualquiera de los dos pulgares llega sin tapar la
+    # imagen (estudio ergonomico 2026-10-14). Select arriba porque es el que
+    # cambia de modo mirando la pantalla.
+    ("SW12", "Button_Switch_THT:SW_PUSH_6mm",   46.75,   48.75, 0, False),  # SELECT cuerpo (50, 51)
+    ("SW11", "Button_Switch_THT:SW_PUSH_6mm",   46.75,   60.75, 0, False),  # START  cuerpo (50, 63)
     # Slide de encendido en el borde INFERIOR (la placa es apaisada; el borde
     # izquierdo de la version vertical ya no existe como tal).
     # rot 0 -> actuador hacia +Y, o sea asomando por el borde de abajo. Con la
@@ -116,9 +139,18 @@ PLACEMENTS = [
     # contra 3.60x2.50 a paso 0.95 del SOT-23-6). Estuvo mal aca hasta que el
     # test de divergencia netlist<->placements lo encontro; el netlist siempre
     # dijo SOT-563.
-    ("U2",  "Package_TO_SOT_SMD:SOT-563",                65.00,   6.00, 0, True),
+    # Todo el lazo del boost (U2 y sus ocho pasivos, mas abajo) esta 5mm mas
+    # a la izquierda que en la placa de 120: el gatillo R paso de x=95 a
+    # x=75 y sus patas de anclaje (NPTH D1.30 en x=74.0 y 81.0, y=4.38)
+    # caian a <1mm de C7. manual_tracks.py toma la posicion de U2 de aca,
+    # asi que mover el chip no desalinea sus pistas manuales.
+    ("U2",  "Package_TO_SOT_SMD:SOT-563",                60.00,   6.00, 0, True),
     ("U5",  "gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL", 65.00, 20.00, 0, True),
-    ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              66.00, 38.00, 0, True),
+    # U3 en (58,35) y no en (66,38): con el rombo en X=70, los pines de X
+    # (SW5) caen en (66.75, 42.5) y quedaban a 0.8mm de los pads 4/5 del
+    # SOIC. Aca queda entre la ultima columna de pads del modulo (x=50.6) y
+    # el DAC, lejos de todo pasante.
+    ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              58.00, 35.00, 0, True),
     ("U4",  "gamesetup_lcsc:MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL",   81.00, 38.00, 0, True),
 
     # ================================================ BORDES: conectores
@@ -145,8 +177,10 @@ PLACEMENTS = [
     #
     # R19/R20 van en la franja vacia entre el jack y la fila de SW6: J1
     # termina en x=65.10, asi que x=68.00 deja 1.67mm de aire.
-    ("R19", "Resistor_SMD:R_0603_1608Metric",              68.00,   62.00, 0, True),
-    ("R20", "Resistor_SMD:R_0603_1608Metric",              68.00,   65.00, 0, True),
+    # Bajados a y=72.5/75.5: con el rombo en X=73 los pines de B (SW8) caen
+    # en (69.75/76.25, 63.45/67.95) y pisaban las R en y=62/65.
+    ("R19", "Resistor_SMD:R_0603_1608Metric",              68.00,   72.50, 0, True),
+    ("R20", "Resistor_SMD:R_0603_1608Metric",              68.00,   75.50, 0, True),
     # C29 al lado de R18, en el hueco a la izquierda de su fila.
     ("C29", "Capacitor_SMD:C_0603_1608Metric",             67.53,   53.77, 0, True),
     # Parlante: header en el dorso, al lado de U4 (el class-D que lo maneja),
@@ -166,8 +200,10 @@ PLACEMENTS = [
     # La posicion nueva queda a 6.5mm de U4, fuera de la huella del LCD (que
     # esta en el frente, x 31..59), asi que el cable sale sin pelear con nada.
     # El parlante fisico se atornilla al enclosure y no a la PCB.
+    # x=91 (era 103.5 en la placa de 120): los pads quedan en 91 y 93, a 7mm
+    # del borde derecho, y a 10mm de U4.
     ("J5",  "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
-     103.50,   13.00, 0, True),
+      91.00,   13.00, 0, True),
     # ============================================ DORSO: lazo del boost
     # Estos ocho iban a la grilla automatica de gen_pcb.py, que ordena por
     # tamano y busca hueco: no sabe que pertenecen al mismo circuito. El
@@ -188,8 +224,8 @@ PLACEMENTS = [
     # Toda la fila de abajo va en y=2.50 y el eje del chip en y=6.00: la
     # franja util es y < 8.0 porque en y=9.60 estan los pads THT del LCD, que
     # perforan la placa aunque el modulo este en el frente.
-    ("L2",  "Inductor_SMD:L_1210_3225Metric",              59.80,    6.00, 0, True),
-    ("C4",  "Capacitor_SMD:C_0603_1608Metric",             54.20,    6.00, 0, True),
+    ("L2",  "Inductor_SMD:L_1210_3225Metric",              54.80,    6.00, 0, True),
+    ("C4",  "Capacitor_SMD:C_0603_1608Metric",             49.20,    6.00, 0, True),
     # rot 180 para que el pin de BOOST_SW quede del lado de U2. El inductor
     # va entre VIN y SW, y con el pinout real de TI esos dos pines estan en
     # columnas OPUESTAS del chip (3=VIN a la izq, 5=SW a la der). Con L1 sin
@@ -197,18 +233,18 @@ PLACEMENTS = [
     # —el que hay que mantener corto— era el que daba la vuelta.
     # Asi: U2.5 (SW) -> L1 son 2.3mm. VSYS_F sale por el otro extremo y da un
     # rodeo mas largo, pero es un riel de entrada: la longitud no le duele.
-    ("L1",  "Inductor_SMD:L_1210_3225Metric",              69.40,    6.00, 180, True),
+    ("L1",  "Inductor_SMD:L_1210_3225Metric",              64.40,    6.00, 180, True),
     # C5 es 0805 y no 0603: es el bulk de salida del boost, y a 5V un X5R
     # de 0603/6.3V deja ~5uF de los 22. Ver LCSC_PASIVOS en netlist.py.
-    ("C5",  "Capacitor_SMD:C_0805_2012Metric",             69.50,    2.50, 0, True),
-    ("C7",  "Capacitor_SMD:C_0603_1608Metric",             73.20,    2.50, 0, True),
+    ("C5",  "Capacitor_SMD:C_0805_2012Metric",             64.50,    2.50, 0, True),
+    ("C7",  "Capacitor_SMD:C_0603_1608Metric",             68.20,    2.50, 0, True),
     # Divisor de realimentacion, corrido a la IZQUIERDA: con el pinout real
     # FB es el pin 1, arriba de la columna izquierda. Antes estaban centrados
     # bajo el chip, que era lo correcto para el pinout equivocado de V1.
     # TI (SLVAES4 seccion 5) pide la red de FB cerca del pin y la traza corta,
     # y sobre todo NO paralela al nodo SW — que aca queda del otro lado.
-    ("R4",  "Resistor_SMD:R_0603_1608Metric",              64.00,    2.50, 0, True),
-    ("R5",  "Resistor_SMD:R_0603_1608Metric",              60.20,    2.50, 0, True),
+    ("R4",  "Resistor_SMD:R_0603_1608Metric",              59.00,    2.50, 0, True),
+    ("R5",  "Resistor_SMD:R_0603_1608Metric",              55.20,    2.50, 0, True),
 ]
 
 # Regiones del DORSO donde gen_pcb.py empaqueta los ~58 pasivos, en este
@@ -232,12 +268,27 @@ PLACEMENTS = [
 # Task 4): sin este recorte, gen_pcb.py podia empaquetar pasivos fuera del
 # contorno de la placa. La region "abajo a la derecha" (que arrancaba en
 # Y=115, ya fuera de la placa nueva) se elimino entera en vez de recortarse.
+#
+# Recalculadas para la placa de 100x80 (2026-10-14). El empaquetador esquiva
+# lo ya colocado, asi que las regiones pueden pisar pasantes: solo dicen por
+# donde buscar hueco. Las X de los pines del rombo (66.75/73.25, 54.25/60.75,
+# 79.25/85.75) y de Select (66.75/73.25) atraviesan al dorso.
 FREE_REGIONS = [
-    (31.0,  12.0, 59.0,  45.0),   # bajo el display, entre sus agujeros
-    (31.0,  47.0, 88.0,  55.0),   # franja entre el display y la fila SW9..SW10
-    (60.0,   2.0, 88.0,  45.0),   # derecha, alrededor de la etapa de audio
-    (36.0,  64.0, 58.0,  78.0),   # columna central (antes con los expansores, ver nota arriba)
-    (60.0,  62.0, 88.0,  78.0),   # derecha media
-    (2.0,   62.0, 10.0,  78.0),   # borde izquierdo
-
+    # Dorso, 100x80, layout del estudio ergonomico. Evitan los pines pasantes
+    # del frente (el empaquetador solo esquiva courtyards del dorso):
+    #   Up (23.75/30.25, 38.45/42.95)   X (69.75/76.25, 38.45/42.95)
+    #   Left (11.25/17.75, 50.95/55.45) Right (36.25/42.75, ...) Y (57.25/63.75)
+    #   A (82.25/88.75, 50.95/55.45)    Down/B (y 63.45/67.95)
+    #   Select (46.75/53.25, 48.75/53.25) Start (46.75/53.25, 60.75/65.25)
+    #   SW9/SW10 arriba, SW15 (30, 77.7), J1 (61.7..63.7, 65.4..77), J5 (91,13)
+    (2.0,   7.0, 46.0,  15.0),   # franja superior, sobre el modulo
+    (53.0, 10.0, 61.0,  32.0),   # columna entre el modulo y el DAC
+    (70.0,  9.0, 88.0,  35.0),   # derecha del DAC, hasta U4
+    (32.0, 40.0, 45.0,  48.0),   # entre Up y Select
+    (55.0, 39.0, 68.0,  48.0),   # entre U3 y X, sobre Y
+    (32.0, 57.0, 45.0,  76.0),   # entre Down y Start
+    (55.0, 57.0, 66.0,  64.0),   # entre Y y el jack
+    (78.0, 57.0, 88.0,  76.0),   # derecha de B
+    (89.0, 20.0, 97.0,  76.0),   # franja del borde derecho, bajo J5
+    (2.0,  58.0, 10.0,  76.0),   # borde izquierdo
 ]

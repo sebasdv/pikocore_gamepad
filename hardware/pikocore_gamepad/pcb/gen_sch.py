@@ -86,8 +86,9 @@ HOJAS = [
 
     ("02_mcu_controles", "MCU, pantalla y controles", [
         "U1",                                      # modulo RP2350-Plus
-        "J4",                                      # LCD ST7789
-        "SW13",                                    # NAV5 (D-pad)
+        "J4", "LCD1",                              # conector FPC + panel
+        "Q1", "R21", "R22", "C30", "C31",          # backlight y desacoplo
+        "SW1", "SW2", "SW3", "SW4",                # D-pad UP DOWN LEFT RIGHT
         "SW5", "SW6", "SW7", "SW8",                # X Y A B
         "SW11", "SW12",                            # START SELECT
         "SW9", "SW10",                             # gatillos L y R
@@ -277,16 +278,28 @@ NOTAS = {
         "Los 12 controles van DIRECTO a GPIO del modulo, sin expansor I2C. La asignacion esta\n"
         "en pinmap.py y la verifica la puerta G-4 contra el firmware.\n"
         "\n"
-        "Los tacts de 6mm (SW5-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
+        "PANTALLA: panel desnudo DM-TFT13-377 de 24 pines (ST7789VW) pegado al frente, FPC de\n"
+        "0.5mm al conector J4 (XUNPU FPC-05FB-24PH20, contactos de las dos caras). 4-SPI con\n"
+        "IM=1 y CS A MASA (siempre seleccionado, como hacia el modulo de 7 pines): el bus SPI0\n"
+        "sigue sin poder compartirse. RD y DB0-7 a masa, TE a GP26. Backlight: 2 LED blancos en\n"
+        "paralelo (3.0V, 40mA) desde VSYS por R21 (24R, PERILLA de brillo maximo) y Q1 (2N7002)\n"
+        "a masa, con el PWM de LCD_BLK en la puerta y R22 de pulldown. No cuelga del riel de 5V\n"
+        "para no meter el PWM en la alimentacion del op-amp.\n"
+        "\n"
+        "ORDEN DE PINES DEL FPC: J4 va a rot 180 asumiendo contactos hacia la placa. Si el panel\n"
+        "trae los contactos hacia arriba el orden se espeja: LCD_FPC_PIN_ORDER en params.py queda\n"
+        "SIN VERIFICAR hasta medir continuidad con el panel en mano (bloquea G-0).\n"
+        "\n"
+        "Los tacts de 6mm (SW1-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
         "dentro del switch; el simbolo declara 2 pines porque el footprint oficial de KiCad\n"
         "numera sus cuatro pads 1,1,2,2. Cablear 1 contra 2 ya cruza el contacto.\n"
         "\n"
         "SW9 y SW10 (gatillos) son angulados y tienen SOLO DOS patas electricas: las otras dos\n"
         "son soportes mecanicos, y en la placa son agujeros NO metalizados.\n"
         "\n"
-        "SW13 es un NAV5 de 5 vias (arriba/abajo/izq/der/centro) y reemplaza a los cuatro tacts\n"
-        "del D-pad de la version anterior. CONSECUENCIA PARA EL FIRMWARE: no se pueden pulsar\n"
-        "arriba y abajo a la vez, asi que las combinaciones que lo pedian estan remapeadas.",
+        "El D-pad son cuatro tacts independientes (SW1-SW4), no un nav switch de 5 vias: las\n"
+        "combinaciones del firmware (Up+Down+B+A = reset de FX, Down+Left+X+B = clock lock)\n"
+        "necesitan dos direcciones a la vez, cosa que un solo actuador no permite.",
     "NOTA_DAC":
         "PCM5102A en modo chip-down, I2S generado por PIO. SCK (pin 12) A MASA: eso activa el\n"
         "PLL interno a partir de BCK y evita tener que generar MCLK. FMT/FLT/DEMP a masa.\n"
@@ -378,11 +391,15 @@ def emit_instance(lib, ref, value, x, y, nets, props, hoja_uuid):
     h = d["h"]
     props = dict(props)
     fp = props.pop("FP", "")
+    # MANUAL = la suelda el usuario, no JLCPCB. gen_pcb.py la marca DNP en la
+    # placa para que salga del CPL; el esquematico tiene que decir lo mismo o
+    # el DRC con --schematic-parity reporta el atributo como divergente.
+    dnp = "yes" if props.pop("MANUAL", False) else "no"
     out = ['  (symbol',
            f'    (lib_id "{PROJECT}:{lib}")',
            f'    (at {F(x)} {F(y)} 0)',
            '    (unit 1)',
-           '    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)',
+           f'    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp {dnp})',
            f'    (uuid "{u()}")',
            f'    (property "Reference" "{ref}" (at {F(x)} {F(y - h - 3.81)} 0) {EFFECTS})',
            f'    (property "Value" "{value}" (at {F(x)} {F(y + h + 3.81)} 0) {EFFECTS})',

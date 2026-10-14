@@ -37,4 +37,4 @@
 #define PIN_SPK_SHDN     20  // out: 1 = PAM8302A on
 #define PIN_JACK_DET     21  // in, pull-up: 0 = plug inserted
 #define PIN_DAC_XSMT     22  // out: 100k pulldown on the PCB, boots muted
-#define PIN_BTN_OK       26  // NAV5 centre press
+#define PIN_LCD_TE       26  // panel tearing-effect out (input, optional, unused)

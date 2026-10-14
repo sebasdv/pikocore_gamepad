@@ -56,11 +56,33 @@ PROYECTO = "pikocore_gamepad"
 # Las 4 de cobre mas lo que hace falta para fabricar: mascaras de soldadura,
 # serigrafias, pasta y el contorno. Edge.Cuts NO es opcional: sin el, JLCPCB
 # no sabe por donde cortar y rechaza el pedido.
-CAPAS = ("F.Cu,GND,PWR,B.Cu,"
+# Las internas van por su nombre CANONICO (In1.Cu/In2.Cu), no por el nombre
+# de usuario (GND/PWR) que tienen en la placa: kicad-cli 9.0.1 rechaza los
+# nombres de usuario con "El nombre de la capa «GND» no es válido", pero sigue
+# y termina con exit 0 — y el paquete salia con DOS capas de cobre para una
+# placa de cuatro, sin que nada fallara. Los archivos igual se llaman por el
+# nombre de usuario (pikocore_gamepad-GND.g1, -PWR.g2).
+CAPAS = ("F.Cu,In1.Cu,In2.Cu,B.Cu,"
          "F.Mask,B.Mask,F.SilkS,B.SilkS,F.Paste,B.Paste,Edge.Cuts")
+# Lo que TIENE que existir al final en fab/gerber/. Un paquete al que le
+# falte una de estas no se sube: JLCPCB fabricaria una placa sin planos.
+GERBERS_OBLIGATORIOS = (
+    "F_Cu.gtl", "GND.g1", "PWR.g2", "B_Cu.gbl",
+    "F_Mask.gts", "B_Mask.gbs", "F_Silkscreen.gto", "B_Silkscreen.gbo",
+    "F_Paste.gtp", "B_Paste.gbp", "Edge_Cuts.gm1",
+    "PTH.drl", "NPTH.drl",
+)
 
-KICLI = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "KiCad",
-                     "9.0", "bin", "kicad-cli.exe")
+# KiCad 9 puede estar instalado por usuario (%LOCALAPPDATA%) o para toda la
+# maquina (Program Files): se toma el primero que exista.
+_KICLI_CANDIDATOS = [
+    os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "KiCad",
+                 "9.0", "bin", "kicad-cli.exe"),
+    os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "KiCad",
+                 "9.0", "bin", "kicad-cli.exe"),
+]
+KICLI = next((p for p in _KICLI_CANDIDATOS if os.path.exists(p)),
+             _KICLI_CANDIDATOS[0])
 
 
 def _cli(*args):
@@ -128,8 +150,14 @@ def gerbers():
          "--format", "excellon", "--drill-origin", "plot",
          "--excellon-units", "mm", "--excellon-separate-th",
          "--generate-map", "--map-format", "gerberx2", PCB)
+    faltan = [s for s in GERBERS_OBLIGATORIOS
+              if not os.path.isfile(os.path.join(GERBER, f"{PROYECTO}-{s}"))]
+    if faltan:
+        raise SystemExit("gerbers INCOMPLETOS, no se empaqueta: faltan "
+                         + ", ".join(faltan))
     n = len(os.listdir(GERBER))
-    print(f"gerbers + drill: {n} archivos en fab/gerber/")
+    print(f"gerbers + drill: {n} archivos en fab/gerber/ "
+          f"({len(GERBERS_OBLIGATORIOS)} obligatorios presentes)")
     return n
 
 
