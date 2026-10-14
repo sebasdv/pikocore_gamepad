@@ -21,66 +21,64 @@ from collections import namedtuple
 Param = namedtuple("Param", "value verified note gate")
 
 ALL = {
-    # ---------------------------------------------------------------- LCD
-    # Cotas leidas del drawing GAMESETUP/layout.png. Las que cierran por
-    # aritmetica exacta se dan por verificadas: la consistencia interna del
-    # dibujo es evidencia suficiente y no depende de un calibre.
-    "LCD_BOARD_W": Param(
-        27.78, True,
-        "Drawing layout.png. Cierra exacto con LCD_PIN1_X y LCD_PIN_PITCH.",
+    # -------------------------------------------------------------- PANEL LCD
+    # Panel desnudo DisplayModule DM-TFT13-377 variante 24 pines (LH133T-IF05,
+    # ST7789VW), FPC de 24 posiciones a 0.5mm. Cotas del "Mechanical Drawing"
+    # rev C (2017-12-12) del datasheet publico, sin calibre: cierran por
+    # aritmetica (BL - AA = 2 x margen) y son cotas de diseno del fabricante.
+    # Reemplaza al modulo de 7 pines pasantes (27.78 x 39.22): sin header, sin
+    # agujeros de montaje, se pega al frente y el FPC baja a un conector ZIF.
+    #
+    # ORIENTACION EN LA PLACA: el FPC sale hacia ABAJO (+Y). El lado de 26.16
+    # del BL queda horizontal (ancho) y el de 29.22 vertical (alto); la franja
+    # del IC/FPC (4.26) queda abajo y el margen chico (1.56) arriba.
+    "PANEL_BL_W": Param(
+        26.16, True,
+        "Ancho del backlight (BL), horizontal en la placa. Drawing: 26.16+-0.2.",
         "V-1"),
-    "LCD_BOARD_H": Param(
-        39.22, True,
-        "Drawing layout.png. Cierra exacto con LCD_GLASS_TOP y LCD_GLASS_H.",
+    "PANEL_BL_H": Param(
+        29.22, True,
+        "Alto del BL, vertical en la placa (lado por el que sale el FPC). "
+        "Drawing: 29.22+-0.2.",
         "V-1"),
-    "LCD_PIN1_X": Param(
-        6.27, True,
-        "Drawing. 6.27 + 6*2.54 + 6.27 = 27.78 exacto -> los 7 pines quedan "
-        "centrados en el ancho del modulo.",
-        "V-1"),
-    "LCD_PIN_PITCH": Param(
-        2.54, True, "Paso estandar, acotado en el drawing.", "V-1"),
-    "LCD_GLASS_TOP": Param(
-        5.00, True,
-        "Drawing. 39.22 - 5.00 - 29.22 = 5.00 -> margenes simetricos.",
-        "V-1"),
-    "LCD_GLASS_H": Param(
-        29.22, True, "Drawing.", "V-1"),
-    "LCD_ACTIVE_W": Param(
+    "PANEL_AA": Param(
         23.40, True,
-        "Drawing. 23.40 x 23.40 = 240x240 px; diagonal 33.1mm = 1.3 pulgadas.",
+        "Area activa, cuadrada. Drawing: 23.40 LCD (AA); 240 px x 0.0975 mm.",
         "V-1"),
-    "LCD_ACTIVE_TOP": Param(
-        6.33, True,
-        "Drawing: LCD_GLASS_TOP (5.00) + 1.33 de marco superior del vidrio.",
+    "PANEL_AA_OFF_X": Param(
+        1.38, True,
+        "Margen del BL al area activa en los dos lados cortos: (26.16-23.40)/2 "
+        "= 1.38 exacto. Drawing: 0.33 (BL->POL) + 1.05.",
         "V-1"),
-
-    # --- LAS DOS QUE EL DRAWING NO CIERRA ---
-    "LCD_PIN_ROW_Y": Param(
-        1.27, True,
-        "Borde del modulo (el del lado del header) -> centro de la fila de "
-        "pines. Medido sobre el STEP del modulo: los 7 agujeros D1.27 estan "
-        "en Y=37.950 y el modulo mide 39.22 de alto, o sea 1.270 al borde. "
-        "1.27 = 0.05 pulgadas = MEDIO paso de 2.54: es una cota de diseno y "
-        "no una casualidad, lo que da confianza extra en el numero. "
-        "El 1.60 de V1 salia de escalar el dibujo a ojo y erraba por 0.33mm.",
+    "PANEL_AA_OFF_TOP": Param(
+        1.56, True,
+        "Margen del BL al area activa en el lado opuesto al FPC: 0.23 + 1.33 "
+        "del drawing. El otro lado es 29.22 - 23.40 - 1.56 = 4.26, la franja "
+        "del driver y la salida del FPC.",
         "V-1"),
-    "LCD_HOLE_INSET": Param(
-        2.50, True,
-        "Borde del modulo -> CENTRO del agujero de montaje, en los dos ejes. "
-        "Medido sobre el STEP del modulo: los cuatro agujeros D2.00 caen en "
-        "(2.500, 2.500) (2.500, 36.720) (25.200, 36.720) (25.200, 2.500). "
-        "CONFIRMA la hipotesis que estaba anotada aca: el drawing decia 2.19 "
-        "y la nota china 2.5, y no se contradecian — acotan cosas distintas. "
-        "2.19 es el margen lateral del AREA ACTIVA ((27.78-23.40)/2 = 2.190 "
-        "exacto), no la posicion del agujero. El valor de V1 estaba mal. "
-        "gen_fp.py calcula el agujero derecho como BOARD_W - inset, o sea "
-        "asume simetria: correcto para un modulo comercial.",
-        "V-2"),
-    "LCD_HOLE_DIA": Param(
-        2.00, True,
-        "Nota china del drawing: 'kong zhijing wei 2mm' = diametro 2mm.",
-        "V-2"),
+    "PANEL_FPC_W": Param(
+        13.0, True,
+        "Ancho de la cola del FPC. Drawing: 12.5+-0.1 de contactos mas 0.25 "
+        "por lado; conector de 24P a 0.5mm.",
+        "V-1"),
+    "PANEL_FPC_LEN": Param(
+        14.93, True,
+        "Largo de la cola del FPC desde el borde del vidrio hasta su punta "
+        "(contactos en los ultimos 2mm). Drawing: 14.93.",
+        "V-1"),
+    "PANEL_T": Param(
+        1.5, True, "Espesor del panel, max. Drawing: 1.5mm MAX.", "V-1"),
+    # --- LA QUE NO SE PUEDE VERIFICAR SIN LA PIEZA ---
+    "LCD_FPC_PIN_ORDER": Param(
+        1.0, False,
+        "1 = el pin 1 del FPC cae del lado del pin 1 del conector con el FPC "
+        "derecho (sin plegar) y los contactos hacia la placa, que es como lo "
+        "dibuja el datasheet. 0 = espejado. NO se verifica con el datasheet: "
+        "depende de que lado del FPC lleva los contactos, y el conector "
+        "C2856831 acepta las dos caras. Confirmar con el panel en mano "
+        "(continuidad entre LEDA del FPC y el pad 1 de J4) antes de fabricar; "
+        "si sale 0, J4 va con rot 0 en vez de 180 en placements.py.",
+        "V-8"),
 
     # ---------------------------------------------------------------- audio
     "BOOST_L": Param(

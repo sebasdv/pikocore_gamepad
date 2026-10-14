@@ -54,6 +54,28 @@
 > Estudio ergonómico con propuesta de layout (LCD 5.3 mm arriba, grupos
 > abajo, Start/Select al centro, boost trasladado): doc "Estudio ergonómico
 > pikocore_gamepad" en claude.ai; pendiente de decisión antes de aplicar.
+>
+> **Cuarta corrida, misma fecha — pantalla por flex + propuesta aplicada.**
+> Panel desnudo DisplayModule DM-TFT13-377 de 24 pines (LCSC no tiene paneles
+> de 1.3" en stock; la variante de 12 pines usa FPC de 0.7 mm y LCSC no vende
+> conectores a ese paso). Conector J4 = XUNPU FPC-05FB-24PH20 (C2856831,
+> 0.5 mm, contactos de las dos caras), huella y STEP importados con
+> easyeda2kicad a `gamesetup_lcsc`. Panel = `LCD1`, huella sin pads generada
+> por `gen_fp.py` (origen en el centro del área activa), DNP para el CPL pero
+> en el BOM. Backlight: R21 24 Ω (0805, sin LCSC todavía) + Q1 2N7002 (C8545)
+> + R22 100k; C30/C31 de desacoplo. TE → GP26 (`LCD_TE`). Layout del estudio:
+> panel con el BL en y 3.0, grupos centrados en y 53.2, Select (50, 51) y
+> Start (50, 63), J4 en (50, 44.6) rot 180, R19/R20 bajados a y 72.5/75.5;
+> el boost no se movió porque ya no hay pines pasantes del LCD en el dorso.
+> **G-0 bloqueado a propósito** por `LCD_FPC_PIN_ORDER` (V-8): el lado de los
+> contactos del FPC no sale del datasheet; medir continuidad LEDA → J4.1 con
+> el panel en mano; si está espejado, J4 a rot 0. Hasta entonces `gen_fab.py`
+> solo genera con `--force` y el zip sale `_NO-FABRICABLE`. Pipeline:
+> `plane_vias.py` saltea el pad cuando hay una vía propia a <0.6 mm (los 13
+> GND del conector a 0.5 mm daban `hole_to_hole`) y el fanout rechaza
+> candidatos pegados a una vía de la misma net; `finish_pcb.py` borra stubs
+> colgantes. Faltan 18 LCSC en el BOM: THT manuales, 470 µF, el panel y la R
+> de 24 Ω.
 
 Estado al **2026-08-25**, rama `pikocore-gamepad-hardware`. Generado corriendo en
 vivo `tests/run_tests.py` (185 OK) y `checks/run_all.py` con el Python de KiCad

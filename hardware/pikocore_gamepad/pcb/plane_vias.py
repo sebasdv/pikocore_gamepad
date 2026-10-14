@@ -147,6 +147,29 @@ def ya_tiene_via(board, pad, tol=0.05):
     return False
 
 
+# Distancia minima entre centros de dos vias de la MISMA net. Taladro 0.3 +
+# el hole_to_hole minimo de la placa (0.25) = 0.55; 0.6 deja margen.
+VIA_VECINA = 0.6
+
+
+def via_misma_net_cerca(board, x, y, net, d=VIA_VECINA):
+    """True si ya hay una via de `net` a menos de `d` mm de (x, y)."""
+    for t in board.GetTracks():
+        if t.GetClass() != "PCB_VIA" or t.GetNetname() != net:
+            continue
+        v = t.GetPosition()
+        if math.hypot(pcbnew.ToMM(v.x) - x, pcbnew.ToMM(v.y) - y) < d:
+            return True
+    return False
+
+
+def via_vecina_misma_net(board, pad, d=VIA_VECINA):
+    """True si ya hay una via de la net del pad a menos de `d` mm."""
+    c = pad.GetPosition()
+    return via_misma_net_cerca(board, pcbnew.ToMM(c.x), pcbnew.ToMM(c.y),
+                               pad.GetNetname(), d)
+
+
 def hueco_libre(board, pad):
     """Distancia del CENTRO del pad al cobre ajeno mas cercano, en mm.
 
@@ -261,6 +284,12 @@ def lugar_para_via(board, pad, diam, ancho):
             h_via = hueco_en(board, x, y, net)
             if h_via < necesita_via:
                 continue
+            # hueco_en ignora el cobre de la MISMA net, asi que dos fanouts
+            # vecinos del conector del FPC (3V3 en los pads 4/5/6, GND en
+            # 13..20) elegian el mismo punto y quedaban con los taladros a
+            # 0.01mm: hole_to_hole en el DRC. Una via propia tambien ocupa.
+            if via_misma_net_cerca(board, x, y, net):
+                continue
             if all(hueco_en(board, px + (x - px) * k / MUESTRAS_STUB,
                             py + (y - py) * k / MUESTRAS_STUB,
                             net) >= necesita_pista
@@ -339,9 +368,18 @@ def main():
     puestas = chicas = saltadas = desplazadas = 0
     fanouts = []
     sin_lugar = []
+    vecinas = 0
     for ref, pad in pend:
         if ya_tiene_via(board, pad):
             saltadas += 1
+            continue
+        if via_vecina_misma_net(board, pad):
+            # Pads de la misma net a paso fino (los 13 GND del conector del
+            # FPC, a 0.5mm): una via por pad deja los taladros a 0.2mm y el
+            # DRC reporta hole_to_hole. Con una via cada dos pads los
+            # taladros quedan a 0.7mm, y el pad sin via lo une freerouting
+            # al vecino con una pista de medio milimetro.
+            vecinas += 1
             continue
         h = hueco_libre(board, pad)
         if h >= HUECO_NORMAL:
@@ -373,7 +411,8 @@ def main():
     vias = len([t for t in board.GetTracks() if t.GetClass() == "PCB_VIA"])
     print(f"pads SMD sobre plano: {len(pend)}")
     print(f"vias {VIA_D}mm: {puestas}   vias {VIA_D_MIN}mm: {chicas}   "
-          f"ya tenian: {saltadas}   desplazadas: {desplazadas}")
+          f"ya tenian: {saltadas}   desplazadas: {desplazadas}   "
+          f"saltadas por via vecina: {vecinas}")
     if fanouts:
         print(f"VIA DESPLAZADA + tramo ({len(fanouts)}) — no entraba en el "
               f"centro del pad:")

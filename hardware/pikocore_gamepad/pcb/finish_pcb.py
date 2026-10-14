@@ -50,6 +50,26 @@ def main():
     if n_pth:
         print(f"pads PTH con capas internas restauradas: {n_pth}")
 
+    # Stubs colgantes: freerouting parte y vuelve a unir las pistas manuales
+    # (las de U2 sobre todo) y a veces deja un tramo de medio milimetro con
+    # un extremo al aire. Electricamente no hace nada; el DRC lo reporta
+    # como track_dangling una vez por cada pista que lo toca (21 avisos por
+    # un stub de 0.6mm). Se borran iterando, porque quitar uno puede dejar
+    # colgando al anterior.
+    borrados = 0
+    while True:
+        conn = board.GetConnectivity()
+        colgantes = [t for t in board.GetTracks()
+                     if t.GetClass() == "PCB_TRACK"
+                     and conn.TestTrackEndpointDangling(t, False)]
+        if not colgantes:
+            break
+        for t in colgantes:
+            board.Remove(t)
+        borrados += len(colgantes)
+    if borrados:
+        print(f"stubs colgantes borrados: {borrados}")
+
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     pcbnew.SaveBoard(PCB, board)
 

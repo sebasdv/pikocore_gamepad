@@ -67,13 +67,43 @@ SYMS = {
         ds="https://www.waveshare.com/wiki/RP2350-Plus",
         pins=_mcu_pin_geometry(),
     ),
-    "LCD_ST7789": dict(
-        ref="J", w=7.62, h=10.16,
-        desc="Modulo IPS 1.3in 240x240 ST7789, 7 pines. NO tiene pin CS: esta "
-             "siempre seleccionado, asi que su SPI no se puede compartir con "
-             "ningun otro periferico.",
-        ds="",
-        pins=_left_pins(["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]),
+    "LCD_FPC24": dict(
+        ref="J", w=12.7, h=35.56,
+        desc="Conector FPC 24P a 0.5mm (XUNPU FPC-05FB-24PH20, flip-top, "
+             "contactos de las dos caras) para el panel DM-TFT13-377 de 24 "
+             "pines. Pinout del datasheet del panel (LH133T-IF05, rev C): "
+             "1=LEDA 2=LEDK 3=GND 4=VDD 5=VDDIO 6=IM(1=4-SPI) 7=RESET 8=CS "
+             "9=SCL 10=D/C 11=RD 12=SDA 13..20=DB0..DB7 21=TE 22=NC 23/24=GND. "
+             "25/26 son las lenguetas de anclaje del conector. CS va A MASA: "
+             "siempre seleccionado, como el modulo de 7 pines que reemplaza. "
+             "ORDEN DE PINES SIN VERIFICAR contra la pieza (LCD_FPC_PIN_ORDER "
+             "en params.py): si el FPC lleva los contactos hacia arriba, el "
+             "orden se espeja y J4 va a rot 0 en vez de 180.",
+        ds="https://cdn.shopify.com/s/files/1/0264/7629/files/DM-TFT13-377P24.pdf",
+        pins=_dual_pins(["LEDA", "LEDK", "GND", "VDD", "VDDIO", "IM", "RESET",
+                         "CS", "SCL", "D/C", "RD", "SDA", "DB0"],
+                        ["DB1", "DB2", "DB3", "DB4", "DB5", "DB6", "DB7", "TE",
+                         "NC", "GND", "GND", "MP", "MP"]),
+    ),
+    "LCD_PANEL": dict(
+        ref="LCD", w=12.7, h=12.7,
+        desc="Panel IPS 1.3in 240x240 ST7789VW desnudo, DisplayModule "
+             "DM-TFT13-377 variante 24 pines (LH133T-IF05). Pieza MECANICA: "
+             "sin pines, se pega al frente de la placa y se conecta por J4. "
+             "Solo existe para que la placa tenga su contorno, el area activa "
+             "y la cola del FPC (enclosure y Rhino). Se compra aparte, no la "
+             "monta JLCPCB.",
+        ds="https://displaymodule.com/products/1-3-inch-ips-display-240x240-with-spi",
+        pins=[],
+    ),
+    "Q_NMOS": dict(
+        ref="Q", w=7.62, h=7.62,
+        desc="MOSFET canal N en SOT-23 (2N7002). Pinout SOT-23 estandar: "
+             "1=G 2=S 3=D, igual que el footprint Package_TO_SOT_SMD:SOT-23 "
+             "de KiCad. Interruptor del backlight del panel.",
+        ds="https://www.lcsc.com/product-detail/C8545.html",
+        pins=[("1", "G", -7.62, 0.0, 0), ("2", "S", 7.62, -2.54, 180),
+              ("3", "D", 7.62, 2.54, 180)],
     ),
     "SW_Push": dict(
         ref="SW", w=7.62, h=5.08,
@@ -372,10 +402,42 @@ INSTANCES = [
      {"FP": "gamesetup_fp:RP2350-Plus_Socket"}),
 
     # ------------------------------------------------------------ display
-    ("LCD_ST7789", "J4", "ST7789_240x240", 200.0, 40.0, {
-        "1": "GND", "2": "3V3", "3": "LCD_SCK", "4": "LCD_MOSI",
-        "5": "LCD_RES", "6": "LCD_DC", "7": "LCD_BLK"},
-     {"FP": "gamesetup_fp:LCD_ST7789_240x240_7P"}),
+    # Panel desnudo por FPC. CS a masa: siempre seleccionado, igual que hacia
+    # el modulo de 7 pines, asi que SPI0 sigue sin poder compartirse. RD y el
+    # bus paralelo DB0-7 a masa (4-SPI, IM=1). TE a GP26, que quedo libre.
+    ("LCD_FPC24", "J4", "LCD_FPC", 200.0, 40.0, {
+        "1": "BL_A", "2": "BL_K", "3": "GND", "4": "3V3", "5": "3V3",
+        "6": "3V3", "7": "LCD_RES", "8": "GND", "9": "LCD_SCK",
+        "10": "LCD_DC", "11": "GND", "12": "LCD_MOSI",
+        "13": "GND", "14": "GND", "15": "GND", "16": "GND",
+        "17": "GND", "18": "GND", "19": "GND", "20": "GND",
+        "21": "LCD_TE", "22": NC, "23": "GND", "24": "GND",
+        "25": "GND", "26": "GND"},
+     {"LCSC": "C2856831",
+      "FP": "gamesetup_lcsc:FPC-SMD_24P-P0.50_FPC-05FB-24PH20"}),
+    # El panel en si: pieza mecanica, sin pines. MANUAL = DNP para JLCPCB
+    # (la pega el usuario), pero queda en el BOM para comprarla.
+    ("LCD_PANEL", "LCD1", "DM-TFT13-377-24P", 200.0, 80.0, {},
+     {"FP": "gamesetup_fp:LCD_LH133T_24P", "MANUAL": True}),
+    # Backlight: 2 LED blancos en paralelo, 3.0V / 40mA segun el datasheet.
+    # Desde VSYS (3.4-4.2V con LiPo) y no desde 3V3 (0.3V de margen sobre la
+    # Vf: la corriente quedaria a merced de la dispersion del LED) ni desde
+    # el riel de 5V (es el riel del op-amp y el PWM le meteria ruido).
+    # R21 fija el brillo maximo: a 3.9V nominal, (3.9-3.0)/24 = 37mA.
+    # ponytail: R21 es la perilla de calibracion; con la LiPo llena da ~50mA
+    # y vacia ~17mA. Si molesta, driver de corriente constante en V2.
+    ("R", "R21", "24R", 190.0, 20.0,
+     {"1": "VSYS", "2": "BL_A"}, {"FP": C0805_FP}),
+    ("Q_NMOS", "Q1", "2N7002", 190.0, 40.0,
+     {"1": "LCD_BLK", "2": "GND", "3": "BL_K"},
+     {"LCSC": "C8545", "FP": "Package_TO_SOT_SMD:SOT-23"}),
+    # Pulldown de puerta: con el GPIO sin configurar (reset, bootsel) el
+    # backlight queda apagado en vez de flotar.
+    ("R", "R22", "100k", 180.0, 40.0,
+     {"1": "LCD_BLK", "2": "GND"}, {"FP": R_FP}),
+    # Desacoplo del panel, al lado del conector.
+    ("C", "C30", "1uF", 210.0, 20.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
+    ("C", "C31", "100nF", 218.0, 20.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
 ]
 
 # ------------------------------------------------------------------- tacts

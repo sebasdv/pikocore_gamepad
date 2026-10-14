@@ -64,14 +64,15 @@ GPIO = {
     20: "SPK_SHDN",    # salida: 1 = parlante encendido
     21: "JACK_DET",    # entrada con pull-up: 0 = plug insertado
     22: "DAC_XSMT",    # pulldown 100k: arranca muteado
+    26: "LCD_TE",      # tearing effect del panel (entrada, opcional)
 }
 
 # Sin MIDI, sin microSD, sin expansores I2C: no queda nada que enrutar por
-# expansion salvo estos 3, con ADC. GP26 fue BTN_OK (centro del NAV5) hasta
-# el 2026-10-14, cuando el D-pad volvio a ser cuatro tacts 6x6: un NAV5 es
-# un solo actuador y no permite diagonales ni combinaciones como
-# Up+Down+B+A (reset de FX) o Down+Left+X+B (clock lock).
-FREE = (26, 27, 28)
+# expansion salvo estos 2, con ADC. GP26 fue BTN_OK (centro del NAV5) hasta
+# el 2026-10-14, cuando el D-pad volvio a ser cuatro tacts 6x6; el mismo dia
+# paso a LCD_TE: el panel desnudo de 24 pines expone la senal de tearing y
+# cuesta una pista, el firmware la usa o la ignora.
+FREE = (27, 28)
 
 # Orden fisico del header de 40 pines tipo Pico. El pin 38 es GND (no VSYS_EN).
 HEADER_ORDER = [

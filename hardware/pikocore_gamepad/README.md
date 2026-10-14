@@ -16,15 +16,22 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state (2026-10-14):** **100 × 80 mm** (down from 120: the X/Y/A/B
-diamond, Select and the R trigger moved 20 mm left to mirror the D-pad cluster
-about the board centre; the boost loop shifted 5 mm left and U3 to (58, 35) to
-clear the new through-hole pins), **D-pad = four discrete 6×6 tacts (SW1–SW4)**
-again instead of the NAV5 (a single 5-way actuator cannot press two directions
-at once, which the Up+Down+B+A and Down+Left+X+B combos need; GP26 is free
-again), 4 layers, 66 parts, re-routed with freerouting 2.4.1 headless (0
-unconnected; the whole boost loop is now hand-routed in `manual_tracks.py`,
-relative to U2), every gate green — 201 tests, G-0 (all constants and footprints
+**Current state (2026-10-14, evening):** **100 × 80 mm**, 4 layers, 72 parts.
+Display is now a **bare 1.3" panel on a flex**: DisplayModule DM-TFT13-377
+(24-pin variant, LH133T-IF05, ST7789VW) glued to the front, 0.5 mm FPC into
+**J4 = XUNPU FPC-05FB-24PH20 (LCSC C2856831)**; CS tied to GND, 4-SPI, TE on
+GP26, backlight from VSYS through R21 (24 Ω) and Q1 (2N7002) switched by
+`LCD_BLK`. The 7-pin THT module, its 4 mounting holes and the pin-row are
+gone. Layout per the ergonomic study (Claude doc "Estudio ergonómico
+pikocore_gamepad"): panel at the top edge (active area y 4.6–28), D-pad
+(four 6×6 tacts, SW1–SW4) and X/Y/A/B clusters centred at y 53.2, Select and
+Start stacked in the centre column below the FPC connector, triggers unchanged.
+Routed with freerouting 2.4.1 headless; the boost loop is hand-routed in
+`manual_tracks.py`. **G-0 is red on purpose**: `LCD_FPC_PIN_ORDER` in
+`params.py` (which way round the FPC contacts face) cannot be verified from
+the datasheet and blocks `gen_fab.py` until measured on the physical panel
+(continuity LEDA → J4 pad 1; if mirrored, J4 goes to rot 0). Every other gate
+green — 201 tests, G-0 (all constants and footprints
 verified), G-5/G-4/G-2, placement, ERC (0 errors), DRC (0 errors, 0 parity
 mismatches) — and `gen_fab.py` produces the JLCPCB package. The 13 BOM lines
 without an LCSC code are all hand-soldered THT parts (buttons, jack, LCD, module,

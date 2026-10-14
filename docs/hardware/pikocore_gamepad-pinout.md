@@ -31,7 +31,13 @@ G-2/G-4 gates catch drift between it, the schematic, and the firmware config.h s
 | GP20 | `SPK_SHDN` | Speaker amp shutdown (1 = speaker on) |
 | GP21 | `JACK_DET` | Headphone jack detect (0 = plug inserted, needs pull-up) |
 | GP22 | `DAC_XSMT` | DAC mute control (starts muted via 100k pulldown) |
-| GP26, GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate). GP26 was `BTN_OK` (NAV5 centre) until 2026-10-14, when the D-pad went back to four discrete 6×6 tacts (SW1–SW4): a single 5-way actuator cannot press two directions at once, which Up+Down+B+A and Down+Left+X+B need. |
+| GP26 | `LCD_TE` | Panel tearing-effect output (input to the MCU, optional). Was `BTN_OK` (NAV5 centre) until 2026-10-14, when the D-pad went back to four discrete 6×6 tacts (SW1–SW4): a single 5-way actuator cannot press two directions at once, which Up+Down+B+A and Down+Left+X+B need. |
+| GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate) |
+
+Display (since 2026-10-14): bare 1.3" panel DisplayModule DM-TFT13-377, 24-pin
+0.5 mm FPC into J4 (XUNPU FPC-05FB-24PH20). 4-SPI with IM=1; CS is tied to GND
+(always selected, as the old 7-pin module was), RD and DB0–DB7 to GND. Backlight:
+2 white LEDs from VSYS through R21 (24 Ω) and Q1 (2N7002) switched by `LCD_BLK`.
 | GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor) |
 
 The electrical topology is the same one the superseded from-scratch plan called for

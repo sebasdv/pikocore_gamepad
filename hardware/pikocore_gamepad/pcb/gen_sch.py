@@ -86,7 +86,8 @@ HOJAS = [
 
     ("02_mcu_controles", "MCU, pantalla y controles", [
         "U1",                                      # modulo RP2350-Plus
-        "J4",                                      # LCD ST7789
+        "J4", "LCD1",                              # conector FPC + panel
+        "Q1", "R21", "R22", "C30", "C31",          # backlight y desacoplo
         "SW1", "SW2", "SW3", "SW4",                # D-pad UP DOWN LEFT RIGHT
         "SW5", "SW6", "SW7", "SW8",                # X Y A B
         "SW11", "SW12",                            # START SELECT
@@ -276,6 +277,18 @@ NOTAS = {
     "NOTA_ENTRADA":
         "Los 12 controles van DIRECTO a GPIO del modulo, sin expansor I2C. La asignacion esta\n"
         "en pinmap.py y la verifica la puerta G-4 contra el firmware.\n"
+        "\n"
+        "PANTALLA: panel desnudo DM-TFT13-377 de 24 pines (ST7789VW) pegado al frente, FPC de\n"
+        "0.5mm al conector J4 (XUNPU FPC-05FB-24PH20, contactos de las dos caras). 4-SPI con\n"
+        "IM=1 y CS A MASA (siempre seleccionado, como hacia el modulo de 7 pines): el bus SPI0\n"
+        "sigue sin poder compartirse. RD y DB0-7 a masa, TE a GP26. Backlight: 2 LED blancos en\n"
+        "paralelo (3.0V, 40mA) desde VSYS por R21 (24R, PERILLA de brillo maximo) y Q1 (2N7002)\n"
+        "a masa, con el PWM de LCD_BLK en la puerta y R22 de pulldown. No cuelga del riel de 5V\n"
+        "para no meter el PWM en la alimentacion del op-amp.\n"
+        "\n"
+        "ORDEN DE PINES DEL FPC: J4 va a rot 180 asumiendo contactos hacia la placa. Si el panel\n"
+        "trae los contactos hacia arriba el orden se espeja: LCD_FPC_PIN_ORDER en params.py queda\n"
+        "SIN VERIFICAR hasta medir continuidad con el panel en mano (bloquea G-0).\n"
         "\n"
         "Los tacts de 6mm (SW1-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
         "dentro del switch; el simbolo declara 2 pines porque el footprint oficial de KiCad\n"

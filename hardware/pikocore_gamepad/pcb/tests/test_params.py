@@ -13,50 +13,33 @@ class TestParams(unittest.TestCase):
             self.assertTrue(p.note, f"{name}: note no puede estar vacia")
             self.assertTrue(p.gate, f"{name}: gate no puede estar vacia")
 
-    def test_las_constantes_del_lcd_estan_declaradas(self):
-        for name in ("LCD_PIN_ROW_Y", "LCD_HOLE_INSET", "LCD_BOARD_W",
-                     "LCD_BOARD_H", "LCD_PIN1_X", "LCD_ACTIVE_W",
-                     "LCD_ACTIVE_TOP"):
+    def test_las_constantes_del_panel_estan_declaradas(self):
+        for name in ("PANEL_BL_W", "PANEL_BL_H", "PANEL_AA", "PANEL_AA_OFF_X",
+                     "PANEL_AA_OFF_TOP", "PANEL_FPC_W", "PANEL_FPC_LEN",
+                     "LCD_FPC_PIN_ORDER"):
             self.assertIn(name, params.ALL)
 
-    def test_las_cotas_leidas_del_drawing_estan_marcadas_verificadas(self):
-        # Estas salen del drawing y ademas cierran por aritmetica exacta,
-        # asi que no dependen de un calibre.
-        self.assertTrue(params.ALL["LCD_BOARD_W"].verified)
-        self.assertTrue(params.ALL["LCD_PIN1_X"].verified)
+    def test_las_cotas_del_panel_salen_del_datasheet(self):
+        # Drawing rev C del DM-TFT13-377 de 24 pines. Cierran por aritmetica:
+        # BL - AA = 2 x margen en el lado corto.
+        for name in ("PANEL_BL_W", "PANEL_BL_H", "PANEL_AA", "PANEL_AA_OFF_X",
+                     "PANEL_AA_OFF_TOP"):
+            self.assertTrue(params.ALL[name].verified, name)
+        self.assertAlmostEqual(
+            params.v("PANEL_BL_W") - 2 * params.v("PANEL_AA_OFF_X"),
+            params.v("PANEL_AA"), places=4)
 
-    def test_las_cotas_del_lcd_salen_del_modelo_del_modulo(self):
-        # Las dos arrancaron sin verificar porque el drawing del vendedor no
-        # las acota: LCD_PIN_ROW_Y salia de escalar el dibujo a ojo (erraba
-        # 0.33mm) y LCD_HOLE_INSET tenia dos candidatos, 2.19 y 2.5.
-        # Se cerraron midiendo el STEP del modulo, y ahi se vio que 2.19 era
-        # el margen del AREA ACTIVA, no la posicion del agujero.
-        self.assertTrue(params.ALL["LCD_PIN_ROW_Y"].verified)
-        self.assertTrue(params.ALL["LCD_HOLE_INSET"].verified)
-        self.assertAlmostEqual(params.v("LCD_PIN_ROW_Y"), 1.27, places=2)
-        self.assertAlmostEqual(params.v("LCD_HOLE_INSET"), 2.50, places=2)
+    def test_la_franja_del_fpc_es_la_mas_ancha(self):
+        # 29.22 - 23.40 - 1.56 = 4.26: del lado del FPC esta el driver.
+        franja = (params.v("PANEL_BL_H") - params.v("PANEL_AA")
+                  - params.v("PANEL_AA_OFF_TOP"))
+        self.assertAlmostEqual(franja, 4.26, places=3)
+        self.assertGreater(franja, params.v("PANEL_AA_OFF_TOP"))
 
-    def test_el_margen_del_area_activa_no_es_el_inset_del_agujero(self):
-        # (27.78 - 23.40)/2 = 2.19 EXACTO. Ese numero existe y es correcto,
-        # pero acota el area activa — confundirlo con el agujero fue el error
-        # que arrastraba V1.
-        margen = (params.v("LCD_BOARD_W") - params.v("LCD_ACTIVE_W")) / 2
-        self.assertAlmostEqual(margen, 2.19, places=2)
-        self.assertNotAlmostEqual(margen, params.v("LCD_HOLE_INSET"), places=2)
-
-    def test_la_geometria_del_header_cierra_con_el_ancho_de_la_placa(self):
-        # 6.27 + 6*2.54 + 6.27 == 27.78 exacto. Si alguien toca un valor
-        # sin tocar el otro, este test lo agarra.
-        w = params.ALL["LCD_BOARD_W"].value
-        x1 = params.ALL["LCD_PIN1_X"].value
-        pitch = params.ALL["LCD_PIN_PITCH"].value
-        self.assertAlmostEqual(x1 + 6 * pitch + x1, w, places=4)
-
-    def test_los_margenes_verticales_del_vidrio_son_simetricos(self):
-        h = params.ALL["LCD_BOARD_H"].value
-        top = params.ALL["LCD_GLASS_TOP"].value
-        gh = params.ALL["LCD_GLASS_H"].value
-        self.assertAlmostEqual(h - top - gh, top, places=4)
+    def test_el_orden_de_pines_del_fpc_queda_sin_verificar(self):
+        # No se puede cerrar con el datasheet: depende de que cara del FPC
+        # lleva los contactos. Bloquea G-0 hasta medir con el panel en mano.
+        self.assertFalse(params.ALL["LCD_FPC_PIN_ORDER"].verified)
 
 
 class TestAccesorV(unittest.TestCase):
@@ -65,7 +48,7 @@ class TestAccesorV(unittest.TestCase):
     que hay que fijar."""
 
     def test_devuelve_el_valor_de_la_constante(self):
-        self.assertAlmostEqual(params.v("LCD_BOARD_W"), 27.78, places=4)
+        self.assertAlmostEqual(params.v("PANEL_AA"), 23.40, places=4)
 
     def test_falla_fuerte_con_un_nombre_desconocido(self):
         # Sin esto, un typo devolveria None y se propagaria silencioso a la
@@ -77,17 +60,20 @@ class TestAccesorV(unittest.TestCase):
 class TestCheckVerified(unittest.TestCase):
 
     def test_reporta_los_no_verificados(self):
-        # Con un Param falso, para no depender de que quede alguno sin
-        # verificar en el proyecto real — hoy no queda ninguno.
+        # Con un Param falso, para no depender de cuales queden sin
+        # verificar en el proyecto real.
         from params import Param
         falso = {"OK": Param(1.0, True, "medido", "V-0"),
                  "PENDIENTE": Param(2.0, False, "sin medir", "V-9")}
         pend = check_verified.pendientes(falso)
         self.assertEqual(pend, ["PENDIENTE"])
 
-    def test_hoy_no_queda_ninguno_pendiente(self):
-        # G-0 en verde: es lo que habilita a gen_fab.py a generar sin --force.
-        self.assertEqual(check_verified.pendientes(params.ALL), [])
+    def test_hoy_queda_exactamente_uno_pendiente(self):
+        # G-0 en rojo a proposito: el orden de pines del FPC del panel se
+        # verifica con la pieza, no con el datasheet. gen_fab.py se niega
+        # sin --force hasta entonces, que es lo que se quiere.
+        self.assertEqual(check_verified.pendientes(params.ALL),
+                         ["LCD_FPC_PIN_ORDER"])
 
     def test_pasa_cuando_todo_esta_verificado(self):
         from params import Param
