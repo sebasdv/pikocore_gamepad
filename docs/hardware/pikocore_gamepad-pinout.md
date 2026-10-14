@@ -31,8 +31,7 @@ G-2/G-4 gates catch drift between it, the schematic, and the firmware config.h s
 | GP20 | `SPK_SHDN` | Speaker amp shutdown (1 = speaker on) |
 | GP21 | `JACK_DET` | Headphone jack detect (0 = plug inserted, needs pull-up) |
 | GP22 | `DAC_XSMT` | DAC mute control (starts muted via 100k pulldown) |
-| GP26 | `BTN_OK` | NAV5 center press (confirm/select) |
-| GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate) |
+| GP26, GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate). GP26 was `BTN_OK` (NAV5 centre) until 2026-10-14, when the D-pad went back to four discrete 6×6 tacts (SW1–SW4): a single 5-way actuator cannot press two directions at once, which Up+Down+B+A and Down+Left+X+B need. |
 | GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor) |
 
 The electrical topology is the same one the superseded from-scratch plan called for

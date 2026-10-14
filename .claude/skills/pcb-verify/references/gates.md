@@ -306,7 +306,7 @@ python gen_sch.py                     # python normal: no necesita pcbnew
 "$KIPY" manual_tracks.py              # ANTES del export
 "$KIPY" plane_vias.py                 # ANTES del export
 "$KIPY" route_io.py export
-java -jar freerouting-1.9.0.jar -de pikocore_gamepad.dsn -do pikocore_gamepad.ses -mp 50
+java -Djava.awt.headless=true -jar "$JAR" -de pikocore_gamepad.dsn -do pikocore_gamepad.ses -mp 50 -mt 1 -l en
 "$KIPY" route_io.py import
 "$KIPY" finish_pcb.py
 "$KICLI" pcb drc --severity-all --schematic-parity --exit-code-violations \
@@ -328,6 +328,14 @@ Y una de entorno: el `.jar` no está versionado. En esta máquina (2026-10-14)
 hay Java 25 y sirve el **freerouting 2.4.1** que trae el plugin de KiCad 10:
 `~/Documents/KiCad/10.0/3rdparty/plugins/app_freerouting_kicad-plugin/jar/freerouting-2.4.1.jar`,
 con las mismas opciones `-de/-do/-mp` (agregar `-l en` para el log en inglés).
+**Lanzarlo con `java -Djava.awt.headless=true -jar ... -mt 1`**: con la
+ventana abierta, el hilo de repintado de AWT tira un `NullPointerException`
+en `SearchTreeObject.shapeLayer` durante el fanout y el ruteo queda
+interrumpido a mitad (el `.ses` sale igual, con 60+ nets abiertas y exit 0:
+mirar `grep -c NullPointer logs/freerouting.log`). Y solo tramos manuales a
+0/45/90°: con otro ángulo la normalización de pistas oscila
+("reached 2000 iterations for net") y también aborta. `-mt 1` porque la
+optimización multihilo genera violaciones de margen, según el propio log.
 Reporta "unrouted" y "violations" según SUS reglas: la 2.4.1 contó 14
 abiertas y 54 violaciones donde el DRC de KiCad dio 0 y 0, porque cuenta los
 pasantes de GND como pendientes aunque el plano los conecte. **El veredicto

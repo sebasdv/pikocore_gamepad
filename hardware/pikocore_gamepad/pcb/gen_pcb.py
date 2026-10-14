@@ -36,11 +36,13 @@ W, H = BOARD_W, BOARD_H
 
 CORNER_R = 3.0          # radio de las esquinas del contorno
 EDGE_KEEPOUT = 0.6      # franja sin pistas/vias contra el borde
-NPTH_KEEPOUT = 0.60     # anillo sin pistas/vias alrededor de cada NPTH
-#   0.60 y no los 0.40 que pide la regla: freerouting respeta las rule
+NPTH_KEEPOUT = 0.75     # anillo sin pistas/vias alrededor de cada NPTH
+#   0.75 y no los 0.40 que pide la regla: freerouting respeta las rule
 #   areas de forma aproximada —su pasada de optimizacion vuelve a
 #   empujar las pistas hacia adentro— asi que el anillo se dibuja mas
-#   grande que el margen que se quiere conseguir.
+#   grande que el margen que se quiere conseguir. Con 0.60, la 2.4.1 dejo
+#   BTN_R a 0.36-0.37mm del anclaje de SW10 en dos corridas seguidas de
+#   la placa de 100mm.
 ZONE_MARGIN = 0.5       # retiro de las zonas respecto del contorno
 
 # Ruta estandar de footprints de la instalacion.

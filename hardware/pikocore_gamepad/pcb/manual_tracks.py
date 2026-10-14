@@ -125,8 +125,45 @@ PISTAS = {
     # verificacion del extremo sin poner via): sale del canal apretado del
     # SOT-563 con 0.20 y desde _u2(1.60, 1.80) ya hay lugar para los 0.40 de
     # la netclass Power, asi que freerouting completa el resto.
-    "U2_5V": dict(net="5V", capa="B.Cu", ancho=0.20, via=True, sin_via=True,
-                  puntos=[_u2(0.713, 0.50), _u2(1.60, 0.50), _u2(1.60, 1.80)]),
+    # Desde la placa de 100mm con D-pad de 4 tacts la pista ya no termina al
+    # aire: freerouting dejo este tramo sin cerrar en dos corridas seguidas
+    # (la red de FB baja por x=U2+0.0 desde R4 hasta el pin 1 y hace de
+    # pared, y la fila de pasivos en y=2.5 cierra por arriba). Sigue por
+    # debajo de L1 —entre sus dos pads hay 1.55mm— y sube hasta C5.1, el
+    # bulk de salida. Termina SOBRE un pad, asi que verificar_extremos lo
+    # controla en las dos puntas.
+    # SOLO TRAMOS A 0/45/90 GRADOS: con un tramo a otro angulo (hubo uno de
+    # dx=-0.85, dy=-1.10) freerouting 2.4.1 cae en un bucle de normalizacion
+    # ("reached 2000 iterations for net '5V'"), tira un NullPointerException
+    # y aborta el ruteo a mitad de camino.
+    "U2_5V": dict(net="5V", capa="B.Cu", ancho=0.20, via=False,
+                  puntos=[_u2(0.713, 0.50), _u2(1.60, 0.50), _u2(1.60, 1.80),
+                          _u2(4.40, 1.80), _u2(4.40, -2.65), _u2(3.55, -3.50)]),
+    # L1.1 (VSYS_F, del lado derecho de U2) tiene que llegar a L2.2 y a los
+    # pines 2/3 (lado izquierdo). Por arriba lo tapan la red de FB y los
+    # pasivos; por abajo pasa entre el codo del 5V (y=U2+1.8) y los pines
+    # THT del LCD (y=9.6, borde del pad en 8.75): 0.25 de ancho en y=8.35
+    # deja 0.27 a cada lado. Mismo motivo que arriba: dos corridas seguidas
+    # de freerouting lo dejaron abierto.
+    "L1_VSYS_F": dict(net="VSYS_F", capa="B.Cu", ancho=0.25, via=False,
+                      puntos=[_u2(5.80, 0.00), _u2(5.80, 2.35),
+                              _u2(-3.80, 2.35), _u2(-3.80, 0.00)]),
+    # C7.1 (100nF de salida) esta al otro lado del pad de GND de C5, en la
+    # misma fila: 5V pasa por ARRIBA de C5.2, a y=1.35 (0.28 al pad, 0.75 al
+    # borde de la placa). Tambien lo dejo freerouting abierto una de cada dos
+    # corridas. Con esta, todo el lazo del boost va a mano.
+    "C7_5V": dict(net="5V", capa="B.Cu", ancho=0.30, via=False,
+                  puntos=[_u2(3.55, -3.50), _u2(3.55, -4.65),
+                          _u2(7.425, -4.65), _u2(7.425, -3.50)]),
+    # C4.1 (el 10uF de entrada) tambien es VSYS_F y queda del otro lado de
+    # L2.1 (VSYS), en la misma fila. Pasa por ARRIBA de L2, por el corredor
+    # de 0.9mm que queda entre la fila de pasivos (y=2.5) y los pads del
+    # inductor: y=4.2 deja 0.28 al pad de L2.1 y 0.8 a R5. Es exactamente el
+    # camino que freerouting eligio solo en la primera corrida de la placa
+    # de 100mm y no volvio a encontrar en las siguientes.
+    "C4_VSYS_F": dict(net="VSYS_F", capa="B.Cu", ancho=0.40, via=False,
+                      puntos=[_u2(-11.575, 0.00), _u2(-11.575, -1.80),
+                              _u2(-5.60, -1.80), _u2(-3.80, 0.00)]),
     # El nodo de conmutacion, en linea recta: 2.29mm, el minimo posible entre
     # los dos pads. Va a mano y no lo decide el ruteador porque es la pista
     # mas critica del boost — antes salia por donde encontraba hueco, y una
@@ -160,13 +197,13 @@ PISTAS = {
 #
 # El par de MASA no necesita puente: son pads THT y la zona de GND los une
 # al plano por si misma.
-# (ref, net): el puente va del pad 1 en el origen del footprint al otro pad
-# 1, 6.5mm a la derecha (SW_PUSH_6mm). La posicion sale de placements.py.
-_TACTS = [("SW5", "BTN_X"), ("SW6", "BTN_Y"), ("SW7", "BTN_A"),
-          ("SW8", "BTN_B"), ("SW11", "BTN_START"), ("SW12", "BTN_SELECT")]
+# El puente va del pad 1 en el origen del footprint al otro pad 1, 6.5mm a
+# la derecha (SW_PUSH_6mm). La lista de tacts es la de netlist.py y la
+# posicion la de placements.py: no hay una tercera copia que mantener.
+from netlist import TACTS
 PUENTES_TACT = {
     ref: (net, _POS[ref], (round(_POS[ref][0] + 6.5, 3), _POS[ref][1]))
-    for ref, net in _TACTS
+    for ref, net in TACTS
 }
 for _sw, (_net, _a, _b) in PUENTES_TACT.items():
     PISTAS["%s_PUENTE" % _sw] = dict(net=_net, capa="F.Cu", ancho=0.20,

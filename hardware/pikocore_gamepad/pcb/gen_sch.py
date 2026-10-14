@@ -87,7 +87,7 @@ HOJAS = [
     ("02_mcu_controles", "MCU, pantalla y controles", [
         "U1",                                      # modulo RP2350-Plus
         "J4",                                      # LCD ST7789
-        "SW13",                                    # NAV5 (D-pad)
+        "SW1", "SW2", "SW3", "SW4",                # D-pad UP DOWN LEFT RIGHT
         "SW5", "SW6", "SW7", "SW8",                # X Y A B
         "SW11", "SW12",                            # START SELECT
         "SW9", "SW10",                             # gatillos L y R
@@ -277,16 +277,16 @@ NOTAS = {
         "Los 12 controles van DIRECTO a GPIO del modulo, sin expansor I2C. La asignacion esta\n"
         "en pinmap.py y la verifica la puerta G-4 contra el firmware.\n"
         "\n"
-        "Los tacts de 6mm (SW5-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
+        "Los tacts de 6mm (SW1-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
         "dentro del switch; el simbolo declara 2 pines porque el footprint oficial de KiCad\n"
         "numera sus cuatro pads 1,1,2,2. Cablear 1 contra 2 ya cruza el contacto.\n"
         "\n"
         "SW9 y SW10 (gatillos) son angulados y tienen SOLO DOS patas electricas: las otras dos\n"
         "son soportes mecanicos, y en la placa son agujeros NO metalizados.\n"
         "\n"
-        "SW13 es un NAV5 de 5 vias (arriba/abajo/izq/der/centro) y reemplaza a los cuatro tacts\n"
-        "del D-pad de la version anterior. CONSECUENCIA PARA EL FIRMWARE: no se pueden pulsar\n"
-        "arriba y abajo a la vez, asi que las combinaciones que lo pedian estan remapeadas.",
+        "El D-pad son cuatro tacts independientes (SW1-SW4), no un nav switch de 5 vias: las\n"
+        "combinaciones del firmware (Up+Down+B+A = reset de FX, Down+Left+X+B = clock lock)\n"
+        "necesitan dos direcciones a la vez, cosa que un solo actuador no permite.",
     "NOTA_DAC":
         "PCM5102A en modo chip-down, I2S generado por PIO. SCK (pin 12) A MASA: eso activa el\n"
         "PLL interno a partir de BCK y evita tener que generar MCLK. FMT/FLT/DEMP a masa.\n"

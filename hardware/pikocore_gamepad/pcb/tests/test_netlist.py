@@ -149,17 +149,6 @@ class TestSimboloLcd(unittest.TestCase):
         self.assertNotIn("CS", pin_names("LCD_ST7789"))
 
 
-class TestSimboloNav(unittest.TestCase):
-
-    def test_tiene_seis_pines(self):
-        self.assertEqual(len(netlist.SYMS["NAV_WS1004"]["pins"]), 6)
-
-    def test_sigue_el_pinout_del_datasheet(self):
-        # WS-1004-ARL10026: 1=COM 2=LEFT 3=CENTRO 4=UP 5=RIGHT 6=DOWN.
-        self.assertEqual(pin_names("NAV_WS1004"),
-                         ["COM", "LEFT", "CENTER", "UP", "RIGHT", "DOWN"])
-
-
 class TestSimboloTact(unittest.TestCase):
 
     def test_declara_un_pin_por_par_interno(self):
@@ -475,24 +464,30 @@ class TestPuentesDeTact(unittest.TestCase):
 
 class TestInstanciasEntrada(unittest.TestCase):
 
-    def test_hay_nueve_switches_fisicos(self):
-        # 6 tacts verticales (X/Y/A/B + Start/Select) + 2 gatillos angulados
-        # (L/R) + 1 NAV5 (reemplaza los 4 tacts del D-pad).
+    def test_hay_doce_switches_fisicos(self):
+        # 10 tacts verticales (D-pad 4 + X/Y/A/B 4 + Start/Select 2) + 2
+        # gatillos angulados (L/R). El D-pad volvio a ser cuatro tacts: el
+        # NAV5 de 5 vias no permitia pulsar dos direcciones a la vez.
         vert = [i for i in netlist.INSTANCES if i[0] == "SW_Push"]
         ang = [i for i in netlist.INSTANCES if i[0] == "SW_Push_RA"]
-        nav = [i for i in netlist.INSTANCES if i[0] == "NAV_WS1004"]
-        self.assertEqual(len(vert), 6)
+        self.assertEqual(len(vert), 10)
         self.assertEqual(len(ang), 2)
-        self.assertEqual(len(nav), 1)
-        self.assertEqual(len(vert) + len(ang) + len(nav), 9)
+        self.assertNotIn("NAV_WS1004", {i[0] for i in netlist.INSTANCES})
 
-    def test_hay_trece_botones_logicos(self):
-        # X/Y/A/B (4) + Start/Select (2) + L/R (2) + NAV5 (5: 4 direcciones +
-        # BTN_OK) = 13, aunque solo sean 9 piezas fisicas.
-        logicos = {sig for _, sig in netlist.TACTS}
-        logicos |= {"BTN_L", "BTN_R"}
-        logicos |= {"DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT", "BTN_OK"}
-        self.assertEqual(len(logicos), 13)
+    def test_hay_doce_botones_logicos(self):
+        # D-pad (4) + X/Y/A/B (4) + Start/Select (2) + L/R (2) = 12, uno por
+        # pieza fisica: sin BTN_OK, que era el centro del NAV5.
+        logicos = {sig for _, sig in netlist.TACTS} | {"BTN_L", "BTN_R"}
+        self.assertEqual(len(logicos), 12)
+        self.assertNotIn("BTN_OK", logicos)
+
+    def test_el_dpad_son_cuatro_tacts_con_su_direccion(self):
+        for ref, sig in (("SW1", "DPAD_UP"), ("SW2", "DPAD_DOWN"),
+                         ("SW3", "DPAD_LEFT"), ("SW4", "DPAD_RIGHT")):
+            n = nets_of(ref)
+            self.assertEqual(n["1"], sig)
+            self.assertEqual(n["2"], "GND")
+            pinmap.gpio_of(sig)   # la net tiene un GPIO real detras
 
     def test_los_gatillos_son_los_angulados(self):
         # L y R se aprietan de costado desde el borde: si quedaran verticales
@@ -526,26 +521,6 @@ class TestInstanciasEntrada(unittest.TestCase):
                              f"{inst[1]}: tiene que usar un pin de cada par")
             self.assertNotEqual(n["1"], "GND", f"{inst[1]}: pin 1 es la senal")
             self.assertEqual(n["2"], "GND", f"{inst[1]}: pin 2 va a masa")
-
-    def test_el_comun_del_nav5_va_a_masa(self):
-        self.assertEqual(nets_of("SW13")["1"], "GND")
-
-    def test_el_nav5_cablea_las_5_direcciones_correctas(self):
-        # Las 4 direcciones ya estaban en el pinmap desde el fork original
-        # (heredadas del D-pad); BTN_OK es nuevo en este plan.
-        n = nets_of("SW13")
-        self.assertEqual(n["2"], "DPAD_LEFT")
-        self.assertEqual(n["3"], "BTN_OK")
-        self.assertEqual(n["4"], "DPAD_UP")
-        self.assertEqual(n["5"], "DPAD_RIGHT")
-        self.assertEqual(n["6"], "DPAD_DOWN")
-
-    def test_las_5_nets_del_nav5_existen_en_el_pinmap(self):
-        # gpio_of() falla fuerte (KeyError) si la funcion no esta asignada:
-        # esto verifica que las 5 nets del NAV5 tengan un GPIO real detras,
-        # no un nombre que quedo mal escrito.
-        for func in ("DPAD_LEFT", "BTN_OK", "DPAD_UP", "DPAD_RIGHT", "DPAD_DOWN"):
-            pinmap.gpio_of(func)  # no debe lanzar KeyError
 
 class TestInstanciaMcu(unittest.TestCase):
 

@@ -38,6 +38,22 @@
 > coordenadas absolutas: las pistas de U2 y los puentes de los tacts se derivan
 > de `placements.py`. El template DXF se regeneró a 100 × 80; el `_MOD.dxf` de
 > Rhino sigue siendo el de 120.
+>
+> **Tercera corrida, misma fecha — D-pad de cuatro tacts.** El NAV5 (SW13)
+> vuelve a ser SW1–SW4 (`SW_PUSH_6mm`, cruz de 12.5 mm centrada en X=30,
+> espejo del rombo); BTN_OK desaparece y GP26 queda libre; Start pasa a
+> x=26.75 para centrar su cuerpo en X=30. Ruteo: freerouting 2.4.1 hay que
+> lanzarlo con `-Djava.awt.headless=true -mt 1` (con ventana, un
+> NullPointerException en el repintado interrumpe el fanout y el `.ses` sale
+> con 60 nets abiertas y exit 0), y las pistas manuales solo a 0/45/90°.
+> Todo el lazo del boost va ahora a mano (`U2_5V` hasta C5.1, `C7_5V`,
+> `L1_VSYS_F`, `C4_VSYS_F`): freerouting los cerraba una corrida sí y otra
+> no. `NPTH_KEEPOUT` sube a 0.75. Resultado: 196 tests, puertas OK, ERC 0
+> errores (3 avisos GP26/27/28), DRC 0 errores / 0 abiertas / 0 paridad, fab
+> 16 gerbers, 38 líneas de BOM (17 sin LCSC: THT manuales + 470 µF).
+> Estudio ergonómico con propuesta de layout (LCD 5.3 mm arriba, grupos
+> abajo, Start/Select al centro, boost trasladado): doc "Estudio ergonómico
+> pikocore_gamepad" en claude.ai; pendiente de decisión antes de aplicar.
 
 Estado al **2026-08-25**, rama `pikocore-gamepad-hardware`. Generado corriendo en
 vivo `tests/run_tests.py` (185 OK) y `checks/run_all.py` con el Python de KiCad

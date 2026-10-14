@@ -35,9 +35,14 @@ PLACEMENTS = [
     ("J4",  "gamesetup_fp:LCD_ST7789_240x240_7P",       _LCD_X, _LCD_Y, 0, False),
 
     # ================================================ FRENTE: controles
-    # NAV5 (reemplaza el D-pad de 4 tacts): espejado con el diamante X/Y/A/B,
-    # mismo eje Y=83. Ver spec 2026-08-11-pikocore-gamepad-nav5-speaker-reloc-design.md.
-    ("SW13", "gamesetup_lcsc:SW-TH_WS-1004-ARL10026",      30.00,   55.00, 0, False),
+    # D-pad: cuatro tacts 6x6 en cruz, con el cuerpo centrado en X=30 y el
+    # mismo paso de 12.5mm que el rombo X/Y/A/B (espejo exacto respecto del
+    # centro de la placa, X=50). Reemplaza al NAV5 de 5 vias (2026-10-14):
+    # un solo actuador no permite diagonales ni Up+Down+B+A / Down+Left+X+B.
+    ("SW1", "Button_Switch_THT:SW_PUSH_6mm",   26.75,   42.50, 0, False),  # UP
+    ("SW3", "Button_Switch_THT:SW_PUSH_6mm",   14.25,   55.00, 0, False),  # LEFT
+    ("SW4", "Button_Switch_THT:SW_PUSH_6mm",   39.25,   55.00, 0, False),  # RIGHT
+    ("SW2", "Button_Switch_THT:SW_PUSH_6mm",   26.75,   67.50, 0, False),  # DOWN
     # X/Y/A/B en diamante, abajo a la derecha. El origen del SW_PUSH_6mm es
     # el pad 1 y el cuerpo esta centrado en (x+3.25, y+2.25): con x=66.75 el
     # cuerpo queda en X=70, espejo del NAV5 (X=30) respecto del centro de la
@@ -71,7 +76,7 @@ PLACEMENTS = [
     ("SW10", "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS",
       75.25,    1.89, 0, False),  # R -> cuerpo x 73.70..81.30
     # START / SELECT, cada uno en el eje de su grupo (X=30 y X=70 de cuerpo).
-    ("SW11", "Button_Switch_THT:SW_PUSH_6mm",   30.00,   27.39, 0, False),
+    ("SW11", "Button_Switch_THT:SW_PUSH_6mm",   26.75,   27.39, 0, False),
     ("SW12", "Button_Switch_THT:SW_PUSH_6mm",   66.75,   27.39, 0, False),
     # Slide de encendido en el borde INFERIOR (la placa es apaisada; el borde
     # izquierdo de la version vertical ya no existe como tal).
@@ -255,7 +260,7 @@ FREE_REGIONS = [
     (53.0,  10.0, 61.0,  32.0),   # columna entre el modulo (x<=50.6) y el DAC
     (70.0,   9.0, 88.0,  35.0),   # derecha del DAC, hasta U4
     (36.0,  47.5, 88.0,  53.5),   # franja bajo el display, sobre la fila Y/A
-    (37.0,  62.0, 52.0,  76.0),   # columna central, bajo el NAV5
+    (37.0,  62.0, 52.0,  76.0),   # columna central, bajo el D-pad
     (76.0,  60.0, 88.0,  76.0),   # derecha media, a la derecha de B
     (89.0,  20.0, 97.0,  76.0),   # franja del borde derecho, bajo J5
     (2.0,   62.0, 10.0,  76.0),   # borde izquierdo

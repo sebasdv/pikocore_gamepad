@@ -17,10 +17,14 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
 **Current state (2026-10-14):** **100 × 80 mm** (down from 120: the X/Y/A/B
-diamond, Select and the R trigger moved 20 mm left to mirror the NAV5 cluster
+diamond, Select and the R trigger moved 20 mm left to mirror the D-pad cluster
 about the board centre; the boost loop shifted 5 mm left and U3 to (58, 35) to
-clear the new through-hole pins), 4 layers, 63 parts, re-routed with
-freerouting 2.4.1 (0 unconnected), every gate green — 201 tests, G-0 (all constants and footprints
+clear the new through-hole pins), **D-pad = four discrete 6×6 tacts (SW1–SW4)**
+again instead of the NAV5 (a single 5-way actuator cannot press two directions
+at once, which the Up+Down+B+A and Down+Left+X+B combos need; GP26 is free
+again), 4 layers, 66 parts, re-routed with freerouting 2.4.1 headless (0
+unconnected; the whole boost loop is now hand-routed in `manual_tracks.py`,
+relative to U2), every gate green — 201 tests, G-0 (all constants and footprints
 verified), G-5/G-4/G-2, placement, ERC (0 errors), DRC (0 errors, 0 parity
 mismatches) — and `gen_fab.py` produces the JLCPCB package. The 13 BOM lines
 without an LCSC code are all hand-soldered THT parts (buttons, jack, LCD, module,

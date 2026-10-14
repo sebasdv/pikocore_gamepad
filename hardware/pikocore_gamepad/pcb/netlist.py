@@ -75,14 +75,6 @@ SYMS = {
         ds="",
         pins=_left_pins(["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]),
     ),
-    "NAV_WS1004": dict(
-        ref="SW", w=7.62, h=12.7,
-        desc="XUNPU WS-1004-ARL10026, nav switch de 5 vias THT 10.2x10.2mm. "
-             "Pinout de datasheet: 1=COM 2=LEFT 3=CENTRO 4=UP 5=RIGHT 6=DOWN. "
-             "Cada direccion cierra contra el comun (pin 1).",
-        ds="https://www.lcsc.com/product-detail/C42377836.html",
-        pins=_left_pins(["COM", "LEFT", "CENTER", "UP", "RIGHT", "DOWN"]),
-    ),
     "SW_Push": dict(
         ref="SW", w=7.62, h=5.08,
         desc="Tact switch 6x6mm THT. Fisicamente tiene 4 patas, pero son DOS "
@@ -284,7 +276,6 @@ BTN_FP = "Button_Switch_THT:SW_PUSH_6mm"
 # cuerpo, travel 0.25. Comprado en AliExpress, sin codigo LCSC: lo suelda el
 # usuario, no JLCPCB (es THT y el CPL excluye THT a proposito).
 BTN_RA_FP = "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
-NAV_FP = "gamesetup_lcsc:SW-TH_WS-1004-ARL10026"
 R_FP = "Resistor_SMD:R_0603_1608Metric"
 C_FP = "Capacitor_SMD:C_0603_1608Metric"
 # Los rieles de 5V necesitan 0805/25V y no 0603: ver LCSC_PASIVOS.
@@ -362,10 +353,14 @@ def _mcu_nets():
     return nets
 
 
-# Los 6 tacts restantes (X/Y/A/B, Start/Select): (ref, net de senal). El
-# orden sigue al enum GcButton del firmware (src/input/ControlsTypes.h). El
-# D-pad se resuelve aparte, via el NAV5 (ver bloque "NAV5" mas abajo).
+# Los 10 tacts verticales (D-pad, X/Y/A/B, Start/Select): (ref, net de
+# senal). El orden sigue al enum GcButton del firmware
+# (src/input/ControlsTypes.h). El D-pad son cuatro tacts y no un NAV5 de 5
+# vias: el NAV5 es un solo actuador y no deja pulsar dos direcciones a la vez,
+# que es lo que piden Up+Down+B+A (reset de FX) y Down+Left+X+B (clock lock).
 TACTS = [
+    ("SW1", "DPAD_UP"), ("SW2", "DPAD_DOWN"),
+    ("SW3", "DPAD_LEFT"), ("SW4", "DPAD_RIGHT"),
     ("SW5", "BTN_X"), ("SW6", "BTN_Y"),
     ("SW7", "BTN_A"), ("SW8", "BTN_B"),
     ("SW11", "BTN_START"), ("SW12", "BTN_SELECT"),
@@ -403,17 +398,6 @@ INSTANCES += [
      {"1": "BTN_L", "2": "GND"}, {"FP": BTN_RA_FP}),
     ("SW_Push_RA", "SW10", "BTN_R", 240.0, 172.0,
      {"1": "BTN_R", "2": "GND"}, {"FP": BTN_RA_FP}),
-]
-
-# ------------------------------------------------------------------- NAV5
-# Reemplaza el D-pad de 4 tacts. Cablea directo al MCU (sin expansor: a
-# diferencia de GAMESETUP, aca sobran GPIO). El comun (pin 1) va a masa; cada
-# direccion, incluido el centro, a su propio GPIO con pull-up de firmware.
-INSTANCES += [
-    ("NAV_WS1004", "SW13", "NAV5", 300.0, 40.0, {
-        "1": "GND", "2": "DPAD_LEFT", "3": "BTN_OK",
-        "4": "DPAD_UP", "5": "DPAD_RIGHT", "6": "DPAD_DOWN"},
-     {"LCSC": "C42377836", "FP": NAV_FP}),
 ]
 
 # --------------------------------------------------- alimentacion y EXP
