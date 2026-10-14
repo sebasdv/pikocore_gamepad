@@ -324,6 +324,19 @@ Las tres trampas, todas verificadas empíricamente en este proyecto:
 3. **Nada ruteado a mano en la GUI sobrevive.** `gen_pcb.py` hace
    `pcbnew.NewBoard()`: la placa se reconstruye desde cero en cada corrida.
 
-Y una de entorno: **freerouting tiene que ser de la rama 1.x** (1.9.0 es la
-última). Las 2.x piden Java 21/25 y en esta máquina hay Java 17. El `.jar` no
-está versionado — se baja de github.com/freerouting/freerouting/releases.
+Y una de entorno: el `.jar` no está versionado. En esta máquina (2026-10-14)
+hay Java 25 y sirve el **freerouting 2.4.1** que trae el plugin de KiCad 10:
+`~/Documents/KiCad/10.0/3rdparty/plugins/app_freerouting_kicad-plugin/jar/freerouting-2.4.1.jar`,
+con las mismas opciones `-de/-do/-mp` (agregar `-l en` para el log en inglés).
+Reporta "unrouted" y "violations" según SUS reglas: la 2.4.1 contó 14
+abiertas y 54 violaciones donde el DRC de KiCad dio 0 y 0, porque cuenta los
+pasantes de GND como pendientes aunque el plano los conecte. **El veredicto
+es el DRC de KiCad, no el resumen de freerouting.** Si no hubiera Java 25,
+la rama 1.x (1.9.0) corre con Java 17.
+
+Trampas de **KiCad 9.0.1** (la versión instalada acá; 9.0.4 no las tiene):
+`Footprint.Flip()` deja los pads PTH sin capas internas y el plano no les da
+radio térmico (`reparar_capas_pth` en `gen_pcb.py` y `finish_pcb.py`);
+`PCB_VIA.SetWidth(int)` abre un assert modal y el script queda colgado sin
+mensaje (hay que pasar `PADSTACK.ALL_LAYERS`); y si un script se cuelga así,
+`tasklist`/`taskkill` del `python.exe` de KiCad antes de reintentar.

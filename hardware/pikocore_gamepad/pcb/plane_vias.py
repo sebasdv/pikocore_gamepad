@@ -297,7 +297,9 @@ def poner_stub(board, pad, x, y, diam, ancho):
     v.SetPosition(pcbnew.VECTOR2I(mm(x), mm(y)))
     v.SetViaType(pcbnew.VIATYPE_THROUGH)
     v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
-    v.SetWidth(mm(diam))
+    # Con capa: en KiCad 9.0.1 SetWidth(int) dispara un assert modal y el
+    # script queda colgado esperando un click (ver manual_tracks.py).
+    v.SetWidth(pcbnew.PADSTACK.ALL_LAYERS, mm(diam))
     v.SetDrill(mm(VIA_DRILL))
     v.SetNet(pad.GetNet())
     board.Add(v)
@@ -318,7 +320,9 @@ def poner_via(board, pad, diam):
     v.SetPosition(pad.GetPosition())
     v.SetViaType(pcbnew.VIATYPE_THROUGH)
     v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
-    v.SetWidth(mm(diam))
+    # Con capa: en KiCad 9.0.1 SetWidth(int) dispara un assert modal y el
+    # script queda colgado esperando un click (ver manual_tracks.py).
+    v.SetWidth(pcbnew.PADSTACK.ALL_LAYERS, mm(diam))
     v.SetDrill(mm(VIA_DRILL))
     v.SetNet(pad.GetNet())
     board.Add(v)

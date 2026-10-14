@@ -16,8 +16,11 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state (2026-10-14):** 120 × 80 mm, 4 layers, 63 parts, fully routed
-(0 unconnected), every gate green — 201 tests, G-0 (all constants and footprints
+**Current state (2026-10-14):** **100 × 80 mm** (down from 120: the X/Y/A/B
+diamond, Select and the R trigger moved 20 mm left to mirror the NAV5 cluster
+about the board centre; the boost loop shifted 5 mm left and U3 to (58, 35) to
+clear the new through-hole pins), 4 layers, 63 parts, re-routed with
+freerouting 2.4.1 (0 unconnected), every gate green — 201 tests, G-0 (all constants and footprints
 verified), G-5/G-4/G-2, placement, ERC (0 errors), DRC (0 errors, 0 parity
 mismatches) — and `gen_fab.py` produces the JLCPCB package. The 13 BOM lines
 without an LCSC code are all hand-soldered THT parts (buttons, jack, LCD, module,
@@ -27,7 +30,13 @@ RP2350-PiZero + GamePi13; this board needs its own board config with the pin map
 in `pinmap.py` and an I2S driver for the PCM5102A), the external DFM check
 (G-7) and the BOM purchase. Run `.claude/skills/pcb-verify` for the full gate
 report. On this machine KiCad 9 lives in `C:\Program Files\KiCad\9.0\bin`, not
-`%LOCALAPPDATA%` as the older docs assume.
+`%LOCALAPPDATA%` as the older docs assume, and it is **9.0.1**, which has three
+quirks the pipeline now works around: `Footprint.Flip()` strips inner copper
+layers from PTH pads (`reparar_capas_pth` in `gen_pcb.py`), `PCB_VIA.SetWidth`
+without a layer argument hangs on a modal assert, and `kicad-cli` rejects user
+layer names (`GND`/`PWR`) in `--layers`. The Rhino DXF template was regenerated
+for 100 × 80; `pikocore_gamepad_template_MOD.dxf` (the user's last Rhino edit)
+still describes the 120 mm board.
 
 `PARTES.md` and `PENDIENTES.md` inside `pcb/` are inherited from GAMESETUP and
 describe *that* project, not this one — kept for the component research they

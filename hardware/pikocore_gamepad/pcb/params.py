@@ -110,8 +110,12 @@ ALL = {
 
     # ---------------------------------------------------------------- placa
     "BOARD_W": Param(
-        120.00, True,
-        "Contorno definitivo, tomado de la capa BOARD_OUTLINE del DXF que el usuario ordeno en Rhino.",
+        100.00, True,
+        "Reducido de 120 a 100 por pedido del usuario (2026-10-14): el ancho "
+        "lo fijaban los dos grupos de controles y sobraban ~30mm de aire "
+        "entre el display y el rombo y a la derecha del rombo. El DXF de "
+        "Rhino (pikocore_gamepad_template*.dxf) sigue en 120 y hay que "
+        "regenerarlo con gen_template_dxf.py si se vuelve a editar ahi.",
         "V-0"),
     "BOARD_H": Param(
         80.00, True,

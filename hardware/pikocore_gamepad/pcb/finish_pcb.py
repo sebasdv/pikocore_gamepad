@@ -43,9 +43,12 @@ def main():
     # marca de soldadura manual desde el netlist. Repetirlo aca es gratis
     # (idempotente) y deja la placa en paridad con el esquematico aunque
     # venga de un ciclo viejo.
-    from gen_pcb import identidad_desde_netlist, marcar_manuales
+    from gen_pcb import identidad_desde_netlist, marcar_manuales, reparar_capas_pth
     identidad_desde_netlist(board)
     marcar_manuales(board)
+    n_pth = reparar_capas_pth(board)
+    if n_pth:
+        print(f"pads PTH con capas internas restauradas: {n_pth}")
 
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     pcbnew.SaveBoard(PCB, board)

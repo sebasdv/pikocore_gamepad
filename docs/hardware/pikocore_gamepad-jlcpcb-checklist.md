@@ -21,6 +21,23 @@
 > los dos 470 µF. Sigue abierto §5 (batería, parlante, insertos), el DFM
 > externo (G-7) y el **repin de firmware**: el código de este repo apunta al
 > RP2350-PiZero + GamePi13, no a esta placa.
+>
+> **Misma fecha, segunda corrida — placa reducida a 100 × 80.** Rombo
+> X/Y/A/B con cuerpo en X=70 (espejo del NAV5 en X=30), Select en el mismo
+> eje, gatillo R en x=75.25, J5 en (91, 13), lazo del boost 5 mm a la
+> izquierda y U3 en (58, 35). Re-ruteada con freerouting 2.4.1 (el jar del
+> plugin de KiCad 10, Java 25): 534 pistas, 98 vías. Puertas: 201 tests, G-0/
+> G-5/G-4/G-2/placement OK, ERC 0 errores, DRC 0 errores / 0 abiertas / 0
+> paridad, 10 avisos (7 serigrafía al borde, 1 serigrafía del jack sobre
+> máscara, 2 `lib_footprint_mismatch` por los NPTH de SW9/SW10). Tres bugs de
+> KiCad 9.0.1 cazados en el camino y rodeados en el pipeline: `Flip()` deja los
+> pads PTH sin capas internas (10 conexiones abiertas al plano hasta que
+> `reparar_capas_pth` las restaura), `PCB_VIA.SetWidth(int)` cuelga el script
+> en un assert modal, y el `(image ...)` del DSN ahora lleva prefijo de
+> librería (filtro de `route_io.py` ajustado). `manual_tracks.py` ya no usa
+> coordenadas absolutas: las pistas de U2 y los puentes de los tacts se derivan
+> de `placements.py`. El template DXF se regeneró a 100 × 80; el `_MOD.dxf` de
+> Rhino sigue siendo el de 120.
 
 Estado al **2026-08-25**, rama `pikocore-gamepad-hardware`. Generado corriendo en
 vivo `tests/run_tests.py` (185 OK) y `checks/run_all.py` con el Python de KiCad

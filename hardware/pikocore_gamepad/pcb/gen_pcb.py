@@ -540,6 +540,31 @@ def agregar_zonas(board, nets):
     _zona(board, pcbnew.In2_Cu, nets["3V3"], m, m, W - m, H - m)
 
 
+def reparar_capas_pth(board):
+    """Devuelve TODAS las capas de cobre a los pads pasantes.
+
+    En KiCad 9.0.1, Footprint.Flip() deja los pads PTH solo en F.Cu y B.Cu
+    aunque el .kicad_mod diga "*.Cu" (corregido en 9.0.2+). Un pasante sin
+    cobre en In1/In2 no recibe radio termico del plano, y el DRC reporta
+    cada pad de GND/3V3 del modulo, del jack y de J5 como conexion abierta
+    — 10 en la primera corrida de la placa de 100mm. Idempotente; corre
+    tambien desde finish_pcb.py para una placa que ya venga ruteada.
+    """
+    cobre = pcbnew.LSET.AllCuMask(board.GetCopperLayerCount()).CuStack()
+    n = 0
+    for fp in board.GetFootprints():
+        for p in fp.Pads():
+            if p.GetAttribute() != pcbnew.PAD_ATTRIB_PTH:
+                continue
+            if len(p.GetLayerSet().CuStack()) < len(cobre):
+                ls = p.GetLayerSet()
+                for l in cobre:        # el binding no soporta LSET | LSET
+                    ls.addLayer(l)
+                p.SetLayerSet(ls)
+                n += 1
+    return n
+
+
 def identidad_desde_netlist(board):
     """FPID con libreria y Value del netlist, en cada footprint.
 
@@ -594,6 +619,7 @@ def main():
     setup_netclasses(board)
     dibujar_contorno(board)
     n_grid, sin_net, sin_lugar = colocar(board, netmap, nets)
+    n_pth = reparar_capas_pth(board)
     identidad_desde_netlist(board)
     manuales = marcar_manuales(board)
     agregar_keepout(board)
@@ -611,6 +637,8 @@ def main():
     if manuales:
         print(f"DNP (soldadura manual, fuera del CPL): {', '.join(manuales)}")
     print(f"keepouts NPTH: {n_npth}")
+    if n_pth:
+        print(f"pads PTH con capas internas restauradas tras Flip: {n_pth}")
     if sin_lugar:
         print(f"AVISO: {len(sin_lugar)} sin lugar en FREE_REGIONS "
               f"(quedaron en el origen): {', '.join(sin_lugar)}")
