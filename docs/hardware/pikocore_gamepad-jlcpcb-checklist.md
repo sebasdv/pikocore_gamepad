@@ -1,5 +1,27 @@
 # pikocore_gamepad — qué falta antes de mandar a JLCPCB
 
+> **Actualización 2026-10-14.** Corrida completa de la skill `pcb-verify` sobre
+> el clon en `C:\pikocore_gamepad` (KiCad 9.0.1 en `C:\Program Files\KiCad`):
+> 201 tests OK, G-0/G-5/G-4/G-2/placement OK, ERC 0 errores (2 avisos: GP27 y
+> GP28 reservados), DRC 0 errores / 0 nets sin rutear / **0 avisos de paridad**
+> (antes 128: `gen_pcb.py` no ponía la librería en el FPID ni el Value del
+> netlist; ahora lo hace, y `finish_pcb.py` lo repite al final del ciclo).
+> C23/C24 van DNP también en el esquemático. **Bug grave encontrado en
+> `gen_fab.py`:** pedía las capas internas por su nombre de usuario (`GND`,
+> `PWR`); kicad-cli las rechazaba con un aviso y exit 0, y el zip salía con
+> **dos capas de cobre para una placa de cuatro**. Corregido (nombres
+> canónicos `In1.Cu`/`In2.Cu`) y con guarda que aborta si falta cualquier
+> gerber obligatorio. El paquete en `fab/` ahora trae los 16 archivos.
+> Avisos de DRC que quedan y no bloquean: 7 de serigrafía cruzando el borde
+> (SW15 y J1 sobresalen a propósito), 1 stub de 0.3 mm de 5V junto a U2
+> (resto de la pista manual que freerouting completó por otro punto) y 4
+> `lib_footprint_mismatch` (SW9/SW10 con las patas de anclaje convertidas a
+> NPTH por `gen_pcb.py`; U2/U3 por diferencia de versión de librería 9.0.4 →
+> 9.0.1). Los 13 LCSC en blanco del BOM son todos THT de soldadura manual más
+> los dos 470 µF. Sigue abierto §5 (batería, parlante, insertos), el DFM
+> externo (G-7) y el **repin de firmware**: el código de este repo apunta al
+> RP2350-PiZero + GamePi13, no a esta placa.
+
 Estado al **2026-08-25**, rama `pikocore-gamepad-hardware`. Generado corriendo en
 vivo `tests/run_tests.py` (185 OK) y `checks/run_all.py` con el Python de KiCad
 9.0, más lo que esas puertas **no** cubren. Filtrado de la lista heredada de

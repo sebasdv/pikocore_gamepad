@@ -540,6 +540,24 @@ def agregar_zonas(board, nets):
     _zona(board, pcbnew.In2_Cu, nets["3V3"], m, m, W - m, H - m)
 
 
+def identidad_desde_netlist(board):
+    """FPID con libreria y Value del netlist, en cada footprint.
+
+    FootprintLoad deja el FPID sin nickname ("C_0603_1608Metric" en vez de
+    "Capacitor_SMD:C_0603_1608Metric") y el Value con el nombre del
+    footprint, no con "10uF". El DRC con --schematic-parity reportaba 128
+    avisos footprint_symbol_mismatch por eso, que tapaban cualquier aviso
+    real. Idempotente: finish_pcb.py la vuelve a correr al final del ciclo,
+    asi la placa ruteada queda igual aunque este paso se haya saltado.
+    """
+    por_ref = {i[1]: (i[2], i[6]["FP"]) for i in INSTANCES}
+    for fp in board.GetFootprints():
+        value, lib_id = por_ref[fp.GetReference()]
+        lib, _, name = lib_id.partition(":")
+        fp.SetFPID(pcbnew.LIB_ID(lib, name))
+        fp.SetValue(value)
+
+
 def marcar_manuales(board):
     """Marca DNP las piezas que suelda el usuario, no JLCPCB.
 
@@ -576,6 +594,7 @@ def main():
     setup_netclasses(board)
     dibujar_contorno(board)
     n_grid, sin_net, sin_lugar = colocar(board, netmap, nets)
+    identidad_desde_netlist(board)
     manuales = marcar_manuales(board)
     agregar_keepout(board)
     n_npth = agregar_keepout_npth(board)

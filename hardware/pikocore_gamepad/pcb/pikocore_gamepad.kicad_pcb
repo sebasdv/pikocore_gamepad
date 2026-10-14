@@ -143,7 +143,7 @@
 	(net 61 "unconnected-(U1-RUN-Pad30)")
 	(net 62 "unconnected-(U1-VBUS-Pad40)")
 	(net 63 "unconnected-(U4-NC-Pad2)")
-	(footprint "SW-TH_WS-1004-ARL10026"
+	(footprint "gamesetup_lcsc:SW-TH_WS-1004-ARL10026"
 		(layer "F.Cu")
 		(uuid "14d05d8b-afe3-4f0d-9aa3-22551c48f4dc")
 		(at 30 55)
@@ -158,7 +158,7 @@
 				)
 			)
 		)
-		(property "Value" "SW-TH_WS-1004-ARL10026"
+		(property "Value" "NAV5"
 			(at 0 7.25 0)
 			(layer "Cmts.User")
 			(uuid "af7a40eb-48ba-44e6-86c2-2041265ab485")
@@ -486,7 +486,7 @@
 			)
 		)
 	)
-	(footprint "SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
+	(footprint "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
 		(layer "F.Cu")
 		(uuid "1ac9b5ae-74bf-47c8-ab9d-8261a5156703")
 		(at 20.25 1.89)
@@ -503,7 +503,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
+		(property "Value" "BTN_L"
 			(at 2.25 5.38988 0)
 			(layer "Cmts.User")
 			(uuid "56fa4195-ab69-4ee2-81f9-5223bd23bde6")
@@ -879,7 +879,7 @@
 			)
 		)
 	)
-	(footprint "SW_PUSH_6mm"
+	(footprint "Button_Switch_THT:SW_PUSH_6mm"
 		(layer "F.Cu")
 		(uuid "29beb65f-bbfe-4860-a48d-554cfab175c6")
 		(at 77.5 55)
@@ -896,7 +896,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_PUSH_6mm"
+		(property "Value" "BTN_Y"
 			(at 3.75 6.7 0)
 			(layer "Cmts.User")
 			(uuid "9e5f1e08-5a9f-4a26-bbeb-bad6f06c79d8")
@@ -1215,7 +1215,7 @@
 			)
 		)
 	)
-	(footprint "SW_PUSH_6mm"
+	(footprint "Button_Switch_THT:SW_PUSH_6mm"
 		(layer "F.Cu")
 		(uuid "2bb0f636-b5c3-4ac9-bbab-050d7907eeb2")
 		(at 102.5 55)
@@ -1232,7 +1232,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_PUSH_6mm"
+		(property "Value" "BTN_A"
 			(at 3.75 6.7 0)
 			(layer "Cmts.User")
 			(uuid "b8fd9031-244d-4180-8fab-3b1ca33e5f8b")
@@ -1551,7 +1551,7 @@
 			)
 		)
 	)
-	(footprint "SW-TH_SK12D07VG3"
+	(footprint "gamesetup_lcsc:SW-TH_SK12D07VG3"
 		(layer "F.Cu")
 		(uuid "5b40ac36-b31f-41d0-926d-5e64e405511f")
 		(at 30 77.7)
@@ -1566,7 +1566,7 @@
 				)
 			)
 		)
-		(property "Value" "SW-TH_SK12D07VG3"
+		(property "Value" "PWR"
 			(at 0 4 0)
 			(layer "Cmts.User")
 			(uuid "b7d67f58-a01b-4ea2-9f9a-f7bc6b5ad55f")
@@ -1864,7 +1864,7 @@
 			)
 		)
 	)
-	(footprint "SW_PUSH_6mm"
+	(footprint "Button_Switch_THT:SW_PUSH_6mm"
 		(layer "F.Cu")
 		(uuid "61923a1d-8cd5-4279-8742-e34f294373e8")
 		(at 90 42.5)
@@ -1881,7 +1881,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_PUSH_6mm"
+		(property "Value" "BTN_X"
 			(at 3.75 6.7 0)
 			(layer "Cmts.User")
 			(uuid "1234c154-9a6e-46c5-90c6-1ca23b209dab")
@@ -2200,7 +2200,7 @@
 			)
 		)
 	)
-	(footprint "SW_PUSH_6mm"
+	(footprint "Button_Switch_THT:SW_PUSH_6mm"
 		(layer "F.Cu")
 		(uuid "63dc6af7-8095-423f-b2be-63d9dbde748f")
 		(at 90 27.39)
@@ -2217,7 +2217,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_PUSH_6mm"
+		(property "Value" "BTN_SELECT"
 			(at 3.75 6.7 0)
 			(layer "Cmts.User")
 			(uuid "822c5e9e-7dee-4a27-a125-67638f6ac0f7")
@@ -2536,7 +2536,7 @@
 			)
 		)
 	)
-	(footprint "SW_PUSH_6mm"
+	(footprint "Button_Switch_THT:SW_PUSH_6mm"
 		(layer "F.Cu")
 		(uuid "88850d80-1f24-435a-afad-5161ddfbba8a")
 		(at 30 27.39)
@@ -2553,7 +2553,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_PUSH_6mm"
+		(property "Value" "BTN_START"
 			(at 3.75 6.7 0)
 			(layer "Cmts.User")
 			(uuid "9c09deba-77e8-464b-8fcb-b0226d47a2d0")
@@ -2872,7 +2872,7 @@
 			)
 		)
 	)
-	(footprint "SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
+	(footprint "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
 		(layer "F.Cu")
 		(uuid "a6a7ba52-a7ef-4a61-9dda-dc4d4dde6791")
 		(at 95.25 1.89)
@@ -2889,7 +2889,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
+		(property "Value" "BTN_R"
 			(at 2.25 5.38988 0)
 			(layer "Cmts.User")
 			(uuid "59436b37-4564-47d7-9353-249f906604cb")
@@ -3265,7 +3265,7 @@
 			)
 		)
 	)
-	(footprint "LCD_ST7789_240x240_7P"
+	(footprint "gamesetup_fp:LCD_ST7789_240x240_7P"
 		(layer "F.Cu")
 		(uuid "adbc5146-1358-4232-afb0-6d2dbb903b90")
 		(at 52.38 9.6)
@@ -3281,7 +3281,7 @@
 				)
 			)
 		)
-		(property "Value" "LCD_ST7789_240x240_7P"
+		(property "Value" "ST7789_240x240"
 			(at 0 -5 0)
 			(layer "Cmts.User")
 			(uuid "0d2acb87-e344-42e0-ad13-5ad6babefe64")
@@ -3537,7 +3537,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "SW_PUSH_6mm"
+	(footprint "Button_Switch_THT:SW_PUSH_6mm"
 		(layer "F.Cu")
 		(uuid "b8361518-3194-49f8-8127-9e61512a7136")
 		(at 90 67.5)
@@ -3554,7 +3554,7 @@
 				)
 			)
 		)
-		(property "Value" "SW_PUSH_6mm"
+		(property "Value" "BTN_B"
 			(at 3.75 6.7 0)
 			(layer "Cmts.User")
 			(uuid "318debe4-1709-44bd-8263-756e57a1999e")
@@ -3873,7 +3873,7 @@
 			)
 		)
 	)
-	(footprint "JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"
+	(footprint "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"
 		(layer "B.Cu")
 		(uuid "060283d7-952a-41a7-8dc3-3f31bcdcbc27")
 		(at 103.5 13)
@@ -3891,7 +3891,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"
+		(property "Value" "SPEAKER 8R"
 			(at 1 -4 180)
 			(layer "Cmts.User")
 			(uuid "e2064138-eef3-4b2a-991d-90d282bed982")
@@ -4324,7 +4324,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "10a35136-297f-4af6-820f-2ab7d5139b15")
 		(at 76.525 50.775 180)
@@ -4342,7 +4342,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "1uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "dd02c09b-f910-477b-8d52-57dfa5b08fb7")
@@ -4522,7 +4522,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "116250b6-958b-446f-bfa3-8fa6f79873d2")
 		(at 71.525 53.775 180)
@@ -4540,7 +4540,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "4.7k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "d92b0805-428a-4c6f-9275-d3d0f9f2a4c9")
@@ -4720,7 +4720,7 @@
 			)
 		)
 	)
-	(footprint "L_1210_3225Metric"
+	(footprint "Inductor_SMD:L_1210_3225Metric"
 		(layer "B.Cu")
 		(uuid "168d5f77-8629-42c3-bf84-e5b6a60525ba")
 		(at 69.4 6 180)
@@ -4738,7 +4738,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "L_1210_3225Metric"
+		(property "Value" "2.2uH"
 			(at 0 -2.28 0)
 			(layer "Cmts.User")
 			(uuid "be5b822b-181a-46cb-bb45-629b2cfd6997")
@@ -4918,7 +4918,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "177aa15d-f945-4e8c-aa8c-9675ef184c54")
 		(at 77.525 2.775 180)
@@ -4936,7 +4936,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "10k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "6ddc11b1-7a6d-4ae6-aff7-8b0193afcdf1")
@@ -5116,7 +5116,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "1e6f7d10-15ae-4e9b-aa5c-e30ba3a9f9e9")
 		(at 40.525 39.775 180)
@@ -5134,7 +5134,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "f023677b-31db-4e2b-adf8-824fffea5b27")
@@ -5314,7 +5314,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "2548117a-5c27-4506-8e8c-8198b6dc0bbe")
 		(at 68.525 47.775 180)
@@ -5332,7 +5332,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "2.2nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "372cca2c-1d33-4a1f-9c2d-5baf9e9f08dc")
@@ -5512,7 +5512,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "2666be42-57e6-4391-8804-b0bd288d5f72")
 		(at 80.525 50.775 180)
@@ -5530,7 +5530,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "20k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "50bdcc99-63a0-4616-9db5-0135c3cabeed")
@@ -5710,7 +5710,7 @@
 			)
 		)
 	)
-	(footprint "C_0805_2012Metric"
+	(footprint "Capacitor_SMD:C_0805_2012Metric"
 		(layer "B.Cu")
 		(uuid "26859a31-0884-447d-bc74-419640eab70d")
 		(at 38.745 13.025 180)
@@ -5728,7 +5728,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0805_2012Metric"
+		(property "Value" "22uF"
 			(at 0 -1.68 0)
 			(layer "Cmts.User")
 			(uuid "b1d1ff8d-0ef3-4f63-b11a-6691da57c7c4")
@@ -5908,7 +5908,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "2976ef70-a3c9-490b-bff0-6ea48c87ef55")
 		(at 85.525 2.775 180)
@@ -5926,7 +5926,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "1uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "7520babc-76d3-413e-9ebc-2164b16b3d4d")
@@ -6106,7 +6106,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "37cfb661-d707-4773-b2c3-55616086f3b4")
 		(at 40.525 42.775 180)
@@ -6124,7 +6124,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "10uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "36107765-72d2-4d87-ae5c-f0ee36ac3401")
@@ -6304,7 +6304,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "40804261-444a-417e-9258-2dd996f9e077")
 		(at 36.525 42.775 180)
@@ -6322,7 +6322,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "5a315636-0b28-4f60-9813-818a286fb5c7")
@@ -6502,7 +6502,7 @@
 			)
 		)
 	)
-	(footprint "TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL"
+	(footprint "gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL"
 		(layer "B.Cu")
 		(uuid "43be556a-b26e-47a9-b142-98895b60b521")
 		(at 65 20)
@@ -6518,7 +6518,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL"
+		(property "Value" "PCM5102APWR"
 			(at 0 -6.871 180)
 			(layer "Cmts.User")
 			(uuid "c754ac47-e7af-41f1-924a-86ef948507da")
@@ -6859,7 +6859,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "46bf6724-a080-4cfd-b91f-3052268fe129")
 		(at 64.525 50.775 180)
@@ -6877,7 +6877,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "1uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "1a77f198-7fc0-473e-b5c5-4f48ca0dd2d4")
@@ -7057,7 +7057,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "4e9fb34b-460d-4284-a3f4-b2fb522d1495")
 		(at 64.525 47.775 180)
@@ -7075,7 +7075,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "470R"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "8690a7f1-3b8f-4db8-b4a0-233947a35a8f")
@@ -7255,7 +7255,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "525bb95d-7921-45a9-96e1-8037faaaa795")
 		(at 44.525 42.775 180)
@@ -7273,7 +7273,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "c3ce2d6c-78c3-490a-8c88-8f0b4f120f15")
@@ -7453,7 +7453,7 @@
 			)
 		)
 	)
-	(footprint "C_1206_3216Metric"
+	(footprint "Capacitor_SMD:C_1206_3216Metric"
 		(layer "B.Cu")
 		(uuid "5956ac8a-698c-4b40-af34-39b0c7caf93a")
 		(at 33.345 13.195 180)
@@ -7471,7 +7471,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_1206_3216Metric"
+		(property "Value" "100uF"
 			(at 0 -1.85 0)
 			(layer "Cmts.User")
 			(uuid "e07a1e7b-1605-4979-b472-a6dda87f3da4")
@@ -7651,7 +7651,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "5d60caeb-2c9c-4ed4-98aa-5f4a3abd93b7")
 		(at 68 62)
@@ -7669,7 +7669,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "4.7k"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "dae7fe40-1a56-47a5-b48d-c1fef67bd620")
@@ -7849,7 +7849,7 @@
 			)
 		)
 	)
-	(footprint "MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL"
+	(footprint "gamesetup_lcsc:MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL"
 		(layer "B.Cu")
 		(uuid "5f4ec13d-4daf-456c-942e-ac1f5c6b5149")
 		(at 81 38)
@@ -7865,7 +7865,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL"
+		(property "Value" "PAM8302A"
 			(at 0 -6.146 180)
 			(layer "Cmts.User")
 			(uuid "5ae9c3a0-a0f6-40f6-b17b-bdb3fd1c3bc4")
@@ -8162,7 +8162,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "66a0a575-0f83-47cf-baa7-e3b1e7fcea44")
 		(at 72.525 47.775 180)
@@ -8180,7 +8180,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "470R"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "9aca056e-bbc8-4055-a038-9bcc2c3e4c0d")
@@ -8360,7 +8360,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "69dfdace-c4a1-4bc8-834e-ced5a345e835")
 		(at 68.525 50.775 180)
@@ -8378,7 +8378,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "20k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "0168b1ce-6a6d-4cce-a0d8-ad8fa30de482")
@@ -8558,7 +8558,7 @@
 			)
 		)
 	)
-	(footprint "C_0805_2012Metric"
+	(footprint "Capacitor_SMD:C_0805_2012Metric"
 		(layer "B.Cu")
 		(uuid "6e76fd1c-266b-4107-a83d-9dbe4cc2f742")
 		(at 42.745 13.025 180)
@@ -8576,7 +8576,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0805_2012Metric"
+		(property "Value" "22uF"
 			(at 0 -1.68 0)
 			(layer "Cmts.User")
 			(uuid "adef6110-8cd5-497b-a6a9-0fc930217b6c")
@@ -8756,7 +8756,7 @@
 			)
 		)
 	)
-	(footprint "CP_Elec_6.3x5.4"
+	(footprint "Capacitor_SMD:CP_Elec_6.3x5.4"
 		(layer "B.Cu")
 		(uuid "7e10e09d-be62-442d-847e-979a9d44eb12")
 		(at 41.845 50.595 180)
@@ -8774,7 +8774,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "CP_Elec_6.3x5.4"
+		(property "Value" "470uF"
 			(at 0 -4.35 0)
 			(layer "Cmts.User")
 			(uuid "2aa31883-121e-42e6-ba25-121ab192e71a")
@@ -9185,7 +9185,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "7ffc5e77-8d55-4c94-ab93-dbbe2669617b")
 		(at 60.525 53.775 180)
@@ -9203,7 +9203,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "47k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "88d549a0-8a11-4998-b2e2-3096911ef67b")
@@ -9383,7 +9383,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "8139dd0b-4b74-46b4-b429-b9f05d126ff9")
 		(at 32.525 47.775 180)
@@ -9401,7 +9401,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "10uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "2643ae95-b947-4682-ab24-b74237b919d3")
@@ -9581,7 +9581,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "89c1291e-573c-45b6-b6e4-0adcb098ab89")
 		(at 32.525 39.775 180)
@@ -9599,7 +9599,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "2.2uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "e0f1d3fe-ee7d-4aaa-b10f-6d31b6837be8")
@@ -9779,7 +9779,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "8a528c58-f0d1-41b6-97fa-bcd22c5cc7d0")
 		(at 60.525 50.775 180)
@@ -9797,7 +9797,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "297585e5-db71-4eff-8197-196733ae5689")
@@ -9977,7 +9977,7 @@
 			)
 		)
 	)
-	(footprint "RP2350-Plus_Socket"
+	(footprint "gamesetup_fp:RP2350-Plus_Socket"
 		(layer "B.Cu")
 		(uuid "8ecab96b-14d0-445b-a9c1-0d3bb91e0bfe")
 		(at 26.5 27.5 -90)
@@ -9994,7 +9994,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "RP2350-Plus_Socket"
+		(property "Value" "RP2350-Plus-16MB"
 			(at 0 -27.5 90)
 			(layer "Cmts.User")
 			(uuid "1bee1bde-8017-44da-bd81-8343785a55af")
@@ -10510,7 +10510,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "9605b4b7-12d5-472d-bbbd-deac9d24fd46")
 		(at 64 2.5)
@@ -10528,7 +10528,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "200k"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "3633577e-f4c5-4817-b7ea-408cf7468eb6")
@@ -10708,7 +10708,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "9aaa0a1a-0920-4c4c-8c07-948b6bf2c489")
 		(at 84.525 50.775 180)
@@ -10726,7 +10726,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "10k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "d40f2bac-6cf2-4ba2-9c38-0e7e863e57cf")
@@ -10906,7 +10906,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "9b4b3a91-a10d-4618-9e48-7dff8c59d54e")
 		(at 54.2 6)
@@ -10924,7 +10924,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "10uF"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "924a6582-7e57-4c67-b2ff-b2dae9ffead8")
@@ -11104,7 +11104,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "9d8cca8a-e4db-40dc-8743-c5977e29db4d")
 		(at 73.2 2.5)
@@ -11122,7 +11122,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "b1d52be6-9c24-4759-8181-373cbb0573f6")
@@ -11302,7 +11302,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "9f1605c9-d832-4954-a1b9-d89053066c43")
 		(at 67.53 53.77)
@@ -11320,7 +11320,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "10uF"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "590cd658-d613-466d-819b-a32ba001ca1a")
@@ -11500,7 +11500,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "a0c26a6e-8784-4646-b653-a48947f369ed")
 		(at 74.525 5.775 180)
@@ -11518,7 +11518,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "1uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "7e5aa8ca-79c4-440c-a199-3b83a3a1de77")
@@ -11698,7 +11698,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "b74b6626-62bc-49f9-8f61-cda00cfbd490")
 		(at 36.525 39.775 180)
@@ -11716,7 +11716,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "2.2uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "3c3703ed-c474-4e9a-a1bb-d97e55b310f6")
@@ -11896,7 +11896,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "c03367de-622c-438a-ab50-da73772c6499")
 		(at 44.525 39.775 180)
@@ -11914,7 +11914,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "3aaddb6a-2f9e-480d-a8c9-f5f7708e275e")
@@ -12094,7 +12094,7 @@
 			)
 		)
 	)
-	(footprint "Jack_3.5mm_CUI_SJ1-3535NG_Horizontal"
+	(footprint "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal"
 		(layer "B.Cu")
 		(uuid "c280035a-6c29-4f02-b6bb-b52e1580d204")
 		(at 61.7 77)
@@ -12112,7 +12112,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "Jack_3.5mm_CUI_SJ1-3535NG_Horizontal"
+		(property "Value" "PHONES"
 			(at 0.1 -14.05 180)
 			(layer "Cmts.User")
 			(uuid "a4101ea8-d729-4c4a-9f2a-8b1c2b2b0fc8")
@@ -12423,7 +12423,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "c2ed206d-0304-4541-b993-ef9e84fc9c51")
 		(at 81.525 2.775 180)
@@ -12441,7 +12441,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "10k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "8f335de4-c096-429e-96bf-2b2ac917b602")
@@ -12621,7 +12621,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "ca5b4502-4a6b-4a7c-9283-fffc5aada453")
 		(at 60.2 2.5)
@@ -12639,7 +12639,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "27k"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "c51ce1fa-c49f-4fd0-81cc-56d715f67612")
@@ -12819,7 +12819,7 @@
 			)
 		)
 	)
-	(footprint "SOT-563"
+	(footprint "Package_TO_SOT_SMD:SOT-563"
 		(layer "B.Cu")
 		(uuid "cb18705f-89f8-4d8c-b724-1baa389ece96")
 		(at 65 6)
@@ -12837,7 +12837,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "SOT-563"
+		(property "Value" "TPS61023DRLR"
 			(at 0 -1.65 180)
 			(layer "Cmts.User")
 			(uuid "86a08459-2434-4083-a779-bbc7635e90cd")
@@ -13133,7 +13133,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "d1f95eeb-b04e-4021-8ba4-aa0d685f49e2")
 		(at 84.525 47.775 180)
@@ -13151,7 +13151,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "10k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "32ca44b9-ec9b-43d2-8b7c-dd9de1174fed")
@@ -13331,7 +13331,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "d2d27c86-92de-4a4f-b18d-dabcc01819f9")
 		(at 76.525 47.775 180)
@@ -13349,7 +13349,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "2.2nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "0171b535-9d86-4e8c-902d-50f4143dc77e")
@@ -13529,7 +13529,7 @@
 			)
 		)
 	)
-	(footprint "CP_Elec_6.3x5.4"
+	(footprint "Capacitor_SMD:CP_Elec_6.3x5.4"
 		(layer "B.Cu")
 		(uuid "d557c04b-817c-4cea-a395-bfc39e9e3676")
 		(at 52.845 50.595 180)
@@ -13547,7 +13547,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "CP_Elec_6.3x5.4"
+		(property "Value" "470uF"
 			(at 0 -4.35 0)
 			(layer "Cmts.User")
 			(uuid "632c0d06-16d6-412b-a829-f3cfcf3277b5")
@@ -13958,7 +13958,7 @@
 			)
 		)
 	)
-	(footprint "L_1210_3225Metric"
+	(footprint "Inductor_SMD:L_1210_3225Metric"
 		(layer "B.Cu")
 		(uuid "d7bf9a0b-5fd4-4a8d-b648-8d7819429d59")
 		(at 59.8 6)
@@ -13976,7 +13976,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "L_1210_3225Metric"
+		(property "Value" "2.2uH"
 			(at 0 -2.28 180)
 			(layer "Cmts.User")
 			(uuid "7a9502c8-200b-40bc-bf05-0837c51b8f6d")
@@ -14156,7 +14156,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "d8001672-d03a-4f3b-a529-1ea08a517c5b")
 		(at 72.525 50.775 180)
@@ -14174,7 +14174,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "10k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "acec5788-764a-4a86-a35e-962741b18f85")
@@ -14354,7 +14354,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "de88326a-d08d-4d4d-ab0a-743d0b3c2574")
 		(at 78.525 5.775 180)
@@ -14372,7 +14372,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "100nF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "a8aca82b-2b28-48a2-abb2-dfa7a61ab573")
@@ -14552,7 +14552,7 @@
 			)
 		)
 	)
-	(footprint "C_0805_2012Metric"
+	(footprint "Capacitor_SMD:C_0805_2012Metric"
 		(layer "B.Cu")
 		(uuid "e190ad3f-0190-44e8-866d-7648f1094bc2")
 		(at 69.5 2.5)
@@ -14570,7 +14570,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0805_2012Metric"
+		(property "Value" "22uF"
 			(at 0 -1.68 180)
 			(layer "Cmts.User")
 			(uuid "d08d6dfb-2061-4f00-aac8-3e7f205ba052")
@@ -14750,7 +14750,7 @@
 			)
 		)
 	)
-	(footprint "SOIC-8_3.9x4.9mm_P1.27mm"
+	(footprint "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm"
 		(layer "B.Cu")
 		(uuid "e27610cf-e189-4511-85e7-cd7c1cc44e4e")
 		(at 66 38)
@@ -14768,7 +14768,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "SOIC-8_3.9x4.9mm_P1.27mm"
+		(property "Value" "PT2308-S"
 			(at 0 -3.4 180)
 			(layer "Cmts.User")
 			(uuid "f58eef2e-bf20-4e41-aa0c-d028e382357f")
@@ -15080,7 +15080,7 @@
 			)
 		)
 	)
-	(footprint "C_0603_1608Metric"
+	(footprint "Capacitor_SMD:C_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "e9531dc0-da4f-412e-a76d-9ef31ab98112")
 		(at 32.525 42.775 180)
@@ -15098,7 +15098,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "C_0603_1608Metric"
+		(property "Value" "10uF"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "ba9cd961-7558-45d0-81f9-aaf71ebe3cd3")
@@ -15278,7 +15278,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "efd8f757-dfca-45e0-8160-28a490b2bd07")
 		(at 60.525 47.775 180)
@@ -15296,7 +15296,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "100k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "59a28b30-2987-4689-a3c1-cec149945c32")
@@ -15476,7 +15476,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "fa95c89c-5bfa-465f-8d08-85e9a6c901f5")
 		(at 68 65)
@@ -15494,7 +15494,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "4.7k"
 			(at 0 -1.43 180)
 			(layer "Cmts.User")
 			(uuid "2851f9b7-e89c-4f4f-a186-1f93dc532d1e")
@@ -15674,7 +15674,7 @@
 			)
 		)
 	)
-	(footprint "R_0603_1608Metric"
+	(footprint "Resistor_SMD:R_0603_1608Metric"
 		(layer "B.Cu")
 		(uuid "faa1bd07-6312-422a-a1c4-905b2b9a4f6a")
 		(at 80.525 47.775 180)
@@ -15692,7 +15692,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "R_0603_1608Metric"
+		(property "Value" "10k"
 			(at 0 -1.43 0)
 			(layer "Cmts.User")
 			(uuid "de82e0a2-7b2d-45ff-897b-56a809c411aa")

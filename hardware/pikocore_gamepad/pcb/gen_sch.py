@@ -378,11 +378,15 @@ def emit_instance(lib, ref, value, x, y, nets, props, hoja_uuid):
     h = d["h"]
     props = dict(props)
     fp = props.pop("FP", "")
+    # MANUAL = la suelda el usuario, no JLCPCB. gen_pcb.py la marca DNP en la
+    # placa para que salga del CPL; el esquematico tiene que decir lo mismo o
+    # el DRC con --schematic-parity reporta el atributo como divergente.
+    dnp = "yes" if props.pop("MANUAL", False) else "no"
     out = ['  (symbol',
            f'    (lib_id "{PROJECT}:{lib}")',
            f'    (at {F(x)} {F(y)} 0)',
            '    (unit 1)',
-           '    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)',
+           f'    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp {dnp})',
            f'    (uuid "{u()}")',
            f'    (property "Reference" "{ref}" (at {F(x)} {F(y - h - 3.81)} 0) {EFFECTS})',
            f'    (property "Value" "{value}" (at {F(x)} {F(y + h + 3.81)} 0) {EFFECTS})',

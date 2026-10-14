@@ -39,6 +39,14 @@ def main():
         return 1
     board = pcbnew.LoadBoard(PCB)
 
+    # Mismo paso que hace gen_pcb.py al colocar: FPID con libreria, Value y
+    # marca de soldadura manual desde el netlist. Repetirlo aca es gratis
+    # (idempotente) y deja la placa en paridad con el esquematico aunque
+    # venga de un ciclo viejo.
+    from gen_pcb import identidad_desde_netlist, marcar_manuales
+    identidad_desde_netlist(board)
+    marcar_manuales(board)
+
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     pcbnew.SaveBoard(PCB, board)
 

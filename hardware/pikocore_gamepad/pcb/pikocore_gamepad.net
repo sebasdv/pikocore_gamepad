@@ -1,8 +1,8 @@
 (export (version "E")
   (design
-    (source "C:\\pikocore-main\\hardware\\pikocore_gamepad\\pcb\\pikocore_gamepad.kicad_sch")
-    (date "2026-09-01T13:07:21-0400")
-    (tool "Eeschema 9.0.4")
+    (source "C:\\pikocore_gamepad\\hardware\\pikocore_gamepad\\pcb\\pikocore_gamepad.kicad_sch")
+    (date "2026-10-14T14:35:02-0300")
+    (tool "Eeschema 9.0.1")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
         (title "pikocore_gamepad - indice")
@@ -690,14 +690,13 @@
       (footprint "Capacitor_SMD:CP_Elec_6.3x5.4")
       (description "Capacitor electrolitico. POLARIZADO: montado al reves revienta, por eso tiene simbolo propio y no se mezcla con los ceramicos.")
       (fields
-        (field (name "MANUAL") "True")
         (field (name "Footprint") "Capacitor_SMD:CP_Elec_6.3x5.4")
         (field (name "Datasheet"))
         (field (name "Description") "Capacitor electrolitico. POLARIZADO: montado al reves revienta, por eso tiene simbolo propio y no se mezcla con los ceramicos."))
       (libsource (lib "pikocore_gamepad") (part "CP") (description "Capacitor electrolitico. POLARIZADO: montado al reves revienta, por eso tiene simbolo propio y no se mezcla con los ceramicos."))
-      (property (name "MANUAL") (value "True"))
       (property (name "Sheetname") (value "Audio analogico - buffer y masa virtual"))
       (property (name "Sheetfile") (value "04_opamp.kicad_sch"))
+      (property (name "dnp"))
       (sheetpath (names "/Audio analogico - buffer y masa virtual/") (tstamps "/b1e7c2a4-9f31-4d6e-8a52-f00000000003/"))
       (tstamps "b1e7c2a4-9f31-4d6e-8a52-000000000163"))
     (comp (ref "C24")
@@ -705,14 +704,13 @@
       (footprint "Capacitor_SMD:CP_Elec_6.3x5.4")
       (description "Capacitor electrolitico. POLARIZADO: montado al reves revienta, por eso tiene simbolo propio y no se mezcla con los ceramicos.")
       (fields
-        (field (name "MANUAL") "True")
         (field (name "Footprint") "Capacitor_SMD:CP_Elec_6.3x5.4")
         (field (name "Datasheet"))
         (field (name "Description") "Capacitor electrolitico. POLARIZADO: montado al reves revienta, por eso tiene simbolo propio y no se mezcla con los ceramicos."))
       (libsource (lib "pikocore_gamepad") (part "CP") (description "Capacitor electrolitico. POLARIZADO: montado al reves revienta, por eso tiene simbolo propio y no se mezcla con los ceramicos."))
-      (property (name "MANUAL") (value "True"))
       (property (name "Sheetname") (value "Audio analogico - buffer y masa virtual"))
       (property (name "Sheetfile") (value "04_opamp.kicad_sch"))
+      (property (name "dnp"))
       (sheetpath (names "/Audio analogico - buffer y masa virtual/") (tstamps "/b1e7c2a4-9f31-4d6e-8a52-f00000000003/"))
       (tstamps "b1e7c2a4-9f31-4d6e-8a52-000000000166"))
     (comp (ref "R9")
@@ -1303,7 +1301,7 @@
         (pin (num "6") (name "VOUT") (type "passive")))))
   (libraries
     (library (logical "pikocore_gamepad")
-      (uri "C:\\pikocore-main\\hardware\\pikocore_gamepad\\pcb/pikocore_gamepad.kicad_sym")))
+      (uri "C:\\pikocore_gamepad\\hardware\\pikocore_gamepad\\pcb/pikocore_gamepad.kicad_sym")))
   (nets
     (net (code "1") (name "3V3") (class "Default")
       (node (ref "C11") (pin "1") (pinfunction "1") (pintype "passive"))
