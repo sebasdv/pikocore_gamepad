@@ -337,6 +337,34 @@ class TestFootprints(unittest.TestCase):
                          f"regiones fuera de la placa "
                          f"{placements.BOARD_W}x{placements.BOARD_H}: {malas}")
 
+    def test_el_frente_es_la_disposicion_micro(self):
+        # Spec 2026-10-15: panel al centro, cruceta a la izquierda y rombo a
+        # la derecha, todos centrados en y=24 (area activa del panel). Las
+        # cruces miden 8.5mm de paso; cuerpos = origen + (3.25, 2.25).
+        import placements
+        pos = {ref: (x, y) for ref, _, x, y, _, _ in placements.PLACEMENTS}
+        self.assertEqual(pos["LCD1"], (50.0, 24.0))
+        cuerpo = lambda r: (pos[r][0] + 3.25, pos[r][1] + 2.25)
+        self.assertEqual(cuerpo("SW1"), (18.0, 15.5))   # UP
+        self.assertEqual(cuerpo("SW3"), (9.5, 24.0))    # LEFT
+        self.assertEqual(cuerpo("SW4"), (26.5, 24.0))   # RIGHT
+        self.assertEqual(cuerpo("SW2"), (18.0, 32.5))   # DOWN
+        self.assertEqual(cuerpo("SW5"), (82.0, 15.5))   # X
+        self.assertEqual(cuerpo("SW6"), (73.5, 24.0))   # Y
+        self.assertEqual(cuerpo("SW7"), (90.5, 24.0))   # A
+        self.assertEqual(cuerpo("SW8"), (82.0, 32.5))   # B
+        self.assertEqual(cuerpo("SW12"), (76.0, 46.0))  # SELECT
+        self.assertEqual(cuerpo("SW11"), (88.0, 46.0))  # START
+        self.assertEqual(pos["J4"], (50.0, 52.4))
+
+    def test_todo_el_frente_cae_dentro_de_100x60(self):
+        import placements
+        for ref, _, x, y, _, flip in placements.PLACEMENTS:
+            if flip:
+                continue
+            self.assertTrue(0 <= x <= 100 and 0 <= y <= 60,
+                            f"{ref} en ({x}, {y}) fuera de la placa")
+
     def test_los_gatillos_L_y_R_quedan_simetricos(self):
         # El origen del tact angulado es el PAD 1, que no esta en el centro de
         # la pieza: su cuerpo esta 2.25mm corrido en X local. Como L y R usan

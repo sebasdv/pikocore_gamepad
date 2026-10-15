@@ -24,87 +24,60 @@ from params import v
 BOARD_W = v("BOARD_W")
 BOARD_H = v("BOARD_H")
 
-# Panel desnudo (ver gen_fp.py): el origen del footprint es el CENTRO del
-# area activa. Centrado en X; el borde superior del vidrio (BL) a 3.0mm del
-# borde de la placa, que es lo que pide el estudio ergonomico (2026-10-14):
-# cuanto mas arriba la imagen, mas lejos quedan los pulgares del vidrio.
-_PANEL_TOP = 3.0
+# Disposicion estilo Game Boy Micro (spec 2026-10-15): el panel al CENTRO,
+# la cruceta a la izquierda y el rombo a la derecha, todos centrados en
+# y=24. El origen del panel es el centro del area activa.
 _LCD_X = BOARD_W / 2
-_LCD_Y = _PANEL_TOP + v("PANEL_AA_OFF_TOP") + v("PANEL_AA") / 2   # 16.26
+_LCD_Y = 24.0
 
 PLACEMENTS = [
     # ================================================ FRENTE: display
     ("LCD1", "gamesetup_fp:LCD_LH133T_24P",             _LCD_X, _LCD_Y, 0, False),
-    # Conector del FPC, en el FRENTE, debajo del panel. El flex sale por el
-    # borde inferior del vidrio (y=32.22) y llega desplegado hasta 47.15
-    # (PANEL_FPC_LEN), con los contactos en los ultimos 2mm: con rot 180 los
-    # pads del conector quedan en y = 44.6 + 1.62 = 46.2, o sea justo donde
-    # caen los contactos del flex sin plegarlo. La entrada del conector mira
-    # hacia el panel (-Y). Cuerpo x 42.25..57.75: entre Up (termina en 30) y
-    # X (empieza en 70), y por encima de Select (empieza en 49).
+    # Conector del FPC debajo del panel, en el frente. El vidrio termina en
+    # y = 24 - 11.7 - 1.56 + 29.22 = 39.96 y el flex llega desplegado
+    # 14.93 mas abajo; con rot 180 los contactos del conector caen 1.62 por
+    # debajo de su origen, asi que el origen va 12.4 bajo el vidrio, igual
+    # que en la placa de 80 (44.60 = 32.22 + 12.4). Cuerpo x 41.7..58.3.
     # rot 180 asume contactos del FPC hacia la placa: LCD_FPC_PIN_ORDER.
     ("J4",  "gamesetup_lcsc:FPC-SMD_24P-P0.50_FPC-05FB-24PH20",
-      _LCD_X,   44.60, 180, False),
+      _LCD_X,   52.40, 180, False),
 
     # ================================================ FRENTE: controles
-    # D-pad: cuatro tacts 6x6 en cruz, con el cuerpo centrado en X=30 y el
-    # mismo paso de 12.5mm que el rombo X/Y/A/B (espejo exacto respecto del
-    # centro de la placa, X=50). Reemplaza al NAV5 de 5 vias (2026-10-14):
-    # un solo actuador no permite diagonales ni Up+Down+B+A / Down+Left+X+B.
-    ("SW1", "Button_Switch_THT:SW_PUSH_6mm",   23.75,   38.45, 0, False),  # UP    cuerpo (27.0, 40.7)
-    ("SW3", "Button_Switch_THT:SW_PUSH_6mm",   11.25,   50.95, 0, False),  # LEFT  cuerpo (14.5, 53.2)
-    ("SW4", "Button_Switch_THT:SW_PUSH_6mm",   36.25,   50.95, 0, False),  # RIGHT cuerpo (39.5, 53.2)
-    ("SW2", "Button_Switch_THT:SW_PUSH_6mm",   23.75,   63.45, 0, False),  # DOWN  cuerpo (27.0, 65.7)
-    # X/Y/A/B en diamante, abajo a la derecha. El origen del SW_PUSH_6mm es
-    # el pad 1 y el cuerpo esta centrado en (x+3.25, y+2.25): con x=66.75 el
-    # cuerpo queda en X=70, espejo del NAV5 (X=30) respecto del centro de la
-    # placa de 100mm. Antes (placa de 120) el rombo estaba en x=90.
-    ("SW5", "Button_Switch_THT:SW_PUSH_6mm",   69.75,   38.45, 0, False),  # X     cuerpo (73.0, 40.7)
-    ("SW6", "Button_Switch_THT:SW_PUSH_6mm",   57.25,   50.95, 0, False),  # Y     cuerpo (60.5, 53.2)
-    ("SW7", "Button_Switch_THT:SW_PUSH_6mm",   82.25,   50.95, 0, False),  # A     cuerpo (85.5, 53.2)
-    ("SW8", "Button_Switch_THT:SW_PUSH_6mm",   69.75,   63.45, 0, False),  # B     cuerpo (73.0, 65.7)
-    # L / R: tact ANGULADO en el borde SUPERIOR, que es donde caen los indices
-    # con la placa apaisada. La rotacion NO viaja por el DXF (una cruz no tiene
-    # orientacion), asi que se fija aca:
-    #    rot   0 -> actuador hacia -Y (borde superior)  <-- el caso de hoy
-    #    rot  90 -> actuador hacia -X (borde izquierdo)
-    #    rot 270 -> actuador hacia +X (borde derecho)
-    #
-    # SIMETRIA: el origen del footprint es el PAD 1 y NO esta en el centro de
-    # la pieza — el cuerpo va de -1.55 a +6.05 en X local, o sea 2.25mm hacia
-    # +X del origen. Con los DOS a rot 0 ese desbalance cae del mismo lado en
-    # ambos, asi que no hay nada que compensar en Y (que es lo que si hacia
-    # falta cuando estaban en los laterales con rot 90/270).
-    # Las X de abajo ya vienen compensadas: 20.25 y 75.25 ponen los CUERPOS
-    # centrados en 22.50 y 77.50, o sea a 22.50 de cada borde de la placa de
-    # 100mm, simetricos respecto del centro X=50 (el test lo verifica).
-    # Y=1.87 y no 0.88: con 0.88 los PADS quedaban a 0.01mm del borde, o sea
-    # cobre practicamente sobre la linea de corte (la regla del proyecto pide
-    # 1.0mm y el min_copper_edge_clearance de KiCad, 0.5). Corridos a 1.87 los
-    # pads respetan el milimetro y el actuador igual asoma ~2mm por fuera
-    # del borde, que es lo que hace falta para poder apretarlo.
+    # Cruceta: cuatro tacts 6x6 con paso 8.5mm (era 12.5: no entra al lado
+    # de un panel centrado en 100mm). El origen del SW_PUSH_6mm es el pad 1
+    # y el cuerpo queda en (x+3.25, y+2.25). Centro de la cruz (18, 24).
+    # Reemplaza al NAV5 de 5 vias (2026-10-14): un solo actuador no permite
+    # diagonales ni Up+Down+B+A / Down+Left+X+B.
+    ("SW1", "Button_Switch_THT:SW_PUSH_6mm",   14.75,   13.25, 0, False),  # UP    cuerpo (18.0, 15.5)
+    ("SW3", "Button_Switch_THT:SW_PUSH_6mm",    6.25,   21.75, 0, False),  # LEFT  cuerpo ( 9.5, 24.0)
+    ("SW4", "Button_Switch_THT:SW_PUSH_6mm",   23.25,   21.75, 0, False),  # RIGHT cuerpo (26.5, 24.0)
+    ("SW2", "Button_Switch_THT:SW_PUSH_6mm",   14.75,   30.25, 0, False),  # DOWN  cuerpo (18.0, 32.5)
+    # Rombo X/Y/A/B, espejo de la cruceta: centro (82, 24).
+    ("SW5", "Button_Switch_THT:SW_PUSH_6mm",   78.75,   13.25, 0, False),  # X     cuerpo (82.0, 15.5)
+    ("SW6", "Button_Switch_THT:SW_PUSH_6mm",   70.25,   21.75, 0, False),  # Y     cuerpo (73.5, 24.0)
+    ("SW7", "Button_Switch_THT:SW_PUSH_6mm",   87.25,   21.75, 0, False),  # A     cuerpo (90.5, 24.0)
+    ("SW8", "Button_Switch_THT:SW_PUSH_6mm",   78.75,   30.25, 0, False),  # B     cuerpo (82.0, 32.5)
+    # L / R: tact ANGULADO en el borde SUPERIOR, en las esquinas, que es
+    # donde caen los indices con la placa apaisada. La rotacion NO viaja por
+    # el DXF, asi que se fija aca: rot 0 -> actuador hacia -Y.
+    # El origen es el PAD 1 y el cuerpo esta 2.25 hacia +X: 9.75 y 85.75
+    # dejan los cuerpos en 12 y 88, simetricos respecto de x=50 (el test lo
+    # verifica). y=1.89: pads a 1mm del borde, actuador asomando ~2mm.
     ("SW9",  "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS",
-       20.25,    1.89, 0,  False),  # L -> cuerpo x 18.70..26.30
+       9.75,    1.89, 0,  False),  # L -> cuerpo x 8.2..15.8
     ("SW10", "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS",
-      75.25,    1.89, 0, False),  # R -> cuerpo x 73.70..81.30
-    # SELECT y START apilados en la columna central, debajo del panel y del
-    # conector del FPC: cualquiera de los dos pulgares llega sin tapar la
-    # imagen (estudio ergonomico 2026-10-14). Select arriba porque es el que
-    # cambia de modo mirando la pantalla.
-    ("SW12", "Button_Switch_THT:SW_PUSH_6mm",   46.75,   48.75, 0, False),  # SELECT cuerpo (50, 51)
-    ("SW11", "Button_Switch_THT:SW_PUSH_6mm",   46.75,   60.75, 0, False),  # START  cuerpo (50, 63)
-    # Slide de encendido en el borde INFERIOR (la placa es apaisada; el borde
-    # izquierdo de la version vertical ya no existe como tal).
-    # rot 0 -> actuador hacia +Y, o sea asomando por el borde de abajo. Con la
-    # rot 270 que traia se salia 3.15mm de la placa: el DXF no lleva rotacion,
-    # asi que al mover la cruz quedo la orientacion vieja.
-    # Y=77.70 lo lleva lo mas abajo que permite el cobre: el pad mas bajo
-    # (los de anclaje, que sobresalen 1.30 del origen) queda en y=79.00, o sea
-    # a 1.00mm del borde — el margen del proyecto. El ACTUADOR asoma 3.16mm
-    # por fuera de la placa, que es justo lo que se quiere de un slide de
-    # encendido: se acciona desde el canto del enclosure.
-    # No se puede bajar mas sin violar el clearance a borde de cobre.
-    ("SW15", "gamesetup_lcsc:SW-TH_SK12D07VG3",             30.00,    77.70, 0, False),
+      85.75,    1.89, 0, False),  # R -> cuerpo x 84.2..91.8
+    # SELECT y START bajo el rombo, como en la Micro: cuerpos en (76, 46) y
+    # (88, 46), 7.5mm por debajo de B. Select a la izquierda porque es el
+    # que cambia de modo mirando la pantalla.
+    ("SW12", "Button_Switch_THT:SW_PUSH_6mm",   72.75,   43.75, 0, False),  # SELECT
+    ("SW11", "Button_Switch_THT:SW_PUSH_6mm",   84.75,   43.75, 0, False),  # START
+    # Slide de encendido en el borde INFERIOR, a la izquierda del conector
+    # del flex (J4 empieza en x=41.7; el slide ocupa 19.85..30.15). rot 0 ->
+    # actuador hacia +Y, asomando por el borde de abajo. y=57.70: los pads
+    # de anclaje quedan a 1mm del borde y el actuador asoma 3.16mm, igual
+    # que el 77.70 de la placa de 80.
+    ("SW15", "gamesetup_lcsc:SW-TH_SK12D07VG3",             25.00,    57.70, 0, False),
 
     # ================================================ DORSO: USB, carga, 3V3
     # El nucleo del RP2350A NO esta en esta tabla: lo coloca rp_core.py como
@@ -307,17 +280,4 @@ NUCLEO = (28.0, 20.5, 90.0)
 # lo ya colocado, asi que las regiones pueden pisar pasantes: solo dicen por
 # donde buscar hueco. Las X de los pines del rombo (66.75/73.25, 54.25/60.75,
 # 79.25/85.75) y de Select (66.75/73.25) atraviesan al dorso.
-FREE_REGIONS = [
-    # Dorso, 100x80. Esquivan los pines pasantes del frente, el nucleo del
-    # RP2350A (x 5-41, y 4-32) y el bloque de alimentacion de la izquierda.
-    (53.0, 10.0, 61.0,  32.0),   # columna entre el nucleo y el DAC
-    (70.0,  9.0, 88.0,  35.0),   # derecha del DAC, hasta U4
-    (32.0, 38.0, 45.0,  48.0),   # entre Up y Select
-    (55.0, 39.0, 68.0,  48.0),   # entre U3 y X, sobre Y
-    (32.0, 57.0, 45.0,  76.0),   # entre Down y Start
-    (55.0, 57.0, 66.0,  64.0),   # entre Y y el jack
-    (78.0, 57.0, 88.0,  76.0),   # derecha de B
-    (89.0, 20.0, 97.0,  76.0),   # franja del borde derecho, bajo J5
-    (1.0,  67.5, 10.0,  76.0),   # borde izquierdo, bajo RUN
-    (13.0, 69.0, 22.0,  76.0),   # bajo el D-pad, a la izquierda del slide
-]
+FREE_REGIONS = []   # la tarea 5 del plan escribe las regiones de 100x60

@@ -28,9 +28,8 @@ What was decided and why:
 
 ## Front layout
 
-Coordinates in mm from the board's top-left corner, X right, Y down. Each
-button group keeps today's internal pitch (6 mm tacts, 8.5 mm between
-centres in a cross).
+Coordinates in mm from the board's top-left corner, X right, Y down. Each button group uses 6 mm tacts at 8.5 mm between body centres in a
+cross (today's 12.5 mm pitch does not fit beside a centred panel on 100 mm).
 
 | Group | Refs | Centre | Footprint span |
 |---|---|---|---|
