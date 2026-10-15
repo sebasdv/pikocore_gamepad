@@ -134,6 +134,11 @@ HOJAS = [
         "R16", "R17", "C25", "C26",                # suma mono
         "U4", "C27", "C28", "J5",                  # class-D y parlante
     ], ["NOTA_JACK", "NOTA_SPK"]),
+
+    ("07_midi", "MIDI - entrada y salida TRS tipo A", [
+        "J7", "U9", "R40", "R41",                  # MIDI OUT
+        "J6", "R42", "D3", "U10", "R43", "C56",    # MIDI IN
+    ], ["NOTA_MIDI"]),
 ]
 
 
@@ -268,14 +273,16 @@ def verificar_colisiones(instancias):
 # que viene a verificar el diseno sin haberlo hecho.
 NOTAS = {
     "NOTA_RAIZ":
-        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 100x80mm, panel unico.\n"
+        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 100x60mm, disposicion estilo\n"
+        "Game Boy Micro, panel unico.\n"
         "MCU: RP2350A soldado en la placa (chip-down), nucleo copiado de la placa minima\n"
-        "oficial de Raspberry Pi. Flash W25Q128 de 16MB, USB-C, cargador ETA6096.\n"
+        "oficial de Raspberry Pi. Flash W25Q128 de 16MB, USB-C, cargador ETA6096. MIDI IN/OUT en\n"
+        "TRS tipo A (hoja 7).\n"
         "\n"
         "La bateria LiPo va a J3 (PicoBlade 1.25). SW15 no corta la bateria, corta PWR_EN,\n"
         "el EN del TPS63001 que hace el 3V3, con pull-up de 100k a VSYS (R33).\n"
         "\n"
-        "TODAS las conexiones son por GLOBAL LABEL, validas en las cinco hojas. La hoja raiz\n"
+        "TODAS las conexiones son por GLOBAL LABEL, validas en las seis hojas. La hoja raiz\n"
         "no tiene ninguna senal cableada: solo los simbolos de hoja y esta nota.",
     "NOTA_ALIM":
         "VSYS = la mayor entre VBUS (USB) y VBAT (LiPo), cada una por un Schottky (D1, D2).\n"
@@ -391,6 +398,19 @@ NOTAS = {
         "El apagado del parlante al enchufar auriculares es POR FIRMWARE (JACK_DET -> SPK_SHDN),\n"
         "no por hardware. Es deliberado: permite politicas como oir el parlante con los\n"
         "auriculares puestos, que un corte mecanico prohibe.",
+    "NOTA_MIDI":
+        "MIDI por UART1 (GP24 TX, GP25 RX) en jacks 3.5mm TRS TIPO A, el estandar de la MIDI\n"
+        "Association (RP-054): Tip = DIN 5, Ring = DIN 4, Sleeve = DIN 2. Korg usa tipo B:\n"
+        "hace falta un adaptador para esos equipos.\n"
+        "\n"
+        "SALIDA (J7): norma electrica 3.3V (CA-033): 33R de 3V3 al Ring, 10R del buffer al Tip.\n"
+        "U9 (74LVC1G17) pone los 5mA del lazo; el GPIO ve solo una entrada CMOS.\n"
+        "\n"
+        "ENTRADA (J6): 220R + H11L1 (salida Schmitt, colector abierto, pull-up 4k7). D3 en\n"
+        "antiparalelo al LED aguanta un cable al reves. La MALLA de J6 NO va a masa: la norma\n"
+        "pide que el receptor no aterrice el blindaje.\n"
+        "\n"
+        "PINOUTS DE U9 Y U10 SIN VERIFICAR contra sus datasheets (ver netlist.PINOUT_SIN_VERIFICAR).",
 }
 
 
