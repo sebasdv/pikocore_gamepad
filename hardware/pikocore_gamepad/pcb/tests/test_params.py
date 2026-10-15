@@ -13,6 +13,12 @@ class TestParams(unittest.TestCase):
             self.assertTrue(p.note, f"{name}: note no puede estar vacia")
             self.assertTrue(p.gate, f"{name}: gate no puede estar vacia")
 
+    def test_la_placa_mide_100_por_60(self):
+        # Disposicion estilo Game Boy Micro (spec 2026-10-15): el alto baja
+        # de 80 a 60; el ancho no cambia.
+        self.assertEqual(params.v("BOARD_W"), 100.0)
+        self.assertEqual(params.v("BOARD_H"), 60.0)
+
     def test_las_constantes_del_panel_estan_declaradas(self):
         for name in ("PANEL_BL_W", "PANEL_BL_H", "PANEL_AA", "PANEL_AA_OFF_X",
                      "PANEL_AA_OFF_TOP", "PANEL_FPC_W", "PANEL_FPC_LEN",

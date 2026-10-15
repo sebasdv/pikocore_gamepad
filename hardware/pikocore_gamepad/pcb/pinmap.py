@@ -10,8 +10,9 @@ visible.
 Desde la rama hw/chipdown-rp2350 el RP2350A va soldado en la placa (QFN-60),
 no en el modulo RP2350-Plus: los 30 GPIO quedan disponibles. GP0-GP22 y GP26
 conservan exactamente la funcion que tenian con el modulo (el firmware no
-cambia); GP23/24/29 hacen lo mismo que hacian DENTRO del modulo (modo del
-regulador, sensado de VBUS, VSYS/3) y GP25 (el LED del modulo) queda libre.
+cambia); GP23/29 hacen lo mismo que hacian DENTRO del modulo (modo del
+regulador, VSYS/3); GP24/25 son el UART1 del MIDI (spec 2026-10-15) y
+VBUS_SENSE vive en GP27.
 """
 
 # --- pines validos por periferico, restringido a los que el modulo expone ---
@@ -40,6 +41,8 @@ I2C1_SDA_OK = (2, 6, 10, 14, 18, 22, 26)
 I2C1_SCL_OK = (3, 7, 11, 15, 19, 27)   # GP23 no esta expuesto
 UART0_TX_OK = (0, 12, 16, 28)
 UART0_RX_OK = (1, 13, 17)              # GP29 no sale al header
+UART1_TX_OK = (4, 8, 20, 24)
+UART1_RX_OK = (5, 9, 21, 25)
 
 # --- asignacion definitiva ---
 GPIO = {
@@ -67,15 +70,18 @@ GPIO = {
     21: "JACK_DET",    # entrada con pull-up: 0 = plug insertado
     22: "DAC_XSMT",    # pulldown 100k: arranca muteado
     23: "BB_PS",       # TPS63001 PS/SYNC: 0 = power-save, 1 = PWM fijo
-    24: "VBUS_SENSE",  # 1 = USB conectado (100k/200k desde VBUS)
+    24: "MIDI_TX",     # UART1 TX -> buffer 74LVC1G17 -> MIDI OUT (TRS tipo A)
+    25: "MIDI_RX",     # UART1 RX <- opto H11L1 <- MIDI IN
     26: "LCD_TE",      # tearing effect del panel (entrada, opcional)
+    27: "VBUS_SENSE",  # 1 = USB conectado (100k/200k desde VBUS); era GP24
     29: "VSYS_ADC",    # ADC3, VSYS/3 (200k/100k): nivel de bateria
 }
 
-# Libres: GP27/GP28 (con ADC) y GP25 (era el LED del modulo; en la parte de
-# atras de una consola de mano nadie lo ve). GP26 fue BTN_OK (centro del
-# NAV5) hasta que el D-pad volvio a ser cuatro tacts, y despues LCD_TE.
-FREE = (25, 27, 28)
+# Libre: GP28 (con ADC). GP25 (el LED del modulo) y GP24 son el UART1 del
+# MIDI; VBUS_SENSE, que estaba en GP24, paso a GP27 para liberar ese par.
+# GP26 fue BTN_OK (centro del NAV5) hasta que el D-pad volvio a ser cuatro
+# tacts, y despues LCD_TE.
+FREE = (28,)
 
 # Pines del RP2350A en QFN-60: numero -> nombre. VERIFICADO contra dos
 # fuentes independientes que coinciden en los 61 pads:

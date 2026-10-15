@@ -28,11 +28,21 @@ class TestPinmap(unittest.TestCase):
             self.assertEqual(pinmap.GPIO[g], f)
 
     def test_los_gpio_que_eran_internos_del_modulo_hacen_lo_mismo(self):
-        # GP23/24/29 hacian, DENTRO del modulo, modo del regulador, sensado
-        # de VBUS y VSYS/3. En la placa hacen lo mismo.
+        # GP23 y GP29 hacian, DENTRO del modulo, modo del regulador y VSYS/3.
+        # GP24 lo hacia VBUS_SENSE; con MIDI pasa a GP27 (ver abajo).
         self.assertEqual(pinmap.GPIO[23], "BB_PS")
-        self.assertEqual(pinmap.GPIO[24], "VBUS_SENSE")
+        self.assertEqual(pinmap.GPIO[27], "VBUS_SENSE")
         self.assertEqual(pinmap.GPIO[29], "VSYS_ADC")
+
+    def test_midi_usa_el_par_tx_rx_de_uart1(self):
+        # MIDI va por UART de hardware, no por PIO. UART1 tiene TX en
+        # GP4/8/20/24 y RX en GP5/9/21/25 (RP2350 datasheet, tabla de
+        # funciones GPIO): TX y RX tienen que ser un par del MISMO bloque.
+        tx = pinmap.gpio_of("MIDI_TX")
+        rx = pinmap.gpio_of("MIDI_RX")
+        self.assertIn(tx, pinmap.UART1_TX_OK)
+        self.assertIn(rx, pinmap.UART1_RX_OK)
+        self.assertEqual(rx, tx + 1)
 
     def test_lrck_es_bck_mas_uno(self):
         # El programa PIO de src/audio/i2s.pio genera LRCK en BCK+1 por
@@ -46,10 +56,9 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_SCK"), pinmap.SPI0_SCK_OK)
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
-    def test_quedan_exactamente_tres_pines_libres(self):
-        # GP27/28 (con ADC, stubs de clock/trigger en el firmware) y GP25
-        # (era el LED del modulo).
-        self.assertEqual(sorted(pinmap.FREE), [25, 27, 28])
+    def test_queda_exactamente_un_pin_libre(self):
+        # GP28 (con ADC). GP25 paso a MIDI_RX y GP27 a VBUS_SENSE.
+        self.assertEqual(sorted(pinmap.FREE), [28])
 
     def test_los_libres_no_chocan_con_los_asignados(self):
         self.assertEqual(set(pinmap.FREE) & set(pinmap.GPIO.keys()), set())
@@ -63,10 +72,10 @@ class TestPinmap(unittest.TestCase):
         self.assertEqual(expuestos - declarados, set(),
                          "GPIO expuestos sin declarar")
 
-    def test_quedan_dos_pines_con_adc_libres(self):
-        # GP26-29 tienen ADC. GP26 es LCD_TE y GP29 VSYS/3; GP27/28 siguen
-        # libres (el firmware los usa como stubs de clock/trigger).
-        for g in (27, 28):
+    def test_queda_un_pin_con_adc_libre(self):
+        # GP26-29 tienen ADC. GP26 es LCD_TE, GP27 VBUS_SENSE y GP29 VSYS/3;
+        # GP28 sigue libre (el firmware lo usa como stub de clock/trigger).
+        for g in (28,):
             self.assertIn(g, pinmap.FREE)
         self.assertEqual(pinmap.gpio_of("LCD_TE"), 26)
 

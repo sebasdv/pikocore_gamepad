@@ -116,8 +116,9 @@ ALL = {
         "regenerarlo con gen_template_dxf.py si se vuelve a editar ahi.",
         "V-0"),
     "BOARD_H": Param(
-        80.00, True,
-        "Contorno definitivo, tomado de la capa BOARD_OUTLINE del DXF que el usuario ordeno en Rhino.",
+        60.00, True,
+        "Alto de la disposicion estilo Game Boy Micro (spec 2026-10-15): "
+        "decision de diseno, no medicion. Era 80 (DXF de Rhino).",
         "V-0"),
 }
 
