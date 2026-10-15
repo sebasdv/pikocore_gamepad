@@ -52,6 +52,26 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
+**Branch `hw/chipdown-rp2350`, second step (2026-10-15): Game Boy Micro layout,
+100 × 60 mm, with MIDI.** Screen in the centre (active area centred at
+x 50, y 24), D-pad cross on the left, X/Y/A/B diamond on the right, Select
+and Start under the diamond, L/R shoulder tacts in the top corners.
+Phones, MIDI IN and MIDI OUT are 3.5 mm TRS jacks on the top edge (back
+side); MIDI is type A on UART1 (GP24 TX, GP25 RX, `PIN_MIDI_TX`/`PIN_MIDI_RX`
+in `config.h`), 3.3 V output resistors through a 74LVC1G17, H11L1 opto input.
+`VBUS_SENSE` moved to GP27. The RP2350A core block sits behind the panel
+rotated so its LCD/I2S/button pin row faces the flex connector and the DAC
+(at the old orientation freerouting stalled with 5–7 of those nets open).
+Spec and open items:
+[`docs/superpowers/specs/2026-10-15-pikocore-gamepad-micro-layout-midi-design.md`](../../docs/superpowers/specs/2026-10-15-pikocore-gamepad-micro-layout-midi-design.md).
+Gates: 209 tests, ERC 0/0, DRC 0 errors / 0 unconnected / 0 parity
+(15 warnings: 11 silk at the edge, 2 library mismatch, 2 silk over copper on
+the 470 µF outlines), G-5/G-4/G-2/placement green, G-0 red only for
+`LCD_FPC_PIN_ORDER`. Not verified: U9/U10 pinouts against their datasheets
+(marked SIN VERIFICAR in the schematic), LCSC codes for the MIDI parts and
+the 0603 10 Ω / 33 Ω / 220 Ω, the enclosure for 100 × 60, and nothing has
+been built.
+
 **Branch `hw/chipdown-rp2350` (2026-10-15): RP2350A soldered to the board.**
 The Waveshare RP2350-Plus module is gone. Its circuitry lives on the back:
 RP2350A QFN-60 with RP's core layout copied from their MIT minimal board

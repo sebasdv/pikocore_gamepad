@@ -58,10 +58,19 @@ front tacts, the slide switch and J4's SMD pads are avoided:
 
 | Zone | What | Where (x, y) | Why there |
 |---|---|---|---|
-| Top strip | J1 phones, J6 MIDI IN, J7 MIDI OUT (each 9.2 wide × 19.1 deep), MIDI opto and buffer beside them | x 25–75, y 0–20 | between the shoulder tacts; cables up |
-| Bottom-left | J2 USB-C, U8 charger and its loop, D1/D2, J3 battery connector | x 0–22, y 40–60 and the left margin | away from the panel; USB cable down |
-| Centre band | RP2350A core (`NUCLEO`), U7 TPS63001 loop | behind the panel, x 30–70, y 20–45 | the one area with no THT legs on either side |
-| Right | DAC, op-amp, PAM8302A, C23/C24 470 µF (6.3 mm dia, 5.4 mm tall SMD), J5 speaker header | x 70–100, y 36–60 and the right margin | next to the phones jack path |
+| Top strip | J6 MIDI IN (x 36), J1 phones (x 50), J7 MIDI OUT (x 64), each 9.2 wide × 14.5 deep, pads 3 mm from the edge; U10 opto left of J6, U9 buffer right of J7 | x 18–78, y 0–18 | between the shoulder tacts; cables up |
+| Bottom-left | J2 USB-C at the bottom edge (mouth down), U8 charger and its loop above it, J3 battery and BOOTSEL/RUN in the left margin | x 0–22, y 36–60 and x 0–6 | away from the panel |
+| Centre | RP2350A core (`NUCLEO = (47, 30.5, 270)`), footprints x 33–66, y 23–42 | behind the panel | the one area with no THT legs on either side; rot 270 puts the LCD/I2S/button pin row toward J4 and the DAC |
+| Bottom band | U7 TPS63001 loop (left), U3 op-amp (centre), U5 DAC (right), DAC passives packed around them | x 31–69.5, y 49–59 | under the core, behind J4 (front SMD, no conflict); the LCD lanes' corridor x 43.5–53 is kept free of anchored parts |
+| Right band | C23/C24 470 µF (6.3 mm dia) and bleeders R19/R20 | x 69.5–94.5, y 36–43 | the 7 mm gap between the diamond's and Select/Start's pads; the body overhang lands on pad annuli, which DRC accepts (two silk-over-copper warnings) |
+| Bottom-right | U4 PAM8302A, the TPS61023 boost loop moved as a rigid block, J5 speaker header in the right column | x 69.5–99, y 49–59; J5 at (97, 33) | next to the audio |
+
+**Core block at rot 270, not the chip-down's 90.** At rot 90 pins 1–15 (LCD,
+I2S_DIN, D-pad, X/Y/A/B) faced the jacks with J4 and the DAC on the far side
+of the chip; two routing cycles left 1 and 5 of those nets open with
+freerouting flat from pass 10 on. Half a turn more and that row faces J4;
+the next cycle closed every net. `manual_tracks.py` maps its U1-relative
+offsets by `NUCLEO`'s rotation.
 
 Nothing changes in the audio or power schematics; only positions move.
 `manual_tracks.py` already expresses the USB-C, TPS63001 and RP2350A tracks
@@ -149,14 +158,20 @@ gates specific to this change:
 
 ## Not verified by any source yet
 
-- H11L1 and 74LVC1G17 pinouts and LCSC codes: to be taken from the
-  datasheets when the netlist is written.
-- Whether the 0603 10 Ω and 33 Ω parts exist in `LCSC_PASIVOS`; add them
-  with a code or leave blank.
-- MIDI IN at 3.3 V with an H11L1: the datasheet allows Vcc down to 3 V;
-  check on the bench with a 5 V sender.
+- U9 (74LVC1G17) and U10 (H11L1) pinouts: entered from memory and marked
+  `PINOUT SIN VERIFICAR` in `netlist.py` and on the schematic; confirm against
+  the TI and onsemi datasheets before fabrication.
+- LCSC codes blank in the fab package: 10 Ω, 33 Ω, 220 Ω (0603), 1N4148W,
+  74LVC1G17, H11L1M, plus the pre-existing hand-soldered lines (buttons,
+  jacks, panel, speaker, LiPo, 24 Ω, 470 µF).
+- MIDI IN at 3.3 V with an H11L1: Vcc min 3 V per datasheet; check on the
+  bench with a 5 V sender.
+- The second freerouting pass (`route_io.py repaso`) hung once on this board
+  and was not needed (pass 1 closed every net); the cycle script now skips it
+  when pass 1 leaves nothing open. Cause not investigated.
 - The enclosure study for 100 × 60 (button holes, jack cut-outs on the top
   edge) is not part of this spec.
+- No board has been built.
 
 ## Out of scope
 
