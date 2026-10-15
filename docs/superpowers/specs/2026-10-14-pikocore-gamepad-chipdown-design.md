@@ -119,12 +119,46 @@ JLCPCB already assembles. QFN-60 0.4 mm and DFN 0.5 mm are machine-only.
 Note, not changed here: J4 (panel FPC connector) is on the **front**, so the
 board already needs two-sided assembly.
 
+## Closed after routing (2026-10-15)
+
+- **R31 → C22807** (UNI-ROYAL 0603WAF1503T5E, 150 kΩ 1% 0603, same family
+  as the other `LCSC_PASIVOS` resistors). Added to `LCSC_PASIVOS`.
+- **L4 is fine.** C3002559 is CENKER CKST322512-2.2uH/M: Isat 4.0 A max
+  (inductance down <30 %), Irms 3.7 A, DCR 67 mΩ max (CENKER spec table,
+  B3 2022-04-09). The ETA6096 datasheet gives no switching frequency, so
+  ripple is bounded instead: worst case at the start of fast charge (VBAT
+  2.9 V, VIN 5 V, D ≈ 0.58) with L at −20 % (1.76 µH) is ΔI ≈ 1.4 A at
+  500 kHz, peak ≈ 1.9 A; even at 300 kHz the peak is ≈ 2.35 A. All below
+  4 A, and 4 A is also above the IC's 2.5 A maximum charge current. No
+  replacement needed. (L5 is the same part.)
+- **CPL rotations.** Each new back-side part was compared pad by pad against
+  the EasyEDA footprint of its LCSC code (JLC's 0°), then fitted against the
+  real pad positions on the board. Findings, now encoded in `gen_fab.py`
+  (`CORRECCIONES_CPL`, `jlc_pos`, test in `tests/test_gen_fab.py`):
+  - Bottom side: KiCad mirrors bottom parts and JLC does not, so the CPL
+    angle is `(180 − rot) + correction` (KiBot's `mirror_bottom`
+    convention). The geometric fit agrees for every part. This rule applies
+    to **every** back-side part, the older ones included.
+  - U6 (SOIC-8, C97521): +270° (EasyEDA has pin 1 bottom-left with
+    horizontal rows).
+  - J2 (USB-C HCTL, C2894897): same orientation, but KiCad's origin is
+    1.335 mm behind the contacts; JLC's is the pad centre. Mid X/Y are
+    shifted accordingly.
+  - No correction: U1 (C42411118), Y1 (C20625731), U7 (C28060, so 180° in
+    KiCad → 0° in the CPL), U8 (C7465538), L3 (C42411119, polarity dot on
+    pad 1 in both libraries), L4/L5 (C3002559), D1/D2 (C126673, pin 1 =
+    cathode in both), SW13/SW14 (C318884).
+
 ## Not verified by any source yet
 
-- R31 (ISET 150 kΩ 0603) has **no LCSC code**: the EasyEDA API rate-limited
-  the lookup. Blank on purpose; fill it before ordering.
-- Charger inductor L4 (C3002559, 2.2 µH): saturation current not checked
-  against the 1.2 A charge current plus ripple.
+- CPL for the **older** back-side parts (U2 SOT-563, U3 SOIC-8, Q1 SOT-23,
+  U4 MSOP-8, U5 TSSOP-20, J3): they now get the bottom-side mirror, but
+  their per-footprint correction against their own LCSC footprints was not
+  checked. KiCad's standard SOIC/SOT-23 usually need +270°/+180°.
+- The CPL conventions are inferred from JLC's library plus KiBot. Check
+  JLC's placement preview at order time, polarised parts first.
+- L3 pad 1 (dot) is wired to 1V1, as the copied RP layout puts it. The RP
+  design guide does not say which end of the dot goes to VREG_LX.
 - 1.2 A charge rate assumes a cell rated for ≥1 C at its capacity; a small
   cell needs a larger ISET resistor.
 - Battery connector polarity: LiPo cells with "MX1.25" plugs come in both

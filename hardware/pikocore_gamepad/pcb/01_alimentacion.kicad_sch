@@ -998,6 +998,7 @@
     (property "Footprint" "Resistor_SMD:R_0603_1608Metric" (at 251.46 327.66 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "Datasheet" "" (at 251.46 327.66 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (property "Description" "Resistencia SMD 0603" (at 251.46 327.66 0) (effects (font (size 1.27 1.27)) (hide yes)))
+    (property "LCSC" "C22807" (at 251.46 327.66 0) (effects (font (size 1.27 1.27)) (hide yes)))
     (pin "1" (uuid "b1e7c2a4-9f31-4d6e-8a52-000000000086"))
     (pin "2" (uuid "b1e7c2a4-9f31-4d6e-8a52-000000000087"))
     (instances

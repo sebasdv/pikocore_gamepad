@@ -964,6 +964,7 @@ LCSC_PASIVOS = {
     ("47k",  R_FP): "C25819",
     ("5.1k", R_FP): "C23186",
     ("100R", R_FP): "C22775",
+    ("150k", R_FP): "C22807",   # 0603WAF1503T5E (ISET del ETA6096)
     # Ceramicos.
     ("100nF", C_FP):     "C14663",   # 50V X7R
     ("1uF",   C_FP):     "C15849",   # 50V X5R

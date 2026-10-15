@@ -30,6 +30,7 @@ CONVENCIONES DE JLCPCB cableadas aca, que conviene no "corregir":
     nombres exactos, y Layer en Top/Bottom capitalizado.
   - El BOM usa Comment/Designator/Footprint/LCSC, agrupando en una sola fila
     los designadores que comparten valor y footprint.
+  - Rotacion y centro del CPL: ver CORRECCIONES_CPL y jlc_pos().
 
 QUE NO HACE, a proposito: no elige partes ni inventa codigos LCSC. Los
 componentes sin codigo salen con la celda vacia y el script los reporta al
@@ -38,6 +39,7 @@ Inventar un codigo es peor que dejarlo en blanco.
 """
 import csv
 import json
+import math
 import os
 import subprocess
 import sys
@@ -83,6 +85,45 @@ _KICLI_CANDIDATOS = [
 ]
 KICLI = next((p for p in _KICLI_CANDIDATOS if os.path.exists(p)),
              _KICLI_CANDIDATOS[0])
+
+# El 0 de JLCPCB es el footprint EasyEDA de la parte LCSC, no el de KiCad.
+# footprint de KiCad -> (grados a sumar, (dx, dy) en mm del origen de KiCad al
+# de JLC, en el marco local del footprint: sin rotar, visto desde arriba).
+# Verificado pad por pad contra el footprint EasyEDA de cada codigo LCSC
+# (2026-10-15). Un footprint que no esta aca NO esta verificado: 0 es una
+# suposicion, no un dato.
+#   Sin correccion (mismo pin 1, mismo centro): rpi_rp2350a_vias (C42411118),
+#   generic_xtalcc320x250x80-4 (C20625731), Texas_DRC0010J_ThermalVias
+#   (C28060), DFN-10_L3.0-W3.0-P0.50-BL-EP2.4-1 (C7465538), D_SOD-123F
+#   (C126673, pin 1 = catodo en los dos), L_1210_3225Metric (C3002559),
+#   abracon_aota-b201610s3r3-101-t (C42411119, punto de polaridad en el pad 1
+#   en los dos), SW_Push_1P1T_XKB_TS-1187A (C318884).
+CORRECCIONES_CPL = {
+    # EasyEDA dibuja el SOIC con el pin 1 abajo a la izquierda y las filas
+    # horizontales; KiCad/IPC, arriba a la izquierda y columnas verticales.
+    "generic_soic127p790x195-8": (270, (0.0, 0.0)),            # U6, C97521
+    # El origen de KiCad esta 1.335mm detras de los contactos; el de EasyEDA
+    # en el centro de los pads (contactos y patas del blindaje).
+    "USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A": (0, (0.0, -1.335)),  # J2
+}
+
+
+def jlc_pos(fp, x, y, rot, abajo):
+    """(x, y, rot) de KiCad -> lo que espera JLCPCB.
+
+    x, y como las escribe kicad-cli (Y hacia arriba). Dorso: JLCPCB no espeja
+    las piezas de abajo y KiCad si, asi que el angulo va espejado antes de
+    corregir: (180 - rot) + correccion (la convencion "mirror_bottom" de
+    KiBot). Comprobado geometricamente contra los pads de la placa.
+    """
+    corr, (dx, dy) = CORRECCIONES_CPL.get(fp, (0, (0.0, 0.0)))
+    if abajo:
+        dy = -dy                    # KiCad da vuelta el footprint en Y
+    a = math.radians(rot)           # antihorario visto desde arriba, Y abajo
+    bx = dx * math.cos(a) + dy * math.sin(a)
+    by = -dx * math.sin(a) + dy * math.cos(a)
+    r = (180 - rot if abajo else rot) + corr
+    return round(x + bx, 4), round(y - by, 4), r % 360
 
 
 def _cli(*args):
@@ -180,7 +221,10 @@ def cpl():
         for r in filas:
             # KiCad escribe "top"/"bottom"; JLCPCB espera "Top"/"Bottom".
             lado = "Top" if r["Side"].lower().startswith("t") else "Bottom"
-            w.writerow([r["Ref"], r["PosX"], r["PosY"], lado, r["Rot"]])
+            x, y, rot = jlc_pos(r["Package"], float(r["PosX"]),
+                                float(r["PosY"]), float(r["Rot"]),
+                                lado == "Bottom")
+            w.writerow([r["Ref"], x, y, lado, rot])
     os.remove(tmp)
     print(f"CPL: {len(filas)} componente(s) SMD -> {os.path.basename(dst)}")
     return len(filas)
