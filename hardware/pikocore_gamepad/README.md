@@ -52,7 +52,24 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state (2026-10-14, evening):** **100 × 80 mm**, 4 layers, 72 parts.
+**Branch `hw/chipdown-rp2350` (2026-10-15): RP2350A soldered to the board.**
+The Waveshare RP2350-Plus module is gone. Its circuitry lives on the back:
+RP2350A QFN-60 with RP's core layout copied from their MIT minimal board
+(`import_rp_minimal.py` -> `rp_core_ref.py`, placed by `rp_core.py`),
+W25Q128 flash, 12 MHz crystal, USB-C (J2), ETA6096 LiPo charger (U8),
+MBR230 power OR, TPS63001 buck-boost to 3V3 (U7), BOOTSEL/RUN buttons and
+SWD pads. Pin map for GP0-22/GP26 unchanged; GP23/24/29 added
+(`BB_PS`, `VBUS_SENSE`, `VSYS_ADC`). Design and open items:
+[`docs/superpowers/specs/2026-10-14-pikocore-gamepad-chipdown-design.md`](../../docs/superpowers/specs/2026-10-14-pikocore-gamepad-chipdown-design.md).
+Gates: 191 tests, ERC 0, DRC 0 errors / 0 unconnected / 0 parity
+(9 pre-existing warnings), G-5/G-4/G-2/placement green, G-0 red only for
+`LCD_FPC_PIN_ORDER` as on `main`. Routing: freerouting in two passes, the
+second kept only if it leaves fewer open connections; signals at
+0.127/0.127 mm with 0.45/0.2 vias. Not verified: R31 (ISET 150 k) has no
+LCSC code, L4 saturation current, CPL rotations of the new parts, and
+nothing has been built.
+
+**Previous state on `main` (2026-10-14, evening):** **100 × 80 mm**, 4 layers, 72 parts.
 Display is now a **bare 1.3" panel on a flex**: DisplayModule DM-TFT13-377
 (24-pin variant, LH133T-IF05, ST7789VW) glued to the front, 0.5 mm FPC into
 **J4 = XUNPU FPC-05FB-24PH20 (LCSC C2856831)**; CS tied to GND, 4-SPI, TE on

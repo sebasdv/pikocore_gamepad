@@ -1,6 +1,8 @@
 #pragma once
 // ============================================================
-// pikocore_gamepad carrier PCB (Waveshare RP2350-Plus module) -- pin map.
+// pikocore_gamepad PCB -- pin map. Same GP0-22/GP26 functions on the
+// RP2350-Plus module build (main) and on the RP2350A chip-down build
+// (branch hw/chipdown-rp2350, which adds BB_PS/VBUS_SENSE/VSYS_ADC below).
 //
 // Source of truth: hardware/pikocore_gamepad/pcb/pinmap.py. Gate G-4
 // (hardware/pikocore_gamepad/pcb/checks/check_pinmap.py) parses the
@@ -37,4 +39,7 @@
 #define PIN_SPK_SHDN     20  // out: 1 = PAM8302A on
 #define PIN_JACK_DET     21  // in, pull-up: 0 = plug inserted
 #define PIN_DAC_XSMT     22  // out: 100k pulldown on the PCB, boots muted
+#define PIN_BB_PS        23  // out: TPS63001 PS/SYNC, 0 = power-save (10k pulldown), 1 = forced PWM
+#define PIN_VBUS_SENSE   24  // in: 1 = USB present (100k/200k from VBUS)
 #define PIN_LCD_TE       26  // panel tearing-effect out (input, optional, unused)
+#define PIN_VSYS_ADC     29  // ADC3: VSYS / 3 (200k/100k), battery level

@@ -2,4 +2,5 @@
   (version 7)
   (lib (name "gamesetup_lcsc")(type "KiCad")(uri "${KIPRJMOD}/lib/gamesetup_lcsc.pretty")(options "")(descr "Footprints LCSC/JLC verificados"))
   (lib (name "gamesetup_fp")(type "KiCad")(uri "${KIPRJMOD}/lib/gamesetup_fp.pretty")(options "")(descr "Footprints propios de GAMESETUP V2"))
+  (lib (name "rp_minimal")(type "KiCad")(uri "${KIPRJMOD}/lib/rp_minimal.pretty")(options "")(descr "Huellas de la placa minima oficial del RP2350A (MIT)"))
 )

@@ -144,6 +144,8 @@ en V1 tampoco lo hacía. Su `RP2350-Plus_Socket.step` existe en
 `lib/gamesetup_fp.3dshapes/` y lo consume el pipeline de ensamble STEP, que
 trabaja a nivel de placa y no por la propiedad `(model ...)` del footprint. No es
 una regresión; queda anotado para que nadie lo "arregle" pensando que falta.
+**Rama `hw/chipdown-rp2350`:** el socket y su `.step` se borraron; U1 es el
+RP2350A soldado a la placa (`rp_minimal:rpi_rp2350a_vias`).
 
 El footprint del LCD tampoco declara modelo 3D: es una pieza que no existe en
 ninguna librería. Su altura para el enclosure es el header macho soldado directo

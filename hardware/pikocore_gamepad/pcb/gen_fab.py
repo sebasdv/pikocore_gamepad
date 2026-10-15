@@ -201,6 +201,8 @@ def bom():
     """
     grupos = {}
     for sym, ref, valor, x, y, nets, props in INSTANCES:
+        if sym == "TestPoint":
+            continue          # pads de prueba: cobre, no una pieza
         clave = (valor, props.get("FP", ""), props.get("LCSC", ""))
         grupos.setdefault(clave, []).append(ref)
 

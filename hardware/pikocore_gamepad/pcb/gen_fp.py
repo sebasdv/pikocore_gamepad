@@ -12,7 +12,6 @@ Footprints:
                          contorno, area activa y cola del FPC en Cmts.User,
                          para el enclosure y para Rhino). El conector del FPC
                          es una pieza aparte, importada de LCSC.
-  - RP2350-Plus_Socket : se copia de V1 sin cambios de geometria.
 
 ORIGEN del footprint del panel = centro del AREA ACTIVA: es lo que se mide
 sobre la placa impresa y lo que decide la ergonomia.
@@ -144,42 +143,12 @@ def build_panel():
 # el modelo 3D reapuntado a ${KIPRJMOD}/lib/gamesetup_lcsc.3dshapes/.
 
 
-# El socket 2x20 no trae modelo 3D propio (es un header generico), pero el
-# MODULO que se enchufa encima si: RP2350-Plus_Module.step, de Waveshare.
-# Lo asigna gen_pcb.py via MODELOS_PROPIOS, igual que el jack.
-
-
-def copiar_socket_de_v1():
-    """El socket 2x20 del RP2350-Plus se reusa tal cual de V1.
-
-    Solo se cambia la ruta del modelo 3D a la libreria de este proyecto: la
-    geometria de pads no se toca, porque ya esta verificada contra el modulo
-    fisico.
-    """
-    src = os.path.join(HERE, "..", "..", "NEWSETUP", "pcb", "lib",
-                       "newsetup_fp.pretty", "RP2350-Plus_Socket.kicad_mod")
-    dst = os.path.join(OUT, "RP2350-Plus_Socket.kicad_mod")
-    if not os.path.isfile(src):
-        print(f"AVISO: no se encontro {src}")
-        return False
-    with open(src, encoding="utf-8") as f:
-        s = f.read()
-    s = s.replace("newsetup_fp.3dshapes", "gamesetup_fp.3dshapes")
-    s = s.replace("/NEWSETUP/pcb/lib/", "/lib/")
-    with open(dst, "w", encoding="utf-8") as f:
-        f.write(s)
-    return True
-
-
 def main():
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, PANEL_NAME + ".kicad_mod")
     with open(path, "w", encoding="utf-8") as f:
         f.write(build_panel())
     print(f"OK -> {path}")
-    if copiar_socket_de_v1():
-        print(f"OK -> {os.path.join(OUT, 'RP2350-Plus_Socket.kicad_mod')} "
-              f"(copiado de V1)")
 
 
 if __name__ == "__main__":

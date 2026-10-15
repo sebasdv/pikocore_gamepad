@@ -106,30 +106,57 @@ PLACEMENTS = [
     # No se puede bajar mas sin violar el clearance a borde de cobre.
     ("SW15", "gamesetup_lcsc:SW-TH_SK12D07VG3",             30.00,    77.70, 0, False),
 
-    # ================================================ DORSO: MCU
-    # Huella real de pads: 19.48 x 49.96 (la bbox general de 21.55 x 56.70
-    # incluye serigrafia y no sirve para decidir si entra). Va vertical en la
-    # franja que el display deja libre a la izquierda; rot 180 pone el USB-C
-    # contra el borde SUPERIOR, que es el unico que quedo despejado.
-    # HORIZONTAL (rot 90) desde que la placa es apaisada: vertical medía
-    # 21.6 x 51.5 y se comia la franja donde van Start (SW11) y el D-pad
-    # (SW13), con 3 pads solapados. Rotado mide 51.5 x 21.6.
+    # ================================================ DORSO: USB, carga, 3V3
+    # El nucleo del RP2350A NO esta en esta tabla: lo coloca rp_core.py como
+    # un bloque rigido copiado de la placa minima oficial (ver NUCLEO abajo).
+    # Aca van las piezas de alimentacion, que son de esta placa.
     #
-    # Que no haya solape NO es que el modulo no comparta area con los
-    # controles —en una placa de 120x80 con controles en los cuatro bordes eso
-    # es imposible— sino que sus PADS no chocan: horizontal, los pines quedan
-    # en dos filas separadas 17.8mm (y ~17.7 y ~37.3) y entre ellas hay una
-    # franja libre donde SW11 cae comodo. El bbox de U1 tambien pisa el del
-    # LCD en x 46..51.6, pero los pads de J4 estan todos en y 8.75..10.45, o
-    # sea muy por encima de la primera fila de U1.
-    #
-    # X=26.50 lo deja practicamente donde estaba (24.98): el modulo sigue a la
-    # izquierda, que es lo que pedia el placement de Rhino.
-    # rot 270 y no 90: las dos dejan el modulo horizontal, pero 90 pone el
-    # USB-C en x=49, o sea en mitad de la placa, donde no se puede enchufar
-    # nada. Con 270 el conector queda contra el borde IZQUIERDO (x~4), que es
-    # el unico borde largo que no tiene controles.
-    ("U1",  "gamesetup_fp:RP2350-Plus_Socket",           26.50,   27.50, 270, True),
+    # USB-C en el canto IZQUIERDO, enfrente de R25/R26 (las 27R del nucleo,
+    # en y 18.9-19.9). La boca del footprint esta en y=+4.22 locales; en el
+    # dorso con rot 90 ese lado queda hacia -X (con 270 quedaba al reves: los
+    # pads de senal contra el canto y la boca mirando adentro, lo detecto
+    # check_placement). x=4.6 deja la boca a 0.4mm del canto y los pads THT
+    # del blindaje a 3mm.
+    ("J2",  "Connector_USB:USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A",
+       4.60,   19.40, 90, True),
+    ("R29", "Resistor_SMD:R_0603_1608Metric",               3.00,   12.80, 0, True),
+    ("R30", "Resistor_SMD:R_0603_1608Metric",               3.00,   26.00, 0, True),
+    # Cargador ETA6096 y su lazo, en la franja izquierda bajo el USB. El nodo
+    # SW (pin 5) va al inductor por el camino mas corto, como pide el
+    # datasheet en su PCB GUIDELINES.
+    ("D1",  "Diode_SMD:D_SOD-123F",                        11.00,   26.50, 0, True),
+    ("U8",  "gamesetup_lcsc:DFN-10_L3.0-W3.0-P0.50-BL-EP2.4-1",
+       6.00,   31.00, 0, True),
+    ("C48", "Capacitor_SMD:C_0603_1608Metric",              2.00,   30.00, 90, True),
+    ("C49", "Capacitor_SMD:C_0805_2012Metric",             10.20,   30.50, 90, True),
+    ("R31", "Resistor_SMD:R_0603_1608Metric",               2.00,   33.40, 90, True),
+    ("L4",  "Inductor_SMD:L_1210_3225Metric",               6.00,   35.60, 0, True),
+    ("C50", "Capacitor_SMD:C_0603_1608Metric",             10.20,   35.60, 90, True),
+    ("D2",  "Diode_SMD:D_SOD-123F",                        14.50,   35.60, 0, True),
+    # Bateria: PicoBlade vertical, en el dorso, al costado de la LiPo.
+    ("J3",  "Connector_Molex:Molex_PicoBlade_53398-0271_1x02-1MP_P1.25mm_Vertical",
+       6.00,   45.00, 0, True),
+    # 3V3: TPS63001 y su lazo, bajo el cristal y a la derecha del D-pad.
+    # y >= 30: el nucleo baja hasta y 26.7 en x 32 (C42, desacoplo de 3V3).
+    # U7 a 180: en el dorso el footprint queda espejado y a 0 los pines
+    # 1-5 (VOUT, L2, PGND, L1, VIN) miraban a la izquierda, lejos de L5; los
+    # dos nodos de conmutacion tenian que cruzar bajo el chip y freerouting
+    # no los cerraba. A 180 quedan enfrentados a L5, como en el layout de TI:
+    # VOUT arriba (C52/C53 encima), VIN abajo (C51 debajo), EN/PS a la
+    # izquierda (R33/R34).
+    ("U7",  "Package_SON:Texas_DRC0010J_ThermalVias",      36.00,   33.50, 180, True),
+    ("L5",  "Inductor_SMD:L_1210_3225Metric",              40.20,   33.50, 90, True),
+    ("C51", "Capacitor_SMD:C_0603_1608Metric",             37.70,   36.90, 0, True),
+    ("C52", "Capacitor_SMD:C_0603_1608Metric",             37.70,   30.40, 0, True),
+    ("C53", "Capacitor_SMD:C_0603_1608Metric",             41.00,   30.40, 0, True),
+    ("R32", "Resistor_SMD:R_0603_1608Metric",              32.80,   30.10, 90, True),
+    ("C54", "Capacitor_SMD:C_0603_1608Metric",             35.00,   29.80, 90, True),
+    ("R33", "Resistor_SMD:R_0603_1608Metric",              32.80,   33.30, 90, True),
+    ("R34", "Resistor_SMD:R_0603_1608Metric",              32.80,   36.40, 90, True),
+    # BOOTSEL y RUN abajo a la izquierda, en el dorso: son de desarrollo y
+    # se alcanzan con un clip o por un agujero del enclosure.
+    ("SW13", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",  5.50,   54.00, 90, True),
+    ("SW14", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",  5.50,   63.00, 90, True),
 
     # ================================================ DORSO: audio
     # Agrupado a la derecha del display, lejos del MCU y de los controles. El
@@ -247,6 +274,13 @@ PLACEMENTS = [
     ("R5",  "Resistor_SMD:R_0603_1608Metric",              55.20,    2.50, 0, True),
 ]
 
+# Nucleo del RP2350A copiado de la placa minima oficial (rp_core.py): U1 en
+# (x, y) del dorso y el bloque rotado `rot` grados despues de voltearlo. Con
+# 90 el lado de USB y del regulador de la placa oficial queda hacia el canto
+# izquierdo (donde va J2) y el cristal hacia el centro. Ocupa x 7-43, y 4-32:
+# el lugar que dejo libre el modulo RP2350-Plus.
+NUCLEO = (28.0, 20.5, 90.0)
+
 # Regiones del DORSO donde gen_pcb.py empaqueta los ~58 pasivos, en este
 # orden. Son las zonas que el layout del frente deja libres: el hueco bajo el
 # display (entre sus agujeros de montaje, que es donde no hay cobre), la
@@ -274,21 +308,16 @@ PLACEMENTS = [
 # donde buscar hueco. Las X de los pines del rombo (66.75/73.25, 54.25/60.75,
 # 79.25/85.75) y de Select (66.75/73.25) atraviesan al dorso.
 FREE_REGIONS = [
-    # Dorso, 100x80, layout del estudio ergonomico. Evitan los pines pasantes
-    # del frente (el empaquetador solo esquiva courtyards del dorso):
-    #   Up (23.75/30.25, 38.45/42.95)   X (69.75/76.25, 38.45/42.95)
-    #   Left (11.25/17.75, 50.95/55.45) Right (36.25/42.75, ...) Y (57.25/63.75)
-    #   A (82.25/88.75, 50.95/55.45)    Down/B (y 63.45/67.95)
-    #   Select (46.75/53.25, 48.75/53.25) Start (46.75/53.25, 60.75/65.25)
-    #   SW9/SW10 arriba, SW15 (30, 77.7), J1 (61.7..63.7, 65.4..77), J5 (91,13)
-    (2.0,   7.0, 46.0,  15.0),   # franja superior, sobre el modulo
-    (53.0, 10.0, 61.0,  32.0),   # columna entre el modulo y el DAC
+    # Dorso, 100x80. Esquivan los pines pasantes del frente, el nucleo del
+    # RP2350A (x 5-41, y 4-32) y el bloque de alimentacion de la izquierda.
+    (53.0, 10.0, 61.0,  32.0),   # columna entre el nucleo y el DAC
     (70.0,  9.0, 88.0,  35.0),   # derecha del DAC, hasta U4
-    (32.0, 40.0, 45.0,  48.0),   # entre Up y Select
+    (32.0, 38.0, 45.0,  48.0),   # entre Up y Select
     (55.0, 39.0, 68.0,  48.0),   # entre U3 y X, sobre Y
     (32.0, 57.0, 45.0,  76.0),   # entre Down y Start
     (55.0, 57.0, 66.0,  64.0),   # entre Y y el jack
     (78.0, 57.0, 88.0,  76.0),   # derecha de B
     (89.0, 20.0, 97.0,  76.0),   # franja del borde derecho, bajo J5
-    (2.0,  58.0, 10.0,  76.0),   # borde izquierdo
+    (1.0,  67.5, 10.0,  76.0),   # borde izquierdo, bajo RUN
+    (13.0, 69.0, 22.0,  76.0),   # bajo el D-pad, a la izquierda del slide
 ]

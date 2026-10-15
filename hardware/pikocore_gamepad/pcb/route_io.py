@@ -3,6 +3,8 @@
 
   "$KIPY" route_io.py export   -> pikocore_gamepad.dsn
   "$KIPY" route_io.py import   -> aplica pikocore_gamepad.ses, rellena zonas, guarda
+  "$KIPY" route_io.py repaso   -> DSN de la placa YA ruteada, para completar
+                                  lo que freerouting dejo sin conectar
 
 DIFERENCIA CON V1: alli habia que QUITAR las zonas GND antes de exportar, para
 que freerouting ruteara GND como pistas. Eso era un parche a la fragmentacion
@@ -18,6 +20,7 @@ El assert de "non-closed outline" mas el memory-leak de SWIG salen por stderr
 y hacen deadlock del pipe — parece colgado. Redirigir a un log y grepear el
 archivo.
 """
+import json
 import os
 import re
 import sys
@@ -64,6 +67,75 @@ def marcar_planos(dsn_path):
         with open(dsn_path, "w", encoding="utf-8") as f:
             f.write(txt)
     return n
+
+
+# Foto del cobre previo al ruteo (nucleo RP2350A, manual_tracks.py,
+# plane_vias.py). La escribe "export"; la lee "repaso".
+PRE = os.path.join(HERE, "logs", "pre_ruteo.json")
+
+
+def _clave(t):
+    """Identidad geometrica de una pista o via, en micrones."""
+    um = lambda v: int(round(v / 1000))
+    if t.GetClass() == "PCB_VIA":
+        p = t.GetPosition()
+        return f"V {t.GetNetname()} {um(p.x)} {um(p.y)}"
+    a, b = sorted([(um(t.GetStart().x), um(t.GetStart().y)),
+                   (um(t.GetEnd().x), um(t.GetEnd().y))])
+    return f"T {t.GetNetname()} {t.GetLayer()} {a} {b}"
+
+
+def fijar_cableado(board, solo=None):
+    """Bloquea pistas y vias para que el DSN las lleve como (type fix).
+
+    Lo que llega al DSN antes de freerouting es deliberado: el nucleo del
+    RP2350A copiado de la placa oficial, las pistas de manual_tracks.py y los
+    fanouts de plane_vias.py. Como (type route) freerouting lo trata como
+    propio y lo reacomoda: en la primera corrida del chip-down partio las
+    pistas de 1V1 del regulador en dos islas. KiCad exporta lo bloqueado como
+    (type fix); main() lo pasa a (type protect), que freerouting tampoco toca
+    y que, a diferencia de fix, si devuelve en el SES.
+
+    solo=None bloquea todo (export) y devuelve las claves para la foto. Con
+    solo=claves bloquea unicamente eso (repaso): el SES no trae el bloqueo de
+    vuelta, asi que se reconoce por geometria. Lo que puso freerouting queda
+    como (type route) y en el repaso lo puede rehacer para hacer lugar.
+
+    """
+    claves = []
+    for t in board.GetTracks():
+        k = _clave(t)
+        if solo is None or k in solo:
+            t.SetLocked(True)
+            claves.append(k)
+    return claves
+
+
+def blindar_zonas_externas(dsn_path):
+    """Copia cada zona de F.Cu/B.Cu como keepout, solo para freerouting.
+
+    Las zonas del nucleo RP2350A son anillos en la cara del chip: 3V3 por
+    fuera, 1V1 por dentro, el pad expuesto GND al centro. El anillo de 1V1 es
+    el que lleva la salida del regulador a los cuatro pines DVDD. freerouting
+    no trata una zona (plane) ajena como obstaculo: en la segunda corrida paso
+    SWCLK, DPAD_UP y otras cinco por adentro y partio el 1V1 en dos.
+
+    Los pines de U1 quedan fuera del anillo de 3V3, asi que siguen
+    accesibles. Las capas internas (GND, PWR) no se tocan: son los planos.
+    Devuelve cuantos keepouts agrego.
+    """
+    import re
+    with open(dsn_path, encoding="utf-8") as f:
+        txt = f.read()
+    pat = re.compile(r"\(plane \S+ \(polygon ([FB]\.Cu) 0 ([^)]*)\)\)")
+    nuevos = [f'    (keepout "" (polygon {m.group(1)} 0 {m.group(2)}))'
+              for m in pat.finditer(txt)]
+    if nuevos:
+        ult = list(pat.finditer(txt))[-1]
+        txt = txt[:ult.end()] + "\n" + "\n".join(nuevos) + txt[ult.end():]
+        with open(dsn_path, "w", encoding="utf-8") as f:
+            f.write(txt)
+    return len(nuevos)
 
 
 # Footprints cuyo contorno hay que quitar del DSN para poder rutearlos.
@@ -121,13 +193,25 @@ def limpiar_outlines(dsn_path):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("export", "import"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("export", "import", "repaso"):
         print(__doc__)
         return 2
 
     board = pcbnew.LoadBoard(PCB)
 
-    if sys.argv[1] == "export":
+    if sys.argv[1] in ("export", "repaso"):
+        if sys.argv[1] == "export":
+            fijas = fijar_cableado(board)
+            os.makedirs(os.path.dirname(PRE), exist_ok=True)
+            with open(PRE, "w", encoding="utf-8") as f:
+                json.dump(fijas, f)
+        else:
+            if not os.path.isfile(PRE):
+                print(f"FALTA: {PRE} (correr export antes de rutear)")
+                return 1
+            with open(PRE, encoding="utf-8") as f:
+                fijas = fijar_cableado(board, set(json.load(f)))
+        # Solo en memoria: la placa no se guarda bloqueada.
         ok = pcbnew.ExportSpecctraDSN(board, DSN)
         zonas = len([z for z in board.Zones() if not z.GetIsRuleArea()])
         print(f"DSN export: {ok} -> {DSN}")
@@ -135,6 +219,16 @@ def main():
         if ok:
             n = marcar_planos(DSN)
             print(f"{n} capa(s) interna(s) marcadas como (type power)")
+            z = blindar_zonas_externas(DSN)
+            print(f"{z} zona(s) de F.Cu/B.Cu copiadas como keepout")
+            # (type fix) no vuelve en el SES de freerouting: el import borraba
+            # el nucleo entero (182 conexiones abiertas). (type protect) si
+            # vuelve, y freerouting tampoco lo mueve.
+            with open(DSN, encoding="utf-8") as f:
+                txt = f.read()
+            with open(DSN, "w", encoding="utf-8") as f:
+                f.write(txt.replace("(type fix)", "(type protect)"))
+            print(f"{len(fijas)} pista(s)/via(s) previas protegidas")
             k = limpiar_outlines(DSN)
             print(f"{k} outline(s) quitadas de {'/'.join(SIN_OUTLINE)} "
                   f"(dejan rutear por debajo del chip)")
@@ -148,6 +242,20 @@ def main():
     except TypeError:
         ok = pcbnew.ImportSpecctraSES(SES)
     print("SES import:", ok)
+    # El SES trae el diametro de la via pero no el taladro: KiCad le pone el
+    # de la netclass. Una via de 0.45 (la de senal) en una net Power salia con
+    # taladro 0.3, anillo 0.075 (minimo 0.1). Se baja el taladro hasta dejar
+    # anillo de 0.125.
+    arregladas = 0
+    for v in board.GetTracks():
+        if v.GetClass() != "PCB_VIA":
+            continue
+        d = v.GetWidth(pcbnew.F_Cu)
+        if (d - v.GetDrillValue()) / 2 < pcbnew.FromMM(0.1):
+            v.SetDrill(d - pcbnew.FromMM(0.25))
+            arregladas += 1
+    if arregladas:
+        print(f"vias con anillo corto: taladro corregido en {arregladas}")
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     pcbnew.SaveBoard(PCB, board)
     pistas = len([t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK"])

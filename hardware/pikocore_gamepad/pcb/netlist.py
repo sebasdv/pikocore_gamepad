@@ -23,22 +23,25 @@ import pinmap
 
 NC = "<NC>"
 
-# El orden de los 40 pines del socket sale de pinmap.py, que es la fuente de
-# verdad del pinout y la que check_pinmap contrasta contra el firmware. Tener
-# una segunda copia aca fue el primer instinto y es un error: dos tablas del
-# mismo dato derivan, y la divergencia no la detecta nadie.
-PICO_PINS = pinmap.HEADER_ORDER
-
-
 def _mcu_pin_geometry():
-    """Los 40 pines del socket: 20 bajando por la izquierda, 20 subiendo por
-    la derecha, como el header fisico."""
-    out = []
-    for i in range(20):
-        out.append((str(i + 1), PICO_PINS[i], -17.78, 24.13 - 2.54 * i, 0))
-    for i in range(20):
-        out.append((str(i + 21), PICO_PINS[20 + i], 17.78, -24.13 + 2.54 * i, 180))
+    """Los 61 pines del RP2350A (QFN-60 + pad expuesto), en dos columnas: 1-31
+    bajando por la izquierda, 32-61 subiendo por la derecha. Los nombres salen
+    de pinmap.RP2350A_PINS, que es donde esta la verificacion."""
+    nums = sorted(pinmap.RP2350A_PINS)
+    izq, der = nums[:31], nums[31:]
+    out = [(str(n), pinmap.RP2350A_PINS[n], -17.78, 38.1 - 2.54 * k, 0)
+           for k, n in enumerate(izq)]
+    out += [(str(n), pinmap.RP2350A_PINS[n], 17.78, -38.1 + 2.54 * k, 180)
+            for k, n in enumerate(der)]
     return out
+
+
+def _usb_c_pins():
+    """Contactos A a la izquierda, B y el blindaje a la derecha."""
+    a = ["A1", "A4", "A5", "A6", "A7", "A8", "A9", "A12"]
+    b = ["B1", "B4", "B5", "B6", "B7", "B8", "B9", "B12", "S1"]
+    return ([(n, n, -10.16, 17.78 - 2.54 * k, 0) for k, n in enumerate(a)] +
+            [(n, n, 10.16, 17.78 - 2.54 * k, 180) for k, n in enumerate(b)])
 
 
 def _left_pins(names, x=-7.62, step=2.54):
@@ -59,13 +62,91 @@ def _dual_pins(left, right, x=7.62, step=2.54):
 
 
 SYMS = {
-    "RP2350-Plus": dict(
-        ref="U", w=15.24, h=27.94,
-        desc="Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, "
-             "USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. "
-             "GP23/24/25 son internos del modulo y GP29 no sale al header.",
-        ds="https://www.waveshare.com/wiki/RP2350-Plus",
+    "RP2350A": dict(
+        ref="U", w=15.24, h=40.64,
+        desc="Raspberry Pi RP2350A, QFN-60 7x7 paso 0.4mm + pad expuesto a GND. "
+             "Pinout verificado contra el simbolo de KiCad 10 y la placa minima "
+             "oficial (ver pinmap.RP2350A_PINS). Regulador interno de 1V1 con "
+             "L 3.3uH Abracon AOTA y el layout copiado de la placa minima.",
+        ds="https://datasheets.raspberrypi.com/rp2350/rp2350-datasheet.pdf",
         pins=_mcu_pin_geometry(),
+    ),
+    "W25Q128": dict(
+        ref="U", w=10.16, h=7.62,
+        desc="Flash QSPI 16MB Winbond W25Q128JVSIQ, SOIC-8 208mil. Pinout de "
+             "la placa minima oficial (U3): 1=CS 2=IO1 3=IO2 4=GND 5=IO0 "
+             "6=CLK 7=IO3 8=VCC.",
+        ds="https://www.winbond.com/",
+        pins=_dual_pins(["CS", "IO1", "IO2", "GND"],
+                        ["IO0", "CLK", "IO3", "VCC"]),
+    ),
+    "XTAL4": dict(
+        ref="Y", w=7.62, h=5.08,
+        desc="Cristal 12MHz Abracon ABM8-272-T3 (3.2x2.5, 4 pads). 1 y 3 son el "
+             "cristal, 2 y 4 la tapa a GND. El recomendado por Raspberry Pi; "
+             "15pF por lado y 1k en serie en XOUT, igual que la placa minima.",
+        ds="https://abracon.com/",
+        pins=[("1", "X1", -7.62, 2.54, 0), ("2", "GND", -7.62, -2.54, 0),
+              ("3", "X2", 7.62, 2.54, 180), ("4", "GND", 7.62, -2.54, 180)],
+    ),
+    "TPS63001": dict(
+        ref="U", w=10.16, h=10.16,
+        desc="Buck-boost TI TPS63001DRCR, salida FIJA 3.3V hasta 1.2A, VIN "
+             "1.8-5.5V, VSON-10 3x3. Pinout verificado contra SLVS520C: 1=VOUT "
+             "2=L2 3=PGND 4=L1 5=VIN 6=EN 7=PS/SYNC 8=VINA 9=GND 10=FB (a VOUT "
+             "en la version fija), pad expuesto (11) a PGND. Reemplaza al "
+             "MP28164 del modulo, que no tiene huella en KiCad ni en EasyEDA.",
+        ds="https://www.ti.com/lit/ds/symlink/tps63001.pdf",
+        pins=_dual_pins(["VOUT", "L2", "PGND", "L1", "VIN"],
+                        ["EN", "PS", "VINA", "GND", "FB"]) +
+        [("11", "EP", 0.0, -10.16, 90)],
+    ),
+    "ETA6096": dict(
+        ref="U", w=10.16, h=10.16,
+        desc="Cargador LiPo conmutado ETA6096D3K, 4.2V, DFN3x3-10. Pinout "
+             "verificado contra su datasheet: 1=VIN 2=PMID 3=PGND 4=NC 5=SW "
+             "6=BATS 7=AGND 8=ISET 9=STAT 10=AGND, pad expuesto (11) AGND. "
+             "El mismo que trae el modulo RP2350-Plus.",
+        ds="https://www.lcsc.com/product-detail/C7465538.html",
+        pins=_dual_pins(["VIN", "PMID", "PGND", "NC", "SW"],
+                        ["BATS", "AGND", "ISET", "STAT", "AGND"]) +
+        [("11", "EP", 0.0, -10.16, 90)],
+    ),
+    "USB_C16": dict(
+        ref="J", w=10.16, h=20.32,
+        desc="Receptaculo USB-C 16P HCTL HC-TYPE-C-16P-01A. Pads por nombre de "
+             "contacto USB (A1..B12) como el footprint oficial de KiCad; S1 es "
+             "el blindaje. Solo USB 2.0: SBU sin conectar.",
+        ds="https://www.lcsc.com/product-detail/C2894897.html",
+        pins=_usb_c_pins(),
+    ),
+    "D_Schottky": dict(
+        ref="D", w=2.54, h=7.62,
+        desc="Schottky MBR230LSFT1G (30V 2A, SOD-123FL). Pin 1 = CATODO, como "
+             "todos los footprints de diodo de KiCad (D_SOD-123F); pin 2 = anodo.",
+        ds="https://www.lcsc.com/product-detail/C126673.html",
+        pins=[("1", "K", 5.08, 0.0, 180), ("2", "A", -5.08, 0.0, 0)],
+    ),
+    "SW_SMD": dict(
+        ref="SW", w=7.62, h=5.08,
+        desc="Pulsador SMD 5.1x5.1 XKB TS-1187A (BOOTSEL / RUN). Pads 1,1,2,2 "
+             "en el footprint de KiCad: 1 contra 2 cruza el contacto.",
+        ds="https://www.lcsc.com/product-detail/C318884.html",
+        pins=[("1", "A", -7.62, 0.0, 0), ("2", "B", 7.62, 0.0, 180)],
+    ),
+    "TestPoint": dict(
+        ref="TP", w=2.54, h=2.54,
+        desc="Pad de prueba de 1mm (SWD).", ds="",
+        pins=[("1", "TP", -5.08, 0.0, 0)],
+    ),
+    "Conn_Bat": dict(
+        ref="J", w=5.08, h=5.08,
+        desc="Conector de bateria Molex PicoBlade 1.25mm 2P vertical SMD "
+             "(compatible MX1.25). 1 = +, 2 = -, MP = lenguetas de anclaje. "
+             "OJO: las LiPo con este conector vienen en las dos polaridades.",
+        ds="",
+        pins=[("1", "BAT+", -7.62, 2.54, 0), ("2", "BAT-", -7.62, 0.0, 0),
+              ("MP", "MP", -7.62, -2.54, 0)],
     ),
     "LCD_FPC24": dict(
         ref="J", w=12.7, h=35.56,
@@ -350,36 +431,29 @@ JACK_FP = "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal"
 FOOTPRINTS_PROVISIONALES = {}
 
 
-def _mcu_nets():
-    """Nets del socket del MCU, DERIVADAS de pinmap.py.
+# Nets fijas del RP2350A (todo lo que no es GPIO). Copiadas de la placa
+# minima oficial, con los nombres de esta placa.
+_MCU_FIJAS = {
+    "IOVDD": "3V3", "DVDD": "1V1", "XIN": "XIN", "XOUT": "XOUT",
+    "SWCLK": "SWCLK", "SWDIO": "SWDIO", "RUN": "RUN", "ADC_AVDD": "3V3",
+    "VREG_AVDD": "VREG_AVDD", "VREG_PGND": "GND", "VREG_LX": "VREG_LX",
+    "VREG_VIN": "3V3", "VREG_FB": "1V1", "USB_DM": "USB_DM_IC",
+    "USB_DP": "USB_DP_IC", "USB_OTP_VDD": "3V3", "QSPI_IOVDD": "3V3",
+    "QSPI_SD3": "QSPI_SD3", "QSPI_SCLK": "QSPI_SCLK", "QSPI_SD0": "QSPI_SD0",
+    "QSPI_SD2": "QSPI_SD2", "QSPI_SD1": "QSPI_SD1", "QSPI_SS": "QSPI_SS",
+    "GND": "GND",
+}
 
-    Se generan y no se escriben a mano a proposito: en V1 la tabla estaba
-    duplicada entre el esquematico y config.h, y mantenerlas sincronizadas a
-    ojo fue una fuente constante de error. Aca la unica fuente es pinmap, que
-    ademas es la que check_pinmap contrasta contra el firmware.
-    """
+
+def _mcu_nets():
+    """Nets del RP2350A: GPIO desde pinmap.py (la fuente que check_pinmap
+    contrasta contra el firmware) y el resto desde _MCU_FIJAS."""
     nets = {}
-    for i, name in enumerate(PICO_PINS):
-        pin = str(i + 1)
-        if name in ("GND", "AGND"):
-            nets[pin] = "GND"
-        elif name == "3V3":
-            nets[pin] = "3V3"
-        elif name == "VSYS":
-            nets[pin] = "VSYS"
-        elif name == "3V3_EN":
-            nets[pin] = "PWR_EN"
-        elif name.startswith("GP"):
-            g = int(name[2:])
-            if g in pinmap.GPIO:
-                nets[pin] = pinmap.GPIO[g]
-            elif g in pinmap.FREE:
-                nets[pin] = f"EXP_GP{g}"
-            else:
-                nets[pin] = NC
+    for n, nombre in pinmap.RP2350A_PINS.items():
+        if nombre.startswith("GPIO"):
+            nets[str(n)] = pinmap.GPIO.get(int(nombre[4:]), NC)
         else:
-            # RUN, ADC_VREF y VBUS no se usan: el modulo los resuelve solo.
-            nets[pin] = NC
+            nets[str(n)] = _MCU_FIJAS[nombre]
     return nets
 
 
@@ -398,8 +472,8 @@ TACTS = [
 
 INSTANCES = [
     # ---------------------------------------------------------------- MCU
-    ("RP2350-Plus", "U1", "RP2350-Plus-16MB", 60.0, 60.0, _mcu_nets(),
-     {"FP": "gamesetup_fp:RP2350-Plus_Socket"}),
+    ("RP2350A", "U1", "RP2350A", 60.0, 60.0, _mcu_nets(),
+     {"LCSC": "C42411118", "FP": "rp_minimal:rpi_rp2350a_vias"}),
 
     # ------------------------------------------------------------ display
     # Panel desnudo por FPC. CS a masa: siempre seleccionado, igual que hacia
@@ -464,8 +538,9 @@ INSTANCES += [
 
 # --------------------------------------------------- alimentacion y EXP
 INSTANCES += [
-    # El pin 3V3_EN del header tiene pull-up interno de 100k a VSYS hacia el
-    # EN del MP28164: cerrarlo contra GND apaga el rail de 3V3 del modulo.
+    # PWR_EN tiene pull-up de 100k a VSYS (R33) hacia el EN del TPS63001:
+    # cerrarlo contra GND apaga el riel de 3V3. Es el mismo esquema que tenia
+    # el pin 3V3_EN del modulo, ahora en la placa.
     ("SK12D07", "SW15", "PWR", 20.0, 160.0,
      {"1": "GND", "2": "PWR_EN", "3": NC, "4": "GND", "5": "GND"},
      {"LCSC": "C431547", "FP": "gamesetup_lcsc:SW-TH_SK12D07VG3"}),
@@ -690,6 +765,178 @@ INSTANCES += [
      {"FP": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"}),
 ]
 
+# =========================================================== NUCLEO RP2350A
+# Copiado de la placa minima oficial de Raspberry Pi (RPI-RP2350A-MINIMAL_R4,
+# MIT): mismas piezas, mismos valores, mismas huellas (lib/rp_minimal.pretty,
+# importadas por import_rp_minimal.py) y la MISMA geometria, que rp_core.py
+# lleva al dorso de esta placa. Ver la spec 2026-10-14-...-chipdown-design.md.
+#
+# ref de la placa oficial -> ref en esta placa. rp_core.py usa esta tabla
+# para saber que huella va donde; no hay una segunda copia.
+CORE_REF_MAP = {
+    "U1": "U1", "L1": "L3", "C6": "C32", "C7": "C33", "C9": "C34", "R3": "R23",
+    "C8": "C35", "C10": "C36", "C11": "C37",
+    "C12": "C38", "C13": "C39", "C14": "C40", "C15": "C41", "C16": "C42",
+    "C17": "C43", "C18": "C44",
+    "X1": "Y1", "C3": "C45", "C4": "C46", "R2": "R24",
+    "R7": "R25", "R8": "R26",
+    "U3": "U6", "C2": "C47", "R6": "R27", "R10": "R28",
+}
+# net de la placa oficial -> net de esta placa (para el cobre copiado).
+CORE_NET_MAP = {
+    "+3V3": "3V3", "+1V1": "1V1", "GND": "GND", "/VREG_LX": "VREG_LX",
+    "/VREG_AVDD": "VREG_AVDD", "/XIN": "XIN", "/XOUT": "XOUT",
+    "Net-(C4-Pad1)": "XOUT_R", "/QSPI_SD0": "QSPI_SD0",
+    "/QSPI_SD1": "QSPI_SD1", "/QSPI_SD2": "QSPI_SD2", "/QSPI_SD3": "QSPI_SD3",
+    "/QSPI_SCLK": "QSPI_SCLK", "/QSPI_SS": "QSPI_SS", "/FLASH_SS": "FLASH_SS",
+    "Net-(U1-USB_DP)": "USB_DP_IC", "Net-(U1-USB_DM)": "USB_DM_IC",
+}
+
+RPF = "rp_minimal:"
+C0402 = RPF + "generic_capc1005x50"
+C0402W = RPF + "generic_capc1005x50_wide"
+R0402 = RPF + "generic_resc1005x35"
+
+
+def _c(ref, val, net, fp=C0402, lcsc="C1525"):
+    return ("C", ref, val, 0.0, 0.0, {"1": net, "2": "GND"},
+            {"FP": fp, "LCSC": lcsc})
+
+
+INSTANCES += [
+    # Regulador interno de 1V1 (guia, seccion 2.1). L3 es el Abracon con
+    # punto de polaridad: la orientacion importa y la fija la copia.
+    ("L", "L3", "3.3uH", 0.0, 0.0, {"1": "1V1", "2": "VREG_LX"},
+     {"FP": RPF + "abracon_aota-b201610s3r3-101-t", "LCSC": "C42411119"}),
+    _c("C32", "4.7uF", "3V3", C0402W, "C23733"),     # VREG_VIN
+    _c("C33", "4.7uF", "1V1", C0402W, "C23733"),     # salida del regulador
+    _c("C34", "4.7uF", "VREG_AVDD", C0402, "C23733"),
+    ("R", "R23", "33R", 0.0, 0.0, {"1": "3V3", "2": "VREG_AVDD"},
+     {"FP": R0402, "LCSC": "C25105"}),
+    _c("C35", "100nF", "1V1"), _c("C36", "100nF", "1V1"),
+    _c("C37", "100nF", "1V1"),
+    _c("C38", "100nF", "3V3"), _c("C39", "100nF", "3V3"),
+    _c("C40", "100nF", "3V3"), _c("C41", "100nF", "3V3"),
+    _c("C42", "100nF", "3V3"), _c("C43", "100nF", "3V3"),
+    _c("C44", "100nF", "3V3"),
+    # Cristal (guia, seccion 4): ABM8-272-T3, 15pF y 1k en serie en XOUT.
+    ("XTAL4", "Y1", "12MHz", 0.0, 0.0,
+     {"1": "XIN", "2": "GND", "3": "XOUT_R", "4": "GND"},
+     {"FP": RPF + "generic_xtalcc320x250x80-4", "LCSC": "C20625731"}),
+    _c("C45", "15pF", "XIN", C0402, "C1548"),
+    _c("C46", "15pF", "XOUT_R", C0402, "C1548"),
+    ("R", "R24", "1k", 0.0, 0.0, {"1": "XOUT", "2": "XOUT_R"},
+     {"FP": R0402, "LCSC": "C11702"}),
+    # USB: 27R en serie cerca del chip (guia, seccion 5.1).
+    ("R", "R25", "27R", 0.0, 0.0, {"1": "USB_DP", "2": "USB_DP_IC"},
+     {"FP": R0402, "LCSC": "C25100"}),
+    ("R", "R26", "27R", 0.0, 0.0, {"1": "USB_DM", "2": "USB_DM_IC"},
+     {"FP": R0402, "LCSC": "C25100"}),
+    # Flash (guia, seccion 3). R28 es el 0R de la placa oficial entre QSPI_SS
+    # y el CS de la flash: se conserva para que el cobre copiado cierre igual.
+    ("W25Q128", "U6", "W25Q128JVSIQ", 0.0, 0.0, {
+        "1": "FLASH_SS", "2": "QSPI_SD1", "3": "QSPI_SD2", "4": "GND",
+        "5": "QSPI_SD0", "6": "QSPI_SCLK", "7": "QSPI_SD3", "8": "3V3"},
+     {"FP": RPF + "generic_soic127p790x195-8", "LCSC": "C97521"}),
+    _c("C47", "100nF", "3V3"),
+    ("R", "R27", "1k", 0.0, 0.0, {"1": "QSPI_SS", "2": "USB_BOOT"},
+     {"FP": R0402, "LCSC": "C11702"}),
+    ("R", "R28", "0R", 0.0, 0.0, {"1": "QSPI_SS", "2": "FLASH_SS"},
+     {"FP": R0402, "LCSC": "C17168"}),
+    # BOOTSEL (a QSPI_SS por R27) y RUN, como la placa minima (seccion 5.4).
+    # RUN va directo a masa: tiene pull-up interno, igual que en la Pico 2.
+    ("SW_SMD", "SW13", "BOOTSEL", 0.0, 0.0, {"1": "USB_BOOT", "2": "GND"},
+     {"FP": "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "LCSC": "C318884"}),
+    ("SW_SMD", "SW14", "RUN", 0.0, 0.0, {"1": "RUN", "2": "GND"},
+     {"FP": "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A", "LCSC": "C318884"}),
+    # SWD: tres pads para la sonda de depuracion (guia, seccion 5.3).
+    ("TestPoint", "TP1", "SWCLK", 0.0, 0.0, {"1": "SWCLK"},
+     {"FP": "TestPoint:TestPoint_Pad_D1.0mm"}),
+    ("TestPoint", "TP2", "SWDIO", 0.0, 0.0, {"1": "SWDIO"},
+     {"FP": "TestPoint:TestPoint_Pad_D1.0mm"}),
+    ("TestPoint", "TP3", "GND", 0.0, 0.0, {"1": "GND"},
+     {"FP": "TestPoint:TestPoint_Pad_D1.0mm"}),
+]
+
+# ===================================================== USB, CARGA Y 3V3
+#
+#   USB-C VBUS -+-[D1]-+-> VSYS -> TPS63001 -> 3V3
+#               |      |
+#               +-> ETA6096 -> VBAT -[D2]-+       (y VSYS alimenta class-D,
+#                                 |                boost de 5V y backlight)
+#                                J3 (LiPo)
+#
+# Es el arbol de alimentacion del modulo RP2350-Plus (esquema de Waveshare)
+# con un cambio: TPS63001 en lugar del MP28164 (ver la spec).
+INSTANCES += [
+    ("USB_C16", "J2", "USB-C", 0.0, 0.0, {
+        "A1": "GND", "A12": "GND", "B1": "GND", "B12": "GND", "S1": "GND",
+        "A4": "VBUS", "A9": "VBUS", "B4": "VBUS", "B9": "VBUS",
+        "A5": "USB_CC1", "B5": "USB_CC2",
+        "A6": "USB_DP", "B6": "USB_DP", "A7": "USB_DM", "B7": "USB_DM",
+        "A8": NC, "B8": NC},
+     {"FP": "Connector_USB:USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A",
+      "LCSC": "C2894897"}),
+    # 5.1k en CC1/CC2: el host ve un dispositivo y entrega 5V.
+    ("R", "R29", "5.1k", 0.0, 0.0, {"1": "USB_CC1", "2": "GND"}, {"FP": R_FP}),
+    ("R", "R30", "5.1k", 0.0, 0.0, {"1": "USB_CC2", "2": "GND"}, {"FP": R_FP}),
+    # OR de alimentacion: VSYS es la mayor entre VBUS y VBAT, menos un diodo.
+    ("D_Schottky", "D1", "MBR230LSFT1G", 0.0, 0.0, {"1": "VSYS", "2": "VBUS"},
+     {"FP": "Diode_SMD:D_SOD-123F", "LCSC": "C126673"}),
+    ("D_Schottky", "D2", "MBR230LSFT1G", 0.0, 0.0, {"1": "VSYS", "2": "VBAT"},
+     {"FP": "Diode_SMD:D_SOD-123F", "LCSC": "C126673"}),
+    # Cargador. ISET 150k = 1.2A segun el datasheet (el modulo usa 160k ~1A,
+    # punto que no esta en el datasheet). 0.6C para la LiPo de 2000mAh.
+    ("ETA6096", "U8", "ETA6096D3K", 0.0, 0.0, {
+        "1": "VBUS", "2": "CHG_PMID", "3": "GND", "4": NC, "5": "CHG_SW",
+        "6": "VBAT", "7": "GND", "8": "CHG_ISET", "9": NC, "10": "GND",
+        "11": "GND"},
+     {"FP": "gamesetup_lcsc:DFN-10_L3.0-W3.0-P0.50-BL-EP2.4-1",
+      "LCSC": "C7465538"}),
+    ("C", "C48", "1uF", 0.0, 0.0, {"1": "VBUS", "2": "GND"}, {"FP": C_FP}),
+    ("C", "C49", "22uF", 0.0, 0.0, {"1": "CHG_PMID", "2": "GND"},
+     {"FP": C0805_FP}),
+    ("L", "L4", "2.2uH", 0.0, 0.0, {"1": "CHG_SW", "2": "VBAT"},
+     {"LCSC": "C3002559", "FP": L_FP}),
+    ("C", "C50", "10uF", 0.0, 0.0, {"1": "VBAT", "2": "GND"}, {"FP": C_FP}),
+    ("R", "R31", "150k", 0.0, 0.0, {"1": "CHG_ISET", "2": "GND"},
+     {"FP": R_FP}),
+    ("Conn_Bat", "J3", "LiPo", 0.0, 0.0, {"1": "VBAT", "2": "GND", "MP": "GND"},
+     {"FP": "Connector_Molex:Molex_PicoBlade_53398-0271_1x02-1MP_P1.25mm_Vertical"}),
+    # 3V3: TPS63001, circuito de aplicacion de SLVS520C (2.2uH, 10uF de
+    # entrada, 2x10uF de salida, VINA filtrado con 100R + 100nF).
+    ("TPS63001", "U7", "TPS63001DRCR", 0.0, 0.0, {
+        "1": "3V3", "2": "BB_L2", "3": "GND", "4": "BB_L1", "5": "VSYS",
+        "6": "PWR_EN", "7": "BB_PS", "8": "BB_VINA", "9": "GND", "10": "3V3",
+        "11": "GND"},
+     {"FP": "Package_SON:Texas_DRC0010J_ThermalVias", "LCSC": "C28060"}),
+    ("L", "L5", "2.2uH", 0.0, 0.0, {"1": "BB_L1", "2": "BB_L2"},
+     {"LCSC": "C3002559", "FP": L_FP}),
+    ("C", "C51", "10uF", 0.0, 0.0, {"1": "VSYS", "2": "GND"}, {"FP": C_FP}),
+    ("C", "C52", "10uF", 0.0, 0.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
+    ("C", "C53", "10uF", 0.0, 0.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
+    ("R", "R32", "100R", 0.0, 0.0, {"1": "VSYS", "2": "BB_VINA"},
+     {"FP": R_FP}),
+    ("C", "C54", "100nF", 0.0, 0.0, {"1": "BB_VINA", "2": "GND"},
+     {"FP": C_FP}),
+    ("R", "R33", "100k", 0.0, 0.0, {"1": "VSYS", "2": "PWR_EN"},
+     {"FP": R_FP}),
+    # PS/SYNC con pulldown: arranca en power-save; el firmware lo sube por
+    # GP23 si quiere PWM fijo (menos ondulacion en el audio).
+    ("R", "R34", "10k", 0.0, 0.0, {"1": "BB_PS", "2": "GND"}, {"FP": R_FP}),
+    # Sensado: VBUS (100k/200k -> 3.33V con 5V) y VSYS/3 en el ADC3.
+    ("R", "R35", "100k", 0.0, 0.0, {"1": "VBUS", "2": "VBUS_SENSE"},
+     {"FP": R_FP}),
+    ("R", "R36", "200k", 0.0, 0.0, {"1": "VBUS_SENSE", "2": "GND"},
+     {"FP": R_FP}),
+    ("R", "R37", "200k", 0.0, 0.0, {"1": "VSYS", "2": "VSYS_ADC"},
+     {"FP": R_FP}),
+    ("R", "R38", "100k", 0.0, 0.0, {"1": "VSYS_ADC", "2": "GND"},
+     {"FP": R_FP}),
+    ("C", "C55", "100nF", 0.0, 0.0, {"1": "VSYS_ADC", "2": "GND"},
+     {"FP": C_FP}),
+]
+
 # ---------------------------------------------------------------- codigos LCSC
 # Partes concretas por (valor, footprint). Se aplican abajo a toda instancia
 # que no traiga un LCSC propio en sus props.
@@ -715,6 +962,8 @@ LCSC_PASIVOS = {
     ("470R", R_FP): "C23179",
     ("4.7k", R_FP): "C23162",
     ("47k",  R_FP): "C25819",
+    ("5.1k", R_FP): "C23186",
+    ("100R", R_FP): "C22775",
     # Ceramicos.
     ("100nF", C_FP):     "C14663",   # 50V X7R
     ("1uF",   C_FP):     "C15849",   # 50V X5R

@@ -7,9 +7,11 @@ checks/check_pinmap.py lo contrasta contra el board config real del firmware
 dos se separan, la placa y el firmware dejan de coincidir sin ningun error
 visible.
 
-El RP2350-Plus es pin-compatible con la Raspberry Pi Pico y expone GP0-GP22
-y GP26-GP28. GP23/24/25 son internos del modulo (MODE del MP28164, sensado
-de VBUS, LED) y GP29 no sale al header.
+Desde la rama hw/chipdown-rp2350 el RP2350A va soldado en la placa (QFN-60),
+no en el modulo RP2350-Plus: los 30 GPIO quedan disponibles. GP0-GP22 y GP26
+conservan exactamente la funcion que tenian con el modulo (el firmware no
+cambia); GP23/24/29 hacen lo mismo que hacian DENTRO del modulo (modo del
+regulador, sensado de VBUS, VSYS/3) y GP25 (el LED del modulo) queda libre.
 """
 
 # --- pines validos por periferico, restringido a los que el modulo expone ---
@@ -64,23 +66,37 @@ GPIO = {
     20: "SPK_SHDN",    # salida: 1 = parlante encendido
     21: "JACK_DET",    # entrada con pull-up: 0 = plug insertado
     22: "DAC_XSMT",    # pulldown 100k: arranca muteado
+    23: "BB_PS",       # TPS63001 PS/SYNC: 0 = power-save, 1 = PWM fijo
+    24: "VBUS_SENSE",  # 1 = USB conectado (100k/200k desde VBUS)
     26: "LCD_TE",      # tearing effect del panel (entrada, opcional)
+    29: "VSYS_ADC",    # ADC3, VSYS/3 (200k/100k): nivel de bateria
 }
 
-# Sin MIDI, sin microSD, sin expansores I2C: no queda nada que enrutar por
-# expansion salvo estos 2, con ADC. GP26 fue BTN_OK (centro del NAV5) hasta
-# el 2026-10-14, cuando el D-pad volvio a ser cuatro tacts 6x6; el mismo dia
-# paso a LCD_TE: el panel desnudo de 24 pines expone la senal de tearing y
-# cuesta una pista, el firmware la usa o la ignora.
-FREE = (27, 28)
+# Libres: GP27/GP28 (con ADC) y GP25 (era el LED del modulo; en la parte de
+# atras de una consola de mano nadie lo ve). GP26 fue BTN_OK (centro del
+# NAV5) hasta que el D-pad volvio a ser cuatro tacts, y despues LCD_TE.
+FREE = (25, 27, 28)
 
-# Orden fisico del header de 40 pines tipo Pico. El pin 38 es GND (no VSYS_EN).
-HEADER_ORDER = [
-    "GP0", "GP1", "GND", "GP2", "GP3", "GP4", "GP5", "GND", "GP6", "GP7",
-    "GP8", "GP9", "GND", "GP10", "GP11", "GP12", "GP13", "GND", "GP14", "GP15",
-    "GP16", "GP17", "GND", "GP18", "GP19", "GP20", "GP21", "GND", "GP22", "RUN",
-    "GP26", "GP27", "AGND", "GP28", "ADC_VREF", "3V3", "3V3_EN", "GND", "VSYS", "VBUS",
-]
+# Pines del RP2350A en QFN-60: numero -> nombre. VERIFICADO contra dos
+# fuentes independientes que coinciden en los 61 pads:
+#   - simbolo MCU_RaspberryPi:RP2350A de la libreria de KiCad 10;
+#   - netlist pad->net de la placa minima oficial RPI-RP2350A-MINIMAL_R4-S1.
+# El 61 es el pad expuesto (GND).
+RP2350A_PINS = {
+    1: "IOVDD", 2: "GPIO0", 3: "GPIO1", 4: "GPIO2", 5: "GPIO3", 6: "DVDD",
+    7: "GPIO4", 8: "GPIO5", 9: "GPIO6", 10: "GPIO7", 11: "IOVDD",
+    12: "GPIO8", 13: "GPIO9", 14: "GPIO10", 15: "GPIO11", 16: "GPIO12",
+    17: "GPIO13", 18: "GPIO14", 19: "GPIO15", 20: "IOVDD", 21: "XIN",
+    22: "XOUT", 23: "DVDD", 24: "SWCLK", 25: "SWDIO", 26: "RUN",
+    27: "GPIO16", 28: "GPIO17", 29: "GPIO18", 30: "IOVDD", 31: "GPIO19",
+    32: "GPIO20", 33: "GPIO21", 34: "GPIO22", 35: "GPIO23", 36: "GPIO24",
+    37: "GPIO25", 38: "IOVDD", 39: "DVDD", 40: "GPIO26", 41: "GPIO27",
+    42: "GPIO28", 43: "GPIO29", 44: "ADC_AVDD", 45: "IOVDD",
+    46: "VREG_AVDD", 47: "VREG_PGND", 48: "VREG_LX", 49: "VREG_VIN",
+    50: "VREG_FB", 51: "USB_DM", 52: "USB_DP", 53: "USB_OTP_VDD",
+    54: "QSPI_IOVDD", 55: "QSPI_SD3", 56: "QSPI_SCLK", 57: "QSPI_SD0",
+    58: "QSPI_SD2", 59: "QSPI_SD1", 60: "QSPI_SS", 61: "GND",
+}
 
 
 def gpio_of(func):
@@ -92,6 +108,9 @@ def gpio_of(func):
     raise KeyError(f"funcion no asignada: {func}")
 
 
-def header_pin(gpio):
-    """Numero de pin fisico en el header de 40 pines tipo Pico."""
-    return HEADER_ORDER.index(f"GP{gpio}") + 1
+def qfn_pin(gpio):
+    """Numero de pin del QFN-60 de un GPIO."""
+    for n, nombre in RP2350A_PINS.items():
+        if nombre == f"GPIO{gpio}":
+            return n
+    raise KeyError(f"GPIO{gpio} no existe en el RP2350A")

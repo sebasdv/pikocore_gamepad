@@ -74,10 +74,12 @@ PLANOS = {"GND": "GND", "3V3": "PWR"}
 VIA_D = 0.6
 VIA_DRILL = 0.3
 
-# Via chica para pads apretados. 0.50/0.30 deja un anillo de 0.100mm, que es
-# exactamente el min_via_annular_width del proyecto, y el taladro sigue siendo
-# el mismo 0.30 — no agrega una medida de broca nueva al fabricante.
+# Via chica para pads apretados: 0.50/0.25, anillo 0.125. Era 0.50/0.30
+# (anillo 0.100): con el margen de 0.127 de las senales del chip-down una pista
+# vecina quedaba a 0.23mm del taladro, bajo el hole_clearance de 0.25. El
+# taladro de 0.25 ya existe en la placa (vias del nucleo RP2350A).
 VIA_D_MIN = 0.5
+VIA_DRILL_MIN = 0.25
 
 # Margen a respetar contra el cobre vecino (el clearance general del proyecto).
 CLEARANCE = 0.2
@@ -125,6 +127,13 @@ def pads_sin_plano(board):
                 continue
             if pad.GetAttribute() == pcbnew.PAD_ATTRIB_PTH:
                 continue          # el taladro ya cruza todas las capas
+            # Pad expuesto con vias termicas en el footprint (U7 TPS63001,
+            # U1 RP2350A): son PTH con el mismo numero y ya bajan al plano.
+            # Una via mas ahi quedaba a 0.125mm de una termica (hole_to_hole).
+            if any(q.GetNumber() == pad.GetNumber()
+                   and q.GetAttribute() == pcbnew.PAD_ATTRIB_PTH
+                   for q in fp.Pads()):
+                continue
             out.append((fp.GetReference(), pad))
     return out
 
@@ -227,6 +236,16 @@ def hueco_en(board, x, y, net):
             if not q.GetNumber():
                 continue
             if q.GetNetname() == net:
+                # Cobre de la misma net no estorba, pero su TALADRO si: las
+                # vias termicas de U7 dejaron una via de PGND a 0.125mm de
+                # una de ellas (hole_to_hole, minimo 0.25). Taladro mas
+                # grande que pone este script: 0.3.
+                if q.GetAttribute() == pcbnew.PAD_ATTRIB_PTH:
+                    qx = pcbnew.ToMM(q.GetPosition().x)
+                    qy = pcbnew.ToMM(q.GetPosition().y)
+                    lim = pcbnew.ToMM(q.GetDrillSizeX()) / 2 + 0.15 + 0.25
+                    if math.hypot(qx - x, qy - y) < lim:
+                        return 0.0
                 continue
             bb = q.GetBoundingBox()
             dx = max(0.0, max(pcbnew.ToMM(bb.GetLeft()) - x,
@@ -234,6 +253,56 @@ def hueco_en(board, x, y, net):
             dy = max(0.0, max(pcbnew.ToMM(bb.GetTop()) - y,
                               y - pcbnew.ToMM(bb.GetBottom())))
             best = min(best, math.hypot(dx, dy))
+
+    # PISTAS y ZONAS de otra net, y keepouts. Desde el chip-down la placa ya
+    # tiene cobre antes del ruteo: el nucleo del RP2350A copiado de la placa
+    # oficial (pistas y zonas de 1V1, VREG_LX, GND) y las pistas manuales.
+    # Sin esto el script metia vias de 3V3 dentro de la zona de VREG_LX del
+    # regulador —que el relleno despues esquiva, deformando justo el cobre
+    # que la guia de Raspberry Pi pide no tocar— y en el anillo de keepout
+    # de los NPTH del USB-C.
+    for t in board.GetTracks():
+        if t.GetClass() != "PCB_TRACK" or t.GetNetname() == net:
+            continue
+        a, b = t.GetStart(), t.GetEnd()
+        d = _dist_segmento(x, y, pcbnew.ToMM(a.x), pcbnew.ToMM(a.y),
+                           pcbnew.ToMM(b.x), pcbnew.ToMM(b.y))
+        best = min(best, d - pcbnew.ToMM(t.GetWidth()) / 2.0)
+    for z in board.Zones():
+        ol = z.Outline()
+        if z.GetIsRuleArea():
+            # Un keepout cuenta como cobre ajeno: la via no puede ni pisarlo
+            # con su radio (medir solo el centro dejaba vias de GND del USB-C
+            # rozando el anillo de sus NPTH).
+            if z.GetDoNotAllowVias():
+                best = min(best, _dist_poligono(ol, x, y))
+            continue
+        if z.GetNetname() == net:
+            continue
+        if not (z.IsOnLayer(pcbnew.F_Cu) or z.IsOnLayer(pcbnew.B_Cu)):
+            continue          # los planos internos se apartan solos
+        best = min(best, _dist_poligono(ol, x, y))
+    return best
+
+
+def _dist_segmento(px, py, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    L2 = dx * dx + dy * dy
+    t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L2))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def _dist_poligono(outline, x, y):
+    """Distancia del punto al contorno de la zona; 0 si esta adentro."""
+    if outline.Contains(pcbnew.VECTOR2I(pcbnew.FromMM(x), pcbnew.FromMM(y))):
+        return 0.0
+    best = float("inf")
+    ol = outline.Outline(0)
+    n = ol.PointCount()
+    for i in range(n):
+        a, b = ol.CPoint(i), ol.CPoint((i + 1) % n)
+        best = min(best, _dist_segmento(x, y, pcbnew.ToMM(a.x), pcbnew.ToMM(a.y),
+                                        pcbnew.ToMM(b.x), pcbnew.ToMM(b.y)))
     return best
 
 
@@ -329,7 +398,7 @@ def poner_stub(board, pad, x, y, diam, ancho):
     # Con capa: en KiCad 9.0.1 SetWidth(int) dispara un assert modal y el
     # script queda colgado esperando un click (ver manual_tracks.py).
     v.SetWidth(pcbnew.PADSTACK.ALL_LAYERS, mm(diam))
-    v.SetDrill(mm(VIA_DRILL))
+    v.SetDrill(mm(VIA_DRILL if diam >= VIA_D else VIA_DRILL_MIN))
     v.SetNet(pad.GetNet())
     board.Add(v)
 
@@ -352,7 +421,7 @@ def poner_via(board, pad, diam):
     # Con capa: en KiCad 9.0.1 SetWidth(int) dispara un assert modal y el
     # script queda colgado esperando un click (ver manual_tracks.py).
     v.SetWidth(pcbnew.PADSTACK.ALL_LAYERS, mm(diam))
-    v.SetDrill(mm(VIA_DRILL))
+    v.SetDrill(mm(VIA_DRILL if diam >= VIA_D else VIA_DRILL_MIN))
     v.SetNet(pad.GetNet())
     board.Add(v)
     return v

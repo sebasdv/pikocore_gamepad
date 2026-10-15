@@ -110,31 +110,15 @@ class TestSimbolos(unittest.TestCase):
 
 class TestSimboloMcu(unittest.TestCase):
 
-    def test_tiene_cuarenta_pines(self):
-        self.assertEqual(len(netlist.SYMS["RP2350-Plus"]["pins"]), 40)
+    def test_tiene_los_61_pads_del_qfn(self):
+        self.assertEqual(len(netlist.SYMS["RP2350A"]["pins"]), 61)
 
-    def test_usa_el_orden_del_header_declarado_en_pinmap(self):
-        # No debe haber una segunda copia del orden de 40 pines: pinmap.py es
-        # la fuente de verdad y check_pinmap la contrasta contra el firmware.
-        # Dos copias derivan y el error es invisible.
-        self.assertEqual(pin_names("RP2350-Plus"), pinmap.HEADER_ORDER)
-
-    def test_el_pin_38_es_gnd(self):
-        # Trampa clasica del header tipo Pico: el pin 38 es GND, no VSYS_EN.
-        # En V1 hubo que parchear la tabla a mano por esto.
-        self.assertEqual(pin_names("RP2350-Plus")[37], "GND")
-
-    def test_el_pin_40_es_vbus_y_el_39_vsys(self):
-        nombres = pin_names("RP2350-Plus")
-        self.assertEqual(nombres[38], "VSYS")
-        self.assertEqual(nombres[39], "VBUS")
-
-    def test_no_declara_los_gpio_internos_del_modulo(self):
-        # GP23/24/25 son internos (MODE del MP28164, sensado de VBUS, LED) y
-        # GP29 no sale al header: no deben aparecer como pines del socket.
-        nombres = pin_names("RP2350-Plus")
-        for g in (23, 24, 25, 29):
-            self.assertNotIn(f"GP{g}", nombres)
+    def test_usa_los_nombres_de_pinmap(self):
+        # Una sola tabla de pines (pinmap.RP2350A_PINS, la verificada): el
+        # simbolo no tiene una segunda copia.
+        por_num = {p[0]: p[1] for p in netlist.SYMS["RP2350A"]["pins"]}
+        for n, nombre in pinmap.RP2350A_PINS.items():
+            self.assertEqual(por_num[str(n)], nombre)
 
 
 class TestSimboloLcd(unittest.TestCase):
@@ -401,47 +385,6 @@ class TestFootprints(unittest.TestCase):
                 msg=f"gatillos a distinta altura: {centros}")
 
 
-    def test_nada_alto_queda_bajo_el_modulo_rp2350(self):
-        # El socket 2x20 levanta el modulo ~8.5mm sobre la placa. En COBRE la
-        # franja central entre las dos filas de pines esta libre y tienta a
-        # meter cosas ahi, pero en ALTURA no entra casi nada: un JST PH
-        # vertical solo mide 8.0mm y ademas hay que poder ENCHUFARLE el cable,
-        # que suma varios mm mas por arriba.
-        # J5 estuvo en (18,30) —dentro de la huella de U1— hasta que se
-        # detecto el choque; el DRC lo reportaba como courtyards_overlap y se
-        # leia como ruido.
-        import placements
-        U1 = next((p for p in placements.PLACEMENTS if p[0] == "U1"), None)
-        self.assertIsNotNone(U1, "no se encontro U1 en PLACEMENTS")
-        _, fpid, ux, uy, rot, uflip = U1
-        # La caja sale del .kicad_mod, NO de dos numeros escritos a mano: si
-        # se cambia el socket o se gira el modulo, el guard se mueve con el.
-        # Cableada, la caja se queda vieja justo cuando mas hace falta, y este
-        # test es lo unico que separa a J5 de volver debajo del modulo.
-        caja = pads_bbox(fpid)
-        if caja is None:
-            self.skipTest("no esta el .kicad_mod de %s" % fpid)
-        HW, HH = caja
-        if rot % 180 == 90:
-            HW, HH = HH, HW      # 90 y 270 intercambian los ejes
-        HW += 1.0                # holgura de colocacion
-        HH += 1.0
-        ALTOS = {"J5"}   # conectores que no pueden vivir debajo del modulo
-        dentro = []
-        for ref, lib_id, x, y, rot, flip in placements.PLACEMENTS:
-            if ref not in ALTOS:
-                continue
-            if flip != uflip:
-                # Lado opuesto de la placa: el modulo no le pasa por encima.
-                # SW11 cae justo en el centro de la huella de U1 y es
-                # correcto, porque el tact esta en el panel (F.Cu) y el
-                # modulo en el dorso (B.Cu). Sin esta condicion el guard
-                # dispararia contra colocaciones que estan bien.
-                continue
-            if abs(x - ux) < HW and abs(y - uy) < HH:
-                dentro.append(f"{ref} en ({x}, {y}) cae bajo U1 en ({ux}, {uy})")
-        self.assertEqual(dentro, [], f"choque mecanico con el modulo: {dentro}")
-
 
 class TestPuentesDeTact(unittest.TestCase):
     """Los tacts de 6mm tienen cuatro patas numeradas 1,1,2,2 en el footprint
@@ -538,25 +481,54 @@ class TestInstanciaMcu(unittest.TestCase):
     def test_usa_exactamente_el_pinmap(self):
         u1 = nets_of("U1")
         for gpio, func in pinmap.GPIO.items():
-            pin = str(pinmap.header_pin(gpio))
+            pin = str(pinmap.qfn_pin(gpio))
             self.assertEqual(u1[pin], func,
                              f"GP{gpio} (pin {pin}) deberia ser {func}")
 
-    def test_todos_los_gnd_del_header_van_a_masa(self):
+    def test_los_gpio_libres_quedan_sin_conectar(self):
         u1 = nets_of("U1")
-        for i, nombre in enumerate(pinmap.HEADER_ORDER):
-            if nombre in ("GND", "AGND"):
-                self.assertEqual(u1[str(i + 1)], "GND", f"pin {i+1}")
+        for gpio in pinmap.FREE:
+            self.assertEqual(u1[str(pinmap.qfn_pin(gpio))], netlist.NC)
 
-    def test_el_3v3_en_va_al_slide_de_encendido(self):
+    def test_alimentacion_como_la_placa_minima_oficial(self):
+        # Pad -> net de RPI-RP2350A-MINIMAL_R4: IOVDD/ADC/USB_OTP/QSPI/VREG_VIN
+        # a 3V3, DVDD y VREG_FB a 1V1, VREG_PGND y el pad expuesto a GND.
         u1 = nets_of("U1")
-        pin = str(pinmap.HEADER_ORDER.index("3V3_EN") + 1)
-        self.assertEqual(u1[pin], "PWR_EN")
+        for pin in (1, 11, 20, 30, 38, 45, 44, 49, 53, 54):
+            self.assertEqual(u1[str(pin)], "3V3", f"pin {pin}")
+        for pin in (6, 23, 39, 50):
+            self.assertEqual(u1[str(pin)], "1V1", f"pin {pin}")
+        for pin in (47, 61):
+            self.assertEqual(u1[str(pin)], "GND", f"pin {pin}")
+        self.assertEqual(u1["48"], "VREG_LX")
+        self.assertEqual(u1["46"], "VREG_AVDD")
+
+    def test_el_regulador_interno_es_el_de_la_guia(self):
+        # L 3.3uH entre VREG_LX y 1V1, 33R + 4.7uF en VREG_AVDD.
+        self.assertEqual(nets_of("L3"), {"1": "1V1", "2": "VREG_LX"})
+        self.assertEqual(nets_of("R23"), {"1": "3V3", "2": "VREG_AVDD"})
+        self.assertEqual(nets_of("C34"), {"1": "VREG_AVDD", "2": "GND"})
+
+    def test_el_core_ref_map_cubre_cada_pieza_copiada(self):
+        import rp_core_ref
+        self.assertEqual(set(netlist.CORE_REF_MAP), set(rp_core_ref.PARTS))
+        refs = {i[1] for i in netlist.INSTANCES}
+        for ref in netlist.CORE_REF_MAP.values():
+            self.assertIn(ref, refs)
+
+    def test_el_pwr_en_va_al_slide_y_al_en_del_buck_boost(self):
         self.assertEqual(nets_of("SW15")["2"], "PWR_EN")
+        self.assertEqual(nets_of("U7")["6"], "PWR_EN")
+        self.assertEqual(nets_of("R33"), {"1": "VSYS", "2": "PWR_EN"})
+
+    def test_vsys_sale_del_or_de_vbus_y_vbat(self):
+        # Pin 1 del diodo = catodo (convencion de los footprints de KiCad).
+        self.assertEqual(nets_of("D1"), {"1": "VSYS", "2": "VBUS"})
+        self.assertEqual(nets_of("D2"), {"1": "VSYS", "2": "VBAT"})
 
     def test_el_slide_apaga_tirando_a_masa(self):
-        # El 3V3_EN tiene pull-up interno a VSYS: cerrarlo contra GND apaga
-        # el rail de 3V3 del modulo.
+        # PWR_EN tiene pull-up de 100k a VSYS: cerrarlo contra GND apaga el
+        # riel de 3V3.
         n = nets_of("SW15")
         self.assertEqual(n["1"], "GND")
 

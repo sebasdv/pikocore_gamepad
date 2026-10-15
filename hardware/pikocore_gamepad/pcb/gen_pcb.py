@@ -37,6 +37,11 @@ W, H = BOARD_W, BOARD_H
 CORNER_R = 3.0          # radio de las esquinas del contorno
 EDGE_KEEPOUT = 0.6      # franja sin pistas/vias contra el borde
 NPTH_KEEPOUT = 0.75     # anillo sin pistas/vias alrededor de cada NPTH
+# J2 (USB-C, chip-down): sus NPTH de posicion estan a 0.18mm de los pads de
+# senal por diseno del footprint HCTL. Con 0.75 el anillo tapa los pads y
+# ninguna pista puede salir de A1/A12 (GND). 0.4 es la regla de hole
+# clearance de la placa; el margen extra se pierde solo en este conector.
+NPTH_KEEPOUT_FP = {"J2": 0.40}
 #   0.75 y no los 0.40 que pide la regla: freerouting respeta las rule
 #   areas de forma aproximada —su pasada de optimizacion vuelve a
 #   empujar las pistas hacia adentro— asi que el anillo se dibuja mas
@@ -54,6 +59,9 @@ KICAD_SHARE = next(p for p in _cands if os.path.isdir(p))
 PROJ_LIBS = {
     "gamesetup_lcsc": os.path.join(HERE, "lib", "gamesetup_lcsc.pretty"),
     "gamesetup_fp": os.path.join(HERE, "lib", "gamesetup_fp.pretty"),
+    # Huellas copiadas de la placa minima oficial del RP2350A (MIT), ver
+    # import_rp_minimal.py.
+    "rp_minimal": os.path.join(HERE, "lib", "rp_minimal.pretty"),
 }
 
 # Separacion entre courtyards vecinos. 0.5mm alcanza porque el courtyard ya
@@ -150,15 +158,52 @@ def setup_netclasses(board):
     entra. El DSN lleva la clase y freerouting la respeta.
     """
     ns = board.GetDesignSettings().m_NetSettings
+    # Chip-down (rama hw/chipdown-rp2350): el RP2350A es un QFN de paso 0.4mm
+    # con pads de 0.23. Con 0.2 de pista y 0.2 de separacion una salida recta
+    # queda a 0.185 del pad vecino y freerouting no puede sacar ninguna senal.
+    # 0.15/0.15 entra (0.21 al pad vecino) y es lo que usa la placa minima
+    # oficial en el nucleo copiado. JLCPCB fabrica 0.09mm en 4 capas: margen.
+    #
+    # 0.127/0.127 (5 mil) y via 0.45/0.2 para senales: con 0.15/0.15 y la via
+    # por defecto de KiCad (0.6/0.3) freerouting dejaba entre 2 y 15 senales
+    # sin rutear en cada corrida, siempre distintas: la placa estaba al limite
+    # de canales alrededor del QFN. 5 mil da ~18% mas canales; la via chica
+    # entra entre pistas donde la de 0.6 tapaba dos. Todo dentro del proceso
+    # estandar de 4 capas de JLCPCB (0.09mm de pista, taladro 0.2 ya usado).
+    dflt = ns.GetDefaultNetclass()
+    dflt.SetTrackWidth(mm(0.127))
+    dflt.SetClearance(mm(0.127))
+    dflt.SetViaDiameter(mm(0.45))
+    dflt.SetViaDrill(mm(0.2))
+    # Taladro minimo 0.2: las vias del pad expuesto del RP2350A en la huella
+    # oficial son de 0.25 y las del TPS63001 (Texas_DRC0010J_ThermalVias) de
+    # 0.2. JLCPCB taladra 0.2 en 4 capas sin recargo de proceso especial.
+    board.GetDesignSettings().m_MinThroughDrill = mm(0.2)
+    # Diametro minimo de via 0.45: el de las vias de senal de arriba. KiCad
+    # trae 0.5 y marcaba cada una como via_diameter.
+    board.GetDesignSettings().m_ViasMinSize = mm(0.45)
     nc = pcbnew.NETCLASS("Power")
     nc.SetTrackWidth(mm(0.4))
+    # Mismo margen que Default: freerouting separa una via de la clase Power
+    # de una pista Default con el margen de Default, y con 0.15 aca el DRC
+    # marcaba esas vias (5V contra VREF25, 0.129). Ningun riel de esta placa
+    # pasa de 5V; 0.127 sobra.
+    nc.SetClearance(mm(0.127))
+    # Via propia de la clase: sin esto el import del SES le ponia a una via
+    # de CHG_SW el diametro de las de senal (0.45) con el taladro por defecto
+    # (0.3): anillo de 0.075, bajo el minimo de 0.1.
+    nc.SetViaDiameter(mm(0.6))
+    nc.SetViaDrill(mm(0.3))
     ns.SetNetclass("Power", nc)
     # GND va incluido aunque sea un PLANO y no un riel ruteado: en el DSN la
     # clase es lo que le dice a freerouting con que via bajar a la capa
     # interna. Sin esto GND queda en kicad_default y los 32 pads SMD de masa
     # no reciben via al plano de In1 — se ven como "unconnected" aunque el
     # plano este relleno justo debajo.
-    for pn in ("GND", "3V3", "VSYS", "5V", "VSYS_F"):
+    # VBUS/VBAT y los nodos de los inductores del cargador y del TPS63001
+    # (chip-down) llevan hasta 1.2A de carga.
+    for pn in ("GND", "3V3", "VSYS", "5V", "VSYS_F", "VBUS", "VBAT",
+               "CHG_SW", "CHG_PMID", "BB_L1", "BB_L2"):
         ns.SetNetclassPatternAssignment(pn, "Power")
     ns.RecomputeEffectiveNetclasses()
 
@@ -324,21 +369,6 @@ MODELOS_PROPIOS = {
         (1.0, 5.0, 7.0),
         (-180.0, 0.0, -90.0),
     ),
-    # El socket 2x20 es un header generico sin modelo; el que interesa ver es
-    # el MODULO que se enchufa encima (Waveshare RP2350-Plus, STEP en mm).
-    #
-    # AJUSTADOS A MANO en KiCad con el preview a la vista. No re-derivarlos por
-    # calculo: el STEP es un ENSAMBLAJE de 93 solidos, cada uno con su propia
-    # transformacion, asi que muestrear sus CARTESIAN_POINT en crudo da ejes
-    # equivocados — por ese camino salio una rotacion de 90 que dejaba el
-    # modulo perpendicular al socket.
-    # Si hay que retocarlos: doble clic en U1 -> pestana 3D Models, y copiar
-    # los numeros de vuelta aca.
-    "gamesetup_fp:RP2350-Plus_Socket": (
-        "RP2350-Plus_Module.step",
-        (-10.54, -25.40, 2.00),
-        (0.0, 0.0, 0.0),
-    ),
 }
 
 
@@ -376,6 +406,10 @@ def colocar(board, netmap, nets):
             fp.Flip(pt(x, y), pcbnew.FLIP_DIRECTION_LEFT_RIGHT)
         fp.SetOrientationDegrees(rot)
         colocados.add(ref)
+
+    # Nucleo del RP2350A: bloque rigido copiado de la placa minima oficial.
+    import rp_core
+    colocados.update(rp_core.colocar(board, find_fp))
 
     faltan = [(i[1], i[6]["FP"]) for i in INSTANCES if i[1] not in colocados]
     sin_lugar = empaquetar_pasivos(board, faltan)
@@ -456,7 +490,8 @@ def agregar_keepout_npth(board):
                 continue
             c = p.GetPosition()
             d = p.GetDrillSize()
-            r = max(pcbnew.ToMM(d.x), pcbnew.ToMM(d.y)) / 2 + NPTH_KEEPOUT
+            r = (max(pcbnew.ToMM(d.x), pcbnew.ToMM(d.y)) / 2
+                 + NPTH_KEEPOUT_FP.get(fp.GetReference(), NPTH_KEEPOUT))
             k = pcbnew.ZONE(board)
             k.SetIsRuleArea(True)
             k.SetDoNotAllowTracks(True)
@@ -621,6 +656,8 @@ def main():
     setup_netclasses(board)
     dibujar_contorno(board)
     n_grid, sin_net, sin_lugar = colocar(board, netmap, nets)
+    import rp_core
+    n_core = rp_core.cobre(board, nets)
     n_pth = reparar_capas_pth(board)
     identidad_desde_netlist(board)
     manuales = marcar_manuales(board)
@@ -639,6 +676,7 @@ def main():
     if manuales:
         print(f"DNP (soldadura manual, fuera del CPL): {', '.join(manuales)}")
     print(f"keepouts NPTH: {n_npth}")
+    print("nucleo RP2350A copiado: %d pistas, %d vias, %d zonas" % n_core)
     if n_pth:
         print(f"pads PTH con capas internas restauradas tras Flip: {n_pth}")
     if sin_lugar:

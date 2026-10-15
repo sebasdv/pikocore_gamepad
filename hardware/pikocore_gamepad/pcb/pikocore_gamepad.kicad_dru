@@ -36,3 +36,21 @@
 (rule "U2 SOT-563 pad a pad"
 	(constraint clearance (min 0.13mm))
 	(condition "A.memberOfFootprint('U2') && B.memberOfFootprint('U2')"))
+
+# ------------------------------------------------------------ J2 USB-C (HCTL)
+# Huella oficial de KiCad (USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A): los pads
+# A1/A12/B1/B12 quedan a 0.18mm del borde de los agujeros NPTH de posicion del
+# propio conector (patas plasticas). Es el land pattern del fabricante y no se
+# mueve; el minimo global de 0.25 no aplica entre partes del mismo conector.
+(rule "J2 pads contra sus propios NPTH"
+	(constraint hole_clearance (min 0.15mm))
+	(condition "A.memberOfFootprint('J2') && B.memberOfFootprint('J2')"))
+
+# ------------------------------------------------- nucleo RP2350A (chip-down)
+# C32 es el C6 de la placa minima oficial de Raspberry Pi (entrada del
+# regulador interno, VREG_VIN). En ese layout su pad de 3V3 queda a 0.127mm de
+# la pista de 1V1 que sale de L3; se copio tal cual a proposito (la guia pide
+# no tocar el layout del regulador). 0.12 de piso; JLCPCB fabrica 0.09.
+(rule "Nucleo RP2350A: C32 contra 1V1"
+	(constraint clearance (min 0.12mm))
+	(condition "A.memberOfFootprint('C32') && B.NetName == '1V1'"))

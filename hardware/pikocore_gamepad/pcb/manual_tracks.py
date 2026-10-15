@@ -210,8 +210,81 @@ for _sw, (_net, _a, _b) in PUENTES_TACT.items():
                                      via=False, puntos=[_a, _b])
 
 
+# ------------------------------------------------------------ USB-C (J2)
+# Chip-down. Coordenadas relativas a J2 (placements.py), con la geometria
+# del footprint oficial HCTL en el dorso a rot 90: la fila de pads de senal
+# en x = J2 + 3.745, el blindaje THT (S1) en x = J2 + 3.105, y = +-4.32.
+#
+# GND: los pads A1/B12 y A12/B1 no pueden bajar al plano por via: caen a
+# 0.18mm del agujero NPTH de posicion del conector, dentro de su keepout.
+# Se unen al blindaje, que es THT y ya esta en el plano. El tramo sale hacia
+# +X (lejos del NPTH) y baja por fuera de la fila de pads.
+#
+# VBUS: A4/B9 y A9/B4 son dos pares en los extremos de la fila, con los
+# contactos de datos en medio: en B.Cu no hay por donde unirlos. Cada par sale
+# a una via y el puente va por F.Cu, que en esa zona del frente esta vacia.
+# Freerouting, sin esto, no llegaba a ninguno de los dos (primera corrida).
+_J2X, _J2Y = _POS["J2"]
+
+
+def _j2(dx, dy):
+    return (round(_J2X + dx, 3), round(_J2Y + dy, 3))
+
+
+for _s in (1, -1):
+    PISTAS["J2_GND_%s" % ("A1" if _s > 0 else "A12")] = dict(
+        net="GND", capa="B.Cu", ancho=0.30, via=False,
+        puntos=[_j2(3.745, 3.20 * _s), _j2(4.40, 3.20 * _s),
+                _j2(4.40, 4.32 * _s), _j2(3.105, 4.32 * _s)])
+    PISTAS["J2_VBUS_%s" % ("A4" if _s > 0 else "A9")] = dict(
+        net="VBUS", capa="B.Cu", ancho=0.30, via=True,
+        puntos=[_j2(3.745, 2.40 * _s), _j2(5.00, 2.40 * _s)])
+PISTAS["J2_VBUS_PUENTE"] = dict(
+    net="VBUS", capa="F.Cu", ancho=0.40, via=False,
+    puntos=[_j2(5.00, 2.40), _j2(5.00, -2.40)])
+
+
+# ------------------------------------------------------------ TPS63001 (U7)
+# Nodos de conmutacion L1/L2 a L5. Los pads del DRC0010J van a 0.5mm de paso:
+# una pista de 0.4 (netclass Power) no sale de la fila con 0.15 de margen y
+# freerouting los dejaba sin rutear. 0.35 entre pads deja 0.185 al vecino.
+# Salen rectos en X hasta pasar la punta del pad y giran 45 grados hacia L5,
+# lo mas corto posible (TPS6300x datasheet, Layout Guidelines).
+_U7X, _U7Y = _POS["U7"]
+_L5X, _L5Y = _POS["L5"]
+for _nom, _dy, _ly in (("BB_L2", -0.5, -1.4), ("BB_L1", 0.5, 1.4)):
+    _x0, _y0 = round(_U7X + 1.4, 3), round(_U7Y + _dy, 3)
+    _yl = round(_L5Y + _ly, 3)
+    _x1 = round(_x0 + 0.9, 3)
+    PISTAS["U7_" + _nom] = dict(
+        net=_nom, capa="B.Cu", ancho=0.35, via=False,
+        puntos=[(_x0, _y0), (_x1, _y0),
+                (round(_x1 + abs(_yl - _y0), 3), _yl), (_L5X, _yl)])
+
+
+# ------------------------------------------------------------ RP2350A (U1)
+# Coordenadas relativas a U1 con el nucleo a rot 90 (placements.NUCLEO): la
+# fila de pines de arriba en y = U1 - 3.45, paso 0.4, pin 1 en x = U1 - 2.8.
+from placements import NUCLEO
+assert NUCLEO[2] == 90.0, "las pistas de U1 asumen el nucleo a 90 grados"
+_U1X, _U1Y = NUCLEO[0], NUCLEO[1]
+
+
+def _u1(dx, dy):
+    return (round(_U1X + dx, 3), round(_U1Y + dy, 3))
+
+
+# Pin 1 (IOVDD, 3V3): en la placa oficial llega al vertido de 3V3 de toda la
+# placa, que aca no existe. Se mete en el anillo de 3V3 bajo el chip, igual
+# que el pin 11 en el cobre copiado. El quiebre a 45 grados deja 0.2mm al
+# pad 2. Sin esto freerouting lo encerraba con la salida del pin 2.
+PISTAS["U1_3V3_PIN1"] = dict(
+    net="3V3", capa="B.Cu", ancho=0.20, via=False, a_zona=True,
+    puntos=[_u1(-2.8, -3.45), _u1(-2.8, -2.9), _u1(-2.5, -2.6)])
+
+
 # Misma via que usa plane_vias.py: no estrena una medida de broca nueva.
-VIA_D, VIA_DRILL = 0.5, 0.3
+VIA_D, VIA_DRILL = 0.5, 0.25   # anillo 0.125: ver VIA_D_MIN en plane_vias.py
 
 
 def mm(v):
@@ -226,6 +299,12 @@ def pads_de_la_net(board, net):
                 out.append((f"{fp.GetReference()}.{p.GetNumber()}",
                             pcbnew.ToMM(p.GetPosition().x),
                             pcbnew.ToMM(p.GetPosition().y)))
+    # Vias ya puestas por una entrada anterior: el puente de VBUS de J2 va
+    # de via a via.
+    for t in board.GetTracks():
+        if t.GetClass() == "PCB_VIA" and t.GetNetname() == net:
+            out.append(("via", pcbnew.ToMM(t.GetPosition().x),
+                        pcbnew.ToMM(t.GetPosition().y)))
     return out
 
 
@@ -281,7 +360,9 @@ def main():
     errores = []
     for clave, d in PISTAS.items():
         net, pts = d["net"], d["puntos"]
-        errores += verificar_extremos(board, net, pts, solo_inicio=d["via"])
+        # a_zona: termina dentro de una zona de la misma net, no en un pad.
+        errores += verificar_extremos(board, net, pts,
+                                      solo_inicio=d["via"] or d.get("a_zona", False))
         nc = board.FindNet(net)
         if nc is None:
             errores.append(f"{clave}: la net {net} no existe en la placa")

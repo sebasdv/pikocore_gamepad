@@ -78,14 +78,20 @@ def _snap(v):
 # comprobacion la pieza quedaria fuera del esquematico en silencio, que es
 # exactamente el tipo de error que una revision por hojas deberia evitar.
 HOJAS = [
-    ("01_alimentacion", "Alimentacion - boost 5V y encendido", [
-        "SW15",                                    # corta 3V3_EN del modulo
+    ("01_alimentacion", "Alimentacion - USB, carga, 3V3, boost 5V y encendido", [
+        "J2", "R29", "R30",                        # USB-C y CC
+        "D1", "D2",                                # OR de VBUS y VBAT a VSYS
+        "U8", "C48", "C49", "L4", "C50", "R31",    # cargador ETA6096
+        "J3",                                      # LiPo
+        "U7", "L5", "C51", "C52", "C53",           # TPS63001 -> 3V3
+        "R32", "C54", "R33", "R34",                # VINA, EN, PS
+        "R35", "R36", "R37", "R38", "C55",         # sensado VBUS y VSYS
+        "SW15",                                    # corta PWR_EN (EN de U7)
         "U2", "L2", "C4", "L1", "R4", "R5",        # TPS61023 y su lazo
         "C5", "C6", "C7",                          # bulk de salida
     ], ["NOTA_ALIM"]),
 
     ("02_mcu_controles", "MCU, pantalla y controles", [
-        "U1",                                      # modulo RP2350-Plus
         "J4", "LCD1",                              # conector FPC + panel
         "Q1", "R21", "R22", "C30", "C31",          # backlight y desacoplo
         "SW1", "SW2", "SW3", "SW4",                # D-pad UP DOWN LEFT RIGHT
@@ -93,6 +99,18 @@ HOJAS = [
         "SW11", "SW12",                            # START SELECT
         "SW9", "SW10",                             # gatillos L y R
     ], ["NOTA_ENTRADA"]),
+
+    ("06_mcu_nucleo", "MCU - RP2350A, regulador, cristal, flash", [
+        "U1",                                      # RP2350A
+        "L3", "C32", "C33", "C34", "R23",          # regulador interno 1V1
+        "C35", "C36", "C37",                       # desacoplo 1V1
+        "C38", "C39", "C40", "C41", "C42", "C43", "C44",   # desacoplo 3V3
+        "Y1", "C45", "C46", "R24",                 # cristal
+        "R25", "R26",                              # 27R de USB
+        "U6", "C47", "R27", "R28",                 # flash y BOOTSEL
+        "SW13", "SW14",                            # BOOTSEL y RUN
+        "TP1", "TP2", "TP3",                       # SWD
+    ], ["NOTA_NUCLEO"]),
 
     ("03_dac", "Audio digital - DAC PCM5102A", [
         "U5",
@@ -250,16 +268,22 @@ def verificar_colisiones(instancias):
 # que viene a verificar el diseno sin haberlo hecho.
 NOTAS = {
     "NOTA_RAIZ":
-        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 120x80mm, panel unico.\n"
-        "MCU: modulo Waveshare RP2350-Plus 16MB sobre socket 2x20.\n"
+        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 100x80mm, panel unico.\n"
+        "MCU: RP2350A soldado en la placa (chip-down), nucleo copiado de la placa minima\n"
+        "oficial de Raspberry Pi. Flash W25Q128 de 16MB, USB-C, cargador ETA6096.\n"
         "\n"
-        "La bateria LiPo va al PH1.25 DEL PROPIO MODULO, que trae cargador ETA6096 a bordo:\n"
-        "esta placa NO lleva circuito de carga. SW15 no corta la bateria, corta 3V3_EN del\n"
-        "modulo, que tiene pull-up interno de 100K a VSYS.\n"
+        "La bateria LiPo va a J3 (PicoBlade 1.25). SW15 no corta la bateria, corta PWR_EN,\n"
+        "el EN del TPS63001 que hace el 3V3, con pull-up de 100k a VSYS (R33).\n"
         "\n"
         "TODAS las conexiones son por GLOBAL LABEL, validas en las cinco hojas. La hoja raiz\n"
         "no tiene ninguna senal cableada: solo los simbolos de hoja y esta nota.",
     "NOTA_ALIM":
+        "VSYS = la mayor entre VBUS (USB) y VBAT (LiPo), cada una por un Schottky (D1, D2).\n"
+        "El cargador U8 toma VBUS antes del diodo. ISET 150k = 1.2A (datasheet). El 3V3 lo\n"
+        "hace el buck-boost U7 (TPS63001, salida fija) desde VSYS: sigue en 3.3V con la LiPo\n"
+        "descargada. PS/SYNC con pulldown (power-save); GP23 lo sube para PWM fijo.\n"
+        "VBUS/3*2 a GP24 (sensado de USB) y VSYS/3 a GP29 (ADC3, nivel de bateria).\n"
+        "\n"
         "El riel de 5V alimenta SOLO al op-amp U3 (hoja 4). Es a proposito: el riel analogico\n"
         "tiene que ser FIJO y no seguir a la bateria, porque la masa virtual del op-amp se\n"
         "deriva de el. El class-D U4 (hoja 5) NO cuelga de aca sino de VSYS directo, porque a\n"
@@ -274,6 +298,14 @@ NOTAS = {
         "\n"
         "BOOST_SW (U2.5 a L1.2) va ruteado A MANO en la placa, recto y de 2.29mm: es el nodo\n"
         "que conmuta a ~1MHz al lado de la cadena analogica, y no se deja librado al autoruteo.",
+    "NOTA_NUCLEO":
+        "Nucleo COPIADO de la placa minima oficial de Raspberry Pi (RPI-RP2350A-MINIMAL_R4,\n"
+        "licencia MIT) por import_rp_minimal.py: mismas piezas, valores, huellas y geometria.\n"
+        "La guia 'Hardware design with RP2350' pide usar su layout del regulador interno tal\n"
+        "cual (L3 Abracon AOTA con punto de polaridad, C32/C33/C34, R23 y las zonas de 1V1 y\n"
+        "VREG_LX) y su circuito de cristal (ABM8-272-T3, 15pF, 1k). R28 es el 0R de la placa\n"
+        "oficial entre QSPI_SS y el CS de la flash; R27 lleva BOOTSEL a QSPI_SS.\n"
+        "Pinout del RP2350A verificado contra el simbolo de KiCad 10 y la placa minima.",
     "NOTA_ENTRADA":
         "Los 12 controles van DIRECTO a GPIO del modulo, sin expansor I2C. La asignacion esta\n"
         "en pinmap.py y la verifica la puerta G-4 contra el firmware.\n"
@@ -395,11 +427,14 @@ def emit_instance(lib, ref, value, x, y, nets, props, hoja_uuid):
     # placa para que salga del CPL; el esquematico tiene que decir lo mismo o
     # el DRC con --schematic-parity reporta el atributo como divergente.
     dnp = "yes" if props.pop("MANUAL", False) else "no"
+    # Los pads de prueba no son una pieza: fuera del BOM, igual que su
+    # footprint (TestPoint de KiCad trae exclude_from_bom).
+    in_bom = "no" if lib == "TestPoint" else "yes"
     out = ['  (symbol',
            f'    (lib_id "{PROJECT}:{lib}")',
            f'    (at {F(x)} {F(y)} 0)',
            '    (unit 1)',
-           f'    (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp {dnp})',
+           f'    (exclude_from_sim no) (in_bom {in_bom}) (on_board yes) (dnp {dnp})',
            f'    (uuid "{u()}")',
            f'    (property "Reference" "{ref}" (at {F(x)} {F(y - h - 3.81)} 0) {EFFECTS})',
            f'    (property "Value" "{value}" (at {F(x)} {F(y + h + 3.81)} 0) {EFFECTS})',
@@ -508,7 +543,7 @@ def build_root():
              '    (title "pikocore_gamepad - indice")',
              f'    (date "{FECHA}")',
              '    (rev "A")',
-             '    (comment 1 "MCU: Waveshare RP2350-Plus 16MB en socket | LiPo al PH1.25 del modulo")',
+             '    (comment 1 "MCU: RP2350A chip-down (nucleo de la placa minima oficial) | LiPo en J3")',
              '    (comment 2 "Pinout: pinmap.py, verificado contra el firmware por la puerta G-4")',
              '  )',
              '  (lib_symbols',
