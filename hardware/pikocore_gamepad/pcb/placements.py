@@ -79,205 +79,155 @@ PLACEMENTS = [
     # que el 77.70 de la placa de 80.
     ("SW15", "gamesetup_lcsc:SW-TH_SK12D07VG3",             25.00,    57.70, 0, False),
 
-    # ================================================ DORSO: USB, carga, 3V3
-    # El nucleo del RP2350A NO esta en esta tabla: lo coloca rp_core.py como
-    # un bloque rigido copiado de la placa minima oficial (ver NUCLEO abajo).
-    # Aca van las piezas de alimentacion, que son de esta placa.
-    #
-    # USB-C en el canto IZQUIERDO, enfrente de R25/R26 (las 27R del nucleo,
-    # en y 18.9-19.9). La boca del footprint esta en y=+4.22 locales; en el
-    # dorso con rot 90 ese lado queda hacia -X (con 270 quedaba al reves: los
-    # pads de senal contra el canto y la boca mirando adentro, lo detecto
-    # check_placement). x=4.6 deja la boca a 0.4mm del canto y los pads THT
-    # del blindaje a 3mm.
+    # ================================================ DORSO: jacks (arriba)
+    # Los tres jacks salen por el borde SUPERIOR, entre los gatillos (cuerpos
+    # x 8..18 y 84..94): los cables apuntan lejos de las manos. Con flip y
+    # rot 180 el barril cruza el borde de arriba; y=3.0 deja los pads a 3mm
+    # del canto (espejo del 77.0 de la placa de 80). El cuerpo entra 14.5mm
+    # en la placa. Orden: MIDI IN, auriculares, MIDI OUT; el opto queda a la
+    # izquierda de J6 y el buffer a la derecha de J7, cada uno con su jack.
+    ("J6",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
+      36.00,    3.00, 180, True),   # MIDI IN   cuerpo x 31.4..40.6
+    ("J1",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
+      50.00,    3.00, 180, True),   # phones    cuerpo x 45.4..54.6
+    ("J7",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
+      64.00,    3.00, 180, True),   # MIDI OUT  cuerpo x 59.4..68.6
+    # Opto a rot 0 (patas gull-wing en Y, 10.2mm): x 19.2..26.8, y 1.4..11.6,
+    # entre las patas del gatillo L (hasta x 17.8) y las de UP (desde y 12.25).
+    # A rot 90 pisaba el pad (21.25, 13.25) de SW1: lo vio check_placement.
+    ("U10", "Package_DIP:SMDIP-6_W7.62mm",                 23.00,    6.50, 0, True),
+    ("R42", "Resistor_SMD:R_0603_1608Metric",              29.50,    4.00, 90, True),
+    ("D3",  "Diode_SMD:D_SOD-123",                         29.50,    9.00, 90, True),
+    ("R43", "Resistor_SMD:R_0603_1608Metric",              29.50,   14.00, 90, True),
+    ("C56", "Capacitor_SMD:C_0603_1608Metric",             30.50,   18.00, 90, True),
+    ("U9",  "Package_TO_SOT_SMD:SOT-353_SC-70-5",          72.50,    6.00, 0, True),
+    ("R40", "Resistor_SMD:R_0603_1608Metric",              72.50,    9.50, 0, True),
+    ("R41", "Resistor_SMD:R_0603_1608Metric",              72.50,   12.50, 0, True),
+    # Deteccion de auriculares, bajo el pad TN de J1 (y 14.6, hasta 15.5) y
+    # sobre el nucleo (empieza en y 21).
+    ("R15", "Resistor_SMD:R_0603_1608Metric",              44.00,   17.20, 0, True),
+    ("R18", "Resistor_SMD:R_0603_1608Metric",              50.00,   17.20, 0, True),
+    ("C29", "Capacitor_SMD:C_0603_1608Metric",             56.00,   17.20, 0, True),
+
+    # ================================================ DORSO: USB, carga (abajo-izq)
+    # USB-C en el borde INFERIOR con la boca hacia +Y. rot 180 con flip es la
+    # hipotesis; check_placement.py avisa si la boca mira adentro, y entonces
+    # va rot 0. y=55.4: boca a 0.4mm del canto (la boca esta a 4.22 del
+    # origen). Cuerpo x 6.65..17.35; el slide empieza en 19.85.
     ("J2",  "Connector_USB:USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A",
-       4.60,   19.40, 90, True),
-    ("R29", "Resistor_SMD:R_0603_1608Metric",               3.00,   12.80, 0, True),
-    ("R30", "Resistor_SMD:R_0603_1608Metric",               3.00,   26.00, 0, True),
-    # Cargador ETA6096 y su lazo, en la franja izquierda bajo el USB. El nodo
-    # SW (pin 5) va al inductor por el camino mas corto, como pide el
-    # datasheet en su PCB GUIDELINES.
-    ("D1",  "Diode_SMD:D_SOD-123F",                        11.00,   26.50, 0, True),
+      12.00,   55.40, 180, True),
+    ("R29", "Resistor_SMD:R_0603_1608Metric",               5.00,   51.00, 0, True),
+    ("R30", "Resistor_SMD:R_0603_1608Metric",              22.00,   51.00, 0, True),
+    # Cargador ETA6096 y su lazo, encima del USB; misma geometria interna que
+    # en la placa de 80 (SW al inductor por el camino corto), corrida
+    # (+2, +11).
+    ("D1",  "Diode_SMD:D_SOD-123F",                        13.00,   37.50, 0, True),
     ("U8",  "gamesetup_lcsc:DFN-10_L3.0-W3.0-P0.50-BL-EP2.4-1",
-       6.00,   31.00, 0, True),
-    ("C48", "Capacitor_SMD:C_0603_1608Metric",              2.00,   30.00, 90, True),
-    ("C49", "Capacitor_SMD:C_0805_2012Metric",             10.20,   30.50, 90, True),
-    ("R31", "Resistor_SMD:R_0603_1608Metric",               2.00,   33.40, 90, True),
-    ("L4",  "Inductor_SMD:L_1210_3225Metric",               6.00,   35.60, 0, True),
-    ("C50", "Capacitor_SMD:C_0603_1608Metric",             10.20,   35.60, 90, True),
-    ("D2",  "Diode_SMD:D_SOD-123F",                        14.50,   35.60, 0, True),
-    # Bateria: PicoBlade vertical, en el dorso, al costado de la LiPo.
+       8.00,   42.00, 0, True),
+    ("C48", "Capacitor_SMD:C_0603_1608Metric",              4.00,   41.00, 90, True),
+    ("C49", "Capacitor_SMD:C_0805_2012Metric",             12.20,   41.50, 90, True),
+    ("R31", "Resistor_SMD:R_0603_1608Metric",               4.00,   44.40, 90, True),
+    ("L4",  "Inductor_SMD:L_1210_3225Metric",               8.00,   46.60, 0, True),
+    ("C50", "Capacitor_SMD:C_0603_1608Metric",             12.20,   46.60, 90, True),
+    ("D2",  "Diode_SMD:D_SOD-123F",                        16.50,   46.60, 0, True),
+    # Bateria: PicoBlade vertical en el margen izquierdo, bajo las patas de
+    # LEFT (hasta y 27.25). x=4.0: el courtyard arranca en x 1.0 y los pads
+    # de anclaje a 1.45 del canto (a 3.5 el DRC los marcaba en el keepout).
     ("J3",  "Connector_Molex:Molex_PicoBlade_53398-0271_1x02-1MP_P1.25mm_Vertical",
-       6.00,   45.00, 0, True),
-    # 3V3: TPS63001 y su lazo, bajo el cristal y a la derecha del D-pad.
-    # y >= 30: el nucleo baja hasta y 26.7 en x 32 (C42, desacoplo de 3V3).
-    # U7 a 180: en el dorso el footprint queda espejado y a 0 los pines
-    # 1-5 (VOUT, L2, PGND, L1, VIN) miraban a la izquierda, lejos de L5; los
-    # dos nodos de conmutacion tenian que cruzar bajo el chip y freerouting
-    # no los cerraba. A 180 quedan enfrentados a L5, como en el layout de TI:
-    # VOUT arriba (C52/C53 encima), VIN abajo (C51 debajo), EN/PS a la
-    # izquierda (R33/R34).
-    ("U7",  "Package_SON:Texas_DRC0010J_ThermalVias",      36.00,   33.50, 180, True),
-    ("L5",  "Inductor_SMD:L_1210_3225Metric",              40.20,   33.50, 90, True),
-    ("C51", "Capacitor_SMD:C_0603_1608Metric",             37.70,   36.90, 0, True),
-    ("C52", "Capacitor_SMD:C_0603_1608Metric",             37.70,   30.40, 0, True),
-    ("C53", "Capacitor_SMD:C_0603_1608Metric",             41.00,   30.40, 0, True),
-    ("R32", "Resistor_SMD:R_0603_1608Metric",              32.80,   30.10, 90, True),
-    ("C54", "Capacitor_SMD:C_0603_1608Metric",             35.00,   29.80, 90, True),
-    ("R33", "Resistor_SMD:R_0603_1608Metric",              32.80,   33.30, 90, True),
-    ("R34", "Resistor_SMD:R_0603_1608Metric",              32.80,   36.40, 90, True),
-    # BOOTSEL y RUN abajo a la izquierda, en el dorso: son de desarrollo y
-    # se alcanzan con un clip o por un agujero del enclosure.
-    ("SW13", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",  5.50,   54.00, 90, True),
-    ("SW14", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",  5.50,   63.00, 90, True),
+       4.00,   33.00, 90, True),
+    # RUN en la esquina superior izquierda y BOOTSEL debajo, los dos a rot 90
+    # (x 0.7..6.3): a rot 0 RUN medía 7.6 de ancho y su pad caía a 0.9mm del
+    # agujero NPTH del gatillo L (8.5, 4.4). Paso 8.5 en Y: con 7 se pisaban
+    # los courtyards. y=5.5: con 4.5 el pad superior caia en el keepout del
+    # radio de la esquina (R3). Quedan sobre las patas de LEFT (desde y 20.75).
+    ("SW14", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",  3.50,    5.50, 90, True),
+    ("SW13", "Button_Switch_SMD:SW_Push_1P1T_XKB_TS-1187A",  3.50,   14.00, 90, True),
+    # Sensado de VBUS y VSYS, entre el cargador y el slide (patas de DOWN
+    # hasta y 35.75; slide desde y 53.8).
+    ("R35", "Resistor_SMD:R_0603_1608Metric",              22.00,   40.00, 90, True),
+    ("R36", "Resistor_SMD:R_0603_1608Metric",              25.00,   40.00, 90, True),
+    ("R37", "Resistor_SMD:R_0603_1608Metric",              28.00,   40.00, 90, True),
+    ("R38", "Resistor_SMD:R_0603_1608Metric",              22.00,   45.00, 90, True),
+    ("C55", "Capacitor_SMD:C_0603_1608Metric",             25.00,   45.00, 90, True),
+
+    # ================================================ DORSO: 3V3 (banda inferior, izq)
+    # TPS63001 a la izquierda de la banda inferior, entre el slide (hasta
+    # x 30.15) y el DAC. Misma geometria interna que en la placa de 80 (U7 a
+    # 180 con L1/L2 enfrentados a L5, dx 4.2: las pistas manuales U7_BB_L1/L2
+    # dependen de ESA geometria relativa), corrida (+0, +20.5).
+    ("U7",  "Package_SON:Texas_DRC0010J_ThermalVias",      36.00,   54.00, 180, True),
+    ("L5",  "Inductor_SMD:L_1210_3225Metric",              40.20,   54.00, 90, True),
+    ("C51", "Capacitor_SMD:C_0603_1608Metric",             37.70,   57.40, 0, True),
+    ("C52", "Capacitor_SMD:C_0603_1608Metric",             37.70,   50.90, 0, True),
+    ("C53", "Capacitor_SMD:C_0603_1608Metric",             41.00,   50.90, 0, True),
+    ("R32", "Resistor_SMD:R_0603_1608Metric",              32.80,   50.60, 90, True),
+    ("C54", "Capacitor_SMD:C_0603_1608Metric",             35.00,   50.30, 90, True),
+    ("R33", "Resistor_SMD:R_0603_1608Metric",              32.80,   53.80, 90, True),
+    ("R34", "Resistor_SMD:R_0603_1608Metric",              32.80,   56.90, 90, True),
+    # Parlante: header en la columna del borde derecho, bajo A (pads hasta
+    # x 94.75, y 27.25). rot 90: x 94.25..99.75, y 29.5..36.5.
+    ("J5",  "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
+      97.00,   33.00, 90, True),
 
     # ================================================ DORSO: audio
-    # Agrupado a la derecha del display, lejos del MCU y de los controles. El
-    # lazo de conmutacion del boost queda arriba de todo, sin cruzar por
-    # debajo del DAC ni del op-amp (spec 5.2.1).
-    # SOT-563, NO SOT-23-6: el DRL de TI es SOT-5X3 (2.10x1.35 a paso 0.50,
-    # contra 3.60x2.50 a paso 0.95 del SOT-23-6). Estuvo mal aca hasta que el
-    # test de divergencia netlist<->placements lo encontro; el netlist siempre
-    # dijo SOT-563.
-    # Todo el lazo del boost (U2 y sus ocho pasivos, mas abajo) esta 5mm mas
-    # a la izquierda que en la placa de 120: el gatillo R paso de x=95 a
-    # x=75 y sus patas de anclaje (NPTH D1.30 en x=74.0 y 81.0, y=4.38)
-    # caian a <1mm de C7. manual_tracks.py toma la posicion de U2 de aca,
-    # asi que mover el chip no desalinea sus pistas manuales.
-    ("U2",  "Package_TO_SOT_SMD:SOT-563",                60.00,   6.00, 0, True),
-    ("U5",  "gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL", 65.00, 20.00, 0, True),
-    # U3 en (58,35) y no en (66,38): con el rombo en X=70, los pines de X
-    # (SW5) caen en (66.75, 42.5) y quedaban a 0.8mm de los pads 4/5 del
-    # SOIC. Aca queda entre la ultima columna de pads del modulo (x=50.6) y
-    # el DAC, lejos de todo pasante.
-    ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              58.00, 35.00, 0, True),
-    ("U4",  "gamesetup_lcsc:MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL",   81.00, 38.00, 0, True),
-
-    # ================================================ BORDES: conectores
-    # Jack de audifonos, AL DORSO como el resto del audio (op-amp, DAC,
-    # class-D): es una pieza de la cadena analogica, no un control del panel.
-    #
-    # Footprint OFICIAL de KiCad 9 (Connector_Audio), no uno propio — ver la
-    # nota en netlist.py sobre por que se descarto el que se habia dibujado.
-    # Sus pads se identifican por funcion (S/T/R/TN/RN), no por numero.
-    #
-    # Con flip=True KiCad espeja en Y, asi que el barril —que sin flip apunta
-    # a -Y— sale hacia +Y. Con rot=0 y Y=77.00 el barril cruza el borde
-    # INFERIOR y el cuerpo queda dentro de la placa; los pads quedan a 3.00mm
-    # del borde. Verificado en el render, no deducido:
-    #   "$KICLI" pcb render --side bottom -o /tmp/j.png pikocore_gamepad.kicad_pcb
-    ("J1",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
-      61.70,   77.00, 0, True),   # phones -> barril por el borde inferior
-    # Bleeders de acoplo y filtro de deteccion. Se anclan porque la grilla
-    # automatica los mandaba a (85.5, 11..17), o sea a ~60mm del jack: son
-    # tres piezas que cuelgan de JACK_L / JACK_R / JACK_DET, y ahi arriba
-    # convertian esas tres nets en stubs largos que hay que rutear igual.
-    # A 20kHz la distancia da lo mismo electricamente; lo que se ahorra es
-    # ~180mm de pista y el trabajo del ruteador.
-    #
-    # R19/R20 van en la franja vacia entre el jack y la fila de SW6: J1
-    # termina en x=65.10, asi que x=68.00 deja 1.67mm de aire.
-    # Bajados a y=72.5/75.5: con el rombo en X=73 los pines de B (SW8) caen
-    # en (69.75/76.25, 63.45/67.95) y pisaban las R en y=62/65.
-    ("R19", "Resistor_SMD:R_0603_1608Metric",              68.00,   72.50, 0, True),
-    ("R20", "Resistor_SMD:R_0603_1608Metric",              68.00,   75.50, 0, True),
-    # C29 al lado de R18, en el hueco a la izquierda de su fila.
-    ("C29", "Capacitor_SMD:C_0603_1608Metric",             67.53,   53.77, 0, True),
-    # Parlante: header en el dorso, al lado de U4 (el class-D que lo maneja),
-    # NO debajo del modulo RP2350-Plus.
-    #
-    # ANTES estaba en (18, 30), o sea dentro de la huella de U1, apoyandose en
-    # que el modulo deja libre la franja central entre sus dos filas de pines.
-    # En COBRE eso es cierto (los pads de U1 estan en X=9.11 y X=26.89, y la
-    # separacion minima a los pads de J5 era de 5.44mm), pero en ALTURA no
-    # cierra: el JST PH vertical mide 8.0mm y el socket 2x20 levanta el modulo
-    # ~8.5mm, o sea 0.5mm de luz — y eso sin contar el conector HEMBRA del
-    # cable, que se enchufa por arriba y suma varios mm mas. El cable del
-    # parlante no se podria conectar con el modulo puesto.
-    # El DRC lo venia reportando como courtyards_overlap J5<->U1 y se estaba
-    # leyendo como ruido; era el sintoma correcto de un choque mecanico real.
-    #
-    # La posicion nueva queda a 6.5mm de U4, fuera de la huella del LCD (que
-    # esta en el frente, x 31..59), asi que el cable sale sin pelear con nada.
-    # El parlante fisico se atornilla al enclosure y no a la PCB.
-    # x=91 (era 103.5 en la placa de 120): los pads quedan en 91 y 93, a 7mm
-    # del borde derecho, y a 10mm de U4.
-    ("J5",  "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
-      91.00,   13.00, 0, True),
-    # ============================================ DORSO: lazo del boost
-    # Estos ocho iban a la grilla automatica de gen_pcb.py, que ordena por
-    # tamano y busca hueco: no sabe que pertenecen al mismo circuito. El
-    # resultado medido era el inductor a 26.8mm de su chip, C5/C7 a ~40mm y
-    # R4/R5 a ~45mm, con BOOST_SW —el nodo que conmuta a ~1MHz— midiendo
-    # 30.7mm de pista. En un boost eso es una antena, y esta placa tiene audio
-    # analogico al lado.
-    #
-    # Se anclan como un cluster siguiendo la topologia del circuito, no la
-    # geometria: U2 tiene VIN en sus pines 1-3 (lado -X) y SW/VOUT/FB en los
-    # 4-6 (lado +X), asi que la entrada va a la izquierda y la salida a la
-    # derecha, y las pistas no se cruzan.
-    #
-    #   C4 -- L2 --> [U2] --> L1 (BOOST_SW: 3.7mm)
-    #                  |
-    #             R5 - R4 (divisor FB)   C5 - C7 (bulk de salida)
-    #
-    # Toda la fila de abajo va en y=2.50 y el eje del chip en y=6.00: la
-    # franja util es y < 8.0 porque en y=9.60 estan los pads THT del LCD, que
-    # perforan la placa aunque el modulo este en el frente.
-    ("L2",  "Inductor_SMD:L_1210_3225Metric",              54.80,    6.00, 0, True),
-    ("C4",  "Capacitor_SMD:C_0603_1608Metric",             49.20,    6.00, 0, True),
-    # rot 180 para que el pin de BOOST_SW quede del lado de U2. El inductor
-    # va entre VIN y SW, y con el pinout real de TI esos dos pines estan en
-    # columnas OPUESTAS del chip (3=VIN a la izq, 5=SW a la der). Con L1 sin
-    # rotar, su pad de SW quedaba en el extremo lejano y el nodo conmutado
-    # —el que hay que mantener corto— era el que daba la vuelta.
-    # Asi: U2.5 (SW) -> L1 son 2.3mm. VSYS_F sale por el otro extremo y da un
-    # rodeo mas largo, pero es un riel de entrada: la longitud no le duele.
-    ("L1",  "Inductor_SMD:L_1210_3225Metric",              64.40,    6.00, 180, True),
-    # C5 es 0805 y no 0603: es el bulk de salida del boost, y a 5V un X5R
-    # de 0603/6.3V deja ~5uF de los 22. Ver LCSC_PASIVOS en netlist.py.
-    ("C5",  "Capacitor_SMD:C_0805_2012Metric",             64.50,    2.50, 0, True),
-    ("C7",  "Capacitor_SMD:C_0603_1608Metric",             68.20,    2.50, 0, True),
-    # Divisor de realimentacion, corrido a la IZQUIERDA: con el pinout real
-    # FB es el pin 1, arriba de la columna izquierda. Antes estaban centrados
-    # bajo el chip, que era lo correcto para el pinout equivocado de V1.
-    # TI (SLVAES4 seccion 5) pide la red de FB cerca del pin y la traza corta,
-    # y sobre todo NO paralela al nodo SW — que aca queda del otro lado.
-    ("R4",  "Resistor_SMD:R_0603_1608Metric",              59.00,    2.50, 0, True),
-    ("R5",  "Resistor_SMD:R_0603_1608Metric",              55.20,    2.50, 0, True),
+    # DAC y op-amp en la banda inferior, a la derecha del TPS63001 y detras
+    # de J4 (SMD del frente: no estorba). Los 470uF y sus bleeders en la
+    # banda derecha, entre el rombo (pads hasta y 35.75) y Select/Start (pads
+    # desde y 42.75): 7mm de luz para un cuerpo de 6.6, y lo que asoma cae
+    # sobre el anillo de un pad, que es plano. check_placement y el DRC
+    # miran pads y courtyards del MISMO lado, asi que esto no choca.
+    ("U5",  "gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL", 49.00, 53.50, 0, True),
+    ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              62.00, 53.00, 0, True),
+    ("C23", "Capacitor_SMD:CP_Elec_6.3x5.4",               74.50,   39.40, 0, True),
+    ("C24", "Capacitor_SMD:CP_Elec_6.3x5.4",               85.00,   39.40, 0, True),
+    ("R19", "Resistor_SMD:R_0603_1608Metric",              91.50,   37.50, 0, True),
+    ("R20", "Resistor_SMD:R_0603_1608Metric",              91.50,   41.50, 0, True),
+    # Class-D bajo Select (patas hasta y 49.25), a la izquierda del boost.
+    ("U4",  "gamesetup_lcsc:MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL",   74.00, 54.00, 0, True),
+    # ================================================ DORSO: boost 5V
+    # El lazo del TPS61023 se mueve ENTERO (+29, +50) desde la placa de 80:
+    # manual_tracks.py tiene pistas entre U2, L1, C4 y C7 que dependen de la
+    # geometria relativa del cluster. Queda en x 77.4..99, y 51.7..57.6.
+    ("U2",  "Package_TO_SOT_SMD:SOT-563",                  89.00,   56.00, 0, True),
+    ("L2",  "Inductor_SMD:L_1210_3225Metric",              83.80,   56.00, 0, True),
+    ("C4",  "Capacitor_SMD:C_0603_1608Metric",             78.20,   56.00, 0, True),
+    ("L1",  "Inductor_SMD:L_1210_3225Metric",              93.40,   56.00, 180, True),
+    ("C5",  "Capacitor_SMD:C_0805_2012Metric",             93.50,   52.50, 0, True),
+    ("C7",  "Capacitor_SMD:C_0603_1608Metric",             97.20,   52.50, 0, True),
+    ("R4",  "Resistor_SMD:R_0603_1608Metric",              88.00,   52.50, 0, True),
+    ("R5",  "Resistor_SMD:R_0603_1608Metric",              84.20,   52.50, 0, True),
 ]
 
-# Nucleo del RP2350A copiado de la placa minima oficial (rp_core.py): U1 en
-# (x, y) del dorso y el bloque rotado `rot` grados despues de voltearlo. Con
-# 90 el lado de USB y del regulador de la placa oficial queda hacia el canto
-# izquierdo (donde va J2) y el cristal hacia el centro. Ocupa x 7-43, y 4-32:
-# el lugar que dejo libre el modulo RP2350-Plus.
-NUCLEO = (28.0, 20.5, 90.0)
+# Regiones donde gen_pcb.py empaqueta los pasivos que no estan anclados
+# (los del DAC, el op-amp, la suma mono y el class-D: ~40 piezas de 0603).
+# Dorso 100x60: esquivan las patas pasantes del frente (con 1mm de radio de
+# pad), la franja de jacks (y<19 en x 25..75), el nucleo (x 32..68,
+# y 21..49) y los bloques anclados de arriba.
+FREE_REGIONS = [
+    # El empaquetador recorre las regiones EN ORDEN y pone primero las piezas
+    # grandes: la banda del audio va primera para que los desacoplos del DAC
+    # y los pasivos del op-amp caigan al lado de sus chips, no a 60mm.
+    # Contra el borde las regiones arrancan en 1.5: con 0.5 los pads quedaban
+    # a 0.8mm del canto (regla del proyecto: 1.0).
+    (31.0, 49.0, 69.5, 58.5),    # banda del audio, bajo el nucleo
+    (32.0, 46.3, 69.5, 48.9),    # franja bajo el nucleo: sus zonas terminan en y 40.9
+    (69.5, 35.8, 94.5, 43.0),    # banda derecha, alrededor de los 470uF
+    (31.0, 16.8, 69.5, 20.9),    # franja entre los jacks y el nucleo
+    (40.9,  1.5, 45.1, 14.5),    # entre J6 y J1
+    (54.9,  1.5, 59.1, 14.5),    # entre J1 y J7
+    (94.5,  1.5, 98.5, 20.0),    # columna derecha, a la derecha del gatillo R
+    (95.0, 20.5, 98.5, 29.0),    # columna derecha, a la derecha de A
+    (94.5, 37.0, 98.5, 48.5),    # columna derecha, bajo J5
+    (20.0, 36.0, 31.0, 39.0),    # bajo DOWN, sobre el sensado de VBUS
+    (26.5, 41.0, 31.0, 53.0),    # entre el sensado y el nucleo, sobre el slide
+    (6.0,  36.0, 10.5, 39.5),    # bajo DOWN, sobre el cargador
+    (1.5,  48.0,  5.5, 58.5),    # margen izquierdo, al lado del USB
+    (1.5,  21.0,  4.5, 29.0),    # margen izquierdo, entre BOOTSEL y la bateria
+    (74.5,  1.5, 77.5, 13.0),    # entre el buffer MIDI y las patas de X
+]
 
-# Regiones del DORSO donde gen_pcb.py empaqueta los ~58 pasivos, en este
-# orden. Son las zonas que el layout del frente deja libres: el hueco bajo el
-# display (entre sus agujeros de montaje, que es donde no hay cobre), la
-# franja central por debajo de los expansores, y el borde inferior.
-#
-# Se declaran aca y no en gen_pcb.py porque son consecuencia del layout, y el
-# layout es lo que el usuario ordena en Rhino: si mueve los controles, estas
-# regiones son lo primero que hay que revisar.
-#
-# STALE a proposito tras la Task 5 del plan de fork (remocion de los
-# expansores PCF8574): las menciones a "los expansores" de abajo describen un
-# layout que ya no tiene ningun expansor en esa zona. No se recalculo porque
-# este bloque entero lo reescribe parse_dxf.py en el proximo ciclo de Rhino —
-# tocar las coordenadas a mano aca se perderia igual. Ver docs/superpowers/
-# plans/2026-08-11-pikocore-gamepad-pcb-fork.md Task 5.
-#
-# Y maximo recortado a 101 (antes 128) al bajar BOARD_H de 130 a 105 (ver
-# docs/superpowers/plans/2026-08-11-pikocore-gamepad-nav5-speaker-reloc.md
-# Task 4): sin este recorte, gen_pcb.py podia empaquetar pasivos fuera del
-# contorno de la placa. La region "abajo a la derecha" (que arrancaba en
-# Y=115, ya fuera de la placa nueva) se elimino entera en vez de recortarse.
-#
-# Recalculadas para la placa de 100x80 (2026-10-14). El empaquetador esquiva
-# lo ya colocado, asi que las regiones pueden pisar pasantes: solo dicen por
-# donde buscar hueco. Las X de los pines del rombo (66.75/73.25, 54.25/60.75,
-# 79.25/85.75) y de Select (66.75/73.25) atraviesan al dorso.
-FREE_REGIONS = []   # la tarea 5 del plan escribe las regiones de 100x60
+# Nucleo del RP2350A (rp_core.py): U1 en (x, y) del dorso, bloque a rot 90
+# como en la placa de 80 (ruteo probado). A rot 90 el bloque ocupa
+# x-21..x+15, y-16.5..y+11.5: con (53, 37.5) queda en x 32..68, y 21..49,
+# detras del panel, la unica zona sin patas pasantes del frente.
+NUCLEO = (53.0, 37.5, 90.0)

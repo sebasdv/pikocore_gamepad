@@ -225,9 +225,18 @@ for _sw, (_net, _a, _b) in PUENTES_TACT.items():
 # a una via y el puente va por F.Cu, que en esa zona del frente esta vacia.
 # Freerouting, sin esto, no llegaba a ninguno de los dos (primera corrida).
 _J2X, _J2Y = _POS["J2"]
+_J2ROT = next(rot for ref, _, _, _, rot, _ in PLACEMENTS if ref == "J2")
 
 
 def _j2(dx, dy):
+    """Offsets escritos en el marco de J2 a rot 90 (dorso, boca hacia -X).
+    A rot 180 (boca hacia +Y, canto inferior) el mismo footprint queda
+    girado un cuarto de vuelta: (dx, dy) -> (dy, -dx). Verificado contra los
+    pads: A1 (3.745, 3.2) -> (3.2, -3.745); S1 (3.105, 4.32) -> (4.32, -3.105)."""
+    if _J2ROT == 180:
+        dx, dy = dy, -dx
+    elif _J2ROT != 90:
+        raise SystemExit(f"J2 a rot {_J2ROT}: las pistas estan para 90 o 180")
     return (round(_J2X + dx, 3), round(_J2Y + dy, 3))
 
 

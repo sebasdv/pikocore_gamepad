@@ -365,6 +365,41 @@ class TestFootprints(unittest.TestCase):
             self.assertTrue(0 <= x <= 100 and 0 <= y <= 60,
                             f"{ref} en ({x}, {y}) fuera de la placa")
 
+    def test_el_nucleo_queda_detras_del_panel(self):
+        # El bloque del RP2350A (rp_core.py) ocupa NUCLEO + (-21..+15, -16.5..
+        # +11.5) a rot 90. Detras del panel no hay patas pasantes del frente.
+        import placements
+        x, y, rot = placements.NUCLEO
+        self.assertEqual(rot, 90.0)
+        self.assertGreaterEqual(x - 21, 30.0)
+        self.assertLessEqual(x + 15, 70.0)
+        self.assertGreaterEqual(y - 16.5, 19.0)
+        self.assertLessEqual(y + 11.5, 50.0)
+
+    def test_las_regiones_libres_no_pisan_el_nucleo(self):
+        # Caja de las piezas del nucleo. El bloque declara +11.5 hacia abajo,
+        # pero sus piezas mas bajas (C37/C40) terminan en y+8.0 y el cobre
+        # copiado no baja de ahi: la franja y+8.8..y+11.4 queda para el
+        # empaquetador (medido en el plano del dorso, 2026-10-15).
+        import placements
+        x, y, _ = placements.NUCLEO
+        core = (x - 21, y - 16.5, x + 15, y + 8.0)
+        self.assertTrue(placements.FREE_REGIONS, "sin regiones para el empaquetador")
+        for r in placements.FREE_REGIONS:
+            solapa = not (r[2] <= core[0] or r[0] >= core[2]
+                          or r[3] <= core[1] or r[1] >= core[3])
+            self.assertFalse(solapa, f"region {r} pisa el nucleo {core}")
+
+    def test_los_jacks_salen_por_el_borde_superior(self):
+        import placements
+        pos = {ref: (x, y, rot, flip) for ref, _, x, y, rot, flip in placements.PLACEMENTS}
+        for ref in ("J1", "J6", "J7"):
+            x, y, rot, flip = pos[ref]
+            self.assertTrue(flip, f"{ref} tiene que ir en el dorso")
+            self.assertEqual(rot, 180, f"{ref}: barril hacia -Y")
+            self.assertEqual(y, 3.0, f"{ref}: pads a 3mm del borde")
+            self.assertTrue(25 <= x <= 75, f"{ref} fuera de la franja de jacks")
+
     def test_los_gatillos_L_y_R_quedan_simetricos(self):
         # El origen del tact angulado es el PAD 1, que no esta en el centro de
         # la pieza: su cuerpo esta 2.25mm corrido en X local. Como L y R usan
