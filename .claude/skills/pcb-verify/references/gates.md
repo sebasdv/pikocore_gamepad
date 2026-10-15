@@ -87,7 +87,8 @@ Los huecos de numeración son **aviso**, no error.
 
 `checks/check_pinmap.py`
 
-Compara la PCB contra `firmware_pin_stub/config.h` en las dos direcciones. La
+Compara la PCB contra `src/boards/pikocore_gamepad/config.h` (el board config
+que compila `PIKO_GAMEPAD=ON`) en las dos direcciones. La
 segunda dirección (defines del firmware que la PCB no conoce) existe porque el
 camino natural es partir del `config.h` de V1, que trae pines de hardware que
 V2 no tiene.

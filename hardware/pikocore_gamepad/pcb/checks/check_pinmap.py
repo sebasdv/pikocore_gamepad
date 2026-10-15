@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""G-4: el pinout de la PCB coincide con el config.h del firmware V2.
+"""G-4: el pinout de la PCB coincide con el board config del firmware.
+
+El header real es src/boards/pikocore_gamepad/config.h (lo compila el target
+PIKO_GAMEPAD=ON de CMakeLists.txt); solo se parsean sus "#define PIN_* <n>".
 
 En V1 esta verificacion se hacia leyendo las dos tablas a ojo. Automatizarla
 importa porque el modo de fallo es silencioso: la placa se fabrica, el
@@ -21,7 +24,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.dirname(HERE)
 sys.path.insert(0, PCB)
 
-CONFIG_H = os.path.join(PCB, "firmware_pin_stub", "config.h")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(PCB)))
+CONFIG_H = os.path.join(REPO, "src", "boards", "pikocore_gamepad", "config.h")
 
 
 def parse_defines(src):

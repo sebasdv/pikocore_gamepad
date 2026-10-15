@@ -18,7 +18,18 @@ option(PIKO_HDMI_XIP "Diagnostic: run from flash (XIP) instead of copy_to_ram" O
 option(PIKO_HDMI_EARLY "Diagnostic: start HDMI right after the clock setup" OFF)
 option(PIKO_GAMEPI13_HDMI "Mirror the GamePi13 LCD to the HDMI port (takes core 1)" OFF)
 option(PIKO_GAMEPI13_SD "Enable the Browse SD mode (mode 8) on GamePi13" OFF)
-if(PIKO_GAMEPI13)
+# Carrier PCB propia (hardware/pikocore_gamepad/) sobre el modulo RP2350-Plus:
+# misma capa de entrada/UI que el port GamePi13, pero con los pines de
+# src/boards/pikocore_gamepad/config.h, audio por I2S (PCM5102A) en vez de
+# PWM, LCD sin CS, y sin microSD ni HDMI.
+option(PIKO_GAMEPAD "Build for the pikocore_gamepad carrier PCB (RP2350-Plus + PCM5102A)" OFF)
+if(PIKO_GAMEPAD)
+	if(PIKO_GAMEPI13_HDMI OR PIKO_GAMEPI13_SD)
+		message(FATAL_ERROR "PIKO_GAMEPAD: the carrier PCB has no HDMI port nor microSD socket")
+	endif()
+	set(PIKO_GAMEPI13 ON)
+	set(PICO_BOARD waveshare_rp2350_plus_16mb CACHE STRING "Board type")
+elseif(PIKO_GAMEPI13)
 	list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/boards)
 	set(PICO_BOARD waveshare_rp2350_pizero CACHE STRING "Board type")
 endif()
@@ -85,7 +96,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 include(target_compile_definitions.cmake)
 
 if(PIKO_GAMEPI13)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13=1)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE
+		PIKO_GAMEPI13=1
+		PIKO_GAMEPAD=$<BOOL:${PIKO_GAMEPAD}>)
 	if(PIKO_GAMEPI13_SD)
 		target_compile_definitions(${PROJECT_NAME} PRIVATE PIKO_GAMEPI13_SD=1)
 	else()
@@ -131,18 +144,24 @@ if(PIKO_GAMEPI13)
 		pico_generate_pio_header(${PROJECT_NAME} ${DVI_DIR}/libdvi/tmds_encode_1bpp.pio)
 	endif()
 
-	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src
-		${CMAKE_CURRENT_BINARY_DIR}/no-OS-FatFS)
-	target_sources(${PROJECT_NAME} PRIVATE
-		${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/sd_hw_config.c
-	)
-	target_include_directories(${PROJECT_NAME} PRIVATE
-		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/include
-		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/include
-		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/sd_driver
-		${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/ff15/source
-	)
-	target_link_libraries(${PROJECT_NAME} no-OS-FatFS-SD-SDIO-SPI-RPi-Pico pico_sync)
+	if(PIKO_GAMEPAD)
+		pico_generate_pio_header(${PROJECT_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/gamepad/i2s.pio)
+		target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/gamepad)
+		target_link_libraries(${PROJECT_NAME} pico_sync)
+	else()
+		add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src
+			${CMAKE_CURRENT_BINARY_DIR}/no-OS-FatFS)
+		target_sources(${PROJECT_NAME} PRIVATE
+			${CMAKE_CURRENT_LIST_DIR}/src/gamepi13/sd_hw_config.c
+		)
+		target_include_directories(${PROJECT_NAME} PRIVATE
+			${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/include
+			${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/include
+			${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/sd_driver
+			${CMAKE_CURRENT_LIST_DIR}/RP2350-PiZero/C/03-MicroSD/src/ff15/source
+		)
+		target_link_libraries(${PROJECT_NAME} no-OS-FatFS-SD-SDIO-SPI-RPi-Pico pico_sync)
+	endif()
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE

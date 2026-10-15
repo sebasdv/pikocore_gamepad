@@ -17,7 +17,10 @@ mutex_t gamepi_spi1_mutex;
 
 void gamepi_spi1_mutex_init(void) { mutex_init(&gamepi_spi1_mutex); }
 
-void DEV_Digital_Write(UWORD Pin, UBYTE Value) { gpio_put(Pin, Value); }
+void DEV_Digital_Write(UWORD Pin, UBYTE Value) {
+  if (Pin == (UWORD)-1) return;  // pikocore_gamepad: LCD CS tied to GND, no pin
+  gpio_put(Pin, Value);
+}
 UBYTE DEV_Digital_Read(UWORD Pin) { return gpio_get(Pin); }
 
 void DEV_SPI_WriteByte(UBYTE Value) {
@@ -35,9 +38,11 @@ void gamepi_lcd_dev_init(void) {
   gpio_set_dir(GAMEPI_LCD_RST_PIN, GPIO_OUT);
   gpio_init(GAMEPI_LCD_DC_PIN);
   gpio_set_dir(GAMEPI_LCD_DC_PIN, GPIO_OUT);
+#if GAMEPI_LCD_CS_PIN >= 0
   gpio_init(GAMEPI_LCD_CS_PIN);
   gpio_set_dir(GAMEPI_LCD_CS_PIN, GPIO_OUT);
   gpio_put(GAMEPI_LCD_CS_PIN, 1);
+#endif
   gpio_put(GAMEPI_LCD_DC_PIN, 0);
 
   // Confirmado en hardware 2026-07-15: 31.25 MHz y 15.625 MHz seguian con
@@ -51,7 +56,8 @@ void gamepi_lcd_dev_init(void) {
   gpio_set_function(GAMEPI_LCD_MOSI_PIN, GPIO_FUNC_SPI);
   mutex_exit(&gamepi_spi1_mutex);
 
-  // Backlight PWM (slice de GP7 = 3; no colisiona con el audio en GP18 = slice 1)
+  // Backlight PWM (slice de GP7 = 3; no colisiona con el audio en GP18 =
+  // slice 1, ni con el tick de audio del gamepad en el slice 0)
   gpio_set_function(GAMEPI_LCD_BL_PIN, GPIO_FUNC_PWM);
   uint slice = pwm_gpio_to_slice_num(GAMEPI_LCD_BL_PIN);
   pwm_config cfg = pwm_get_default_config();
