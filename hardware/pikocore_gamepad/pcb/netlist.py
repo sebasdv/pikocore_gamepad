@@ -127,6 +127,36 @@ SYMS = {
         ds="https://www.lcsc.com/product-detail/C126673.html",
         pins=[("1", "K", 5.08, 0.0, 180), ("2", "A", -5.08, 0.0, 0)],
     ),
+    "D_1N4148": dict(
+        ref="D", w=2.54, h=7.62,
+        desc="Diodo de senal 1N4148W (SOD-123). Pin 1 = CATODO, como todos los "
+             "footprints de diodo de KiCad; pin 2 = anodo. Antiparalelo al LED "
+             "del opto de MIDI IN: protege contra un cable con polaridad al reves.",
+        ds="",
+        pins=[("1", "K", 5.08, 0.0, 180), ("2", "A", -5.08, 0.0, 0)],
+    ),
+    "H11L1": dict(
+        ref="U", w=10.16, h=10.16,
+        desc="Optoacoplador con salida Schmitt (onsemi H11L1M, SMDIP-6). Vcc "
+             "minimo 3V: funciona a 3V3. PINOUT SIN VERIFICAR contra el "
+             "datasheet (tomado de memoria): 1 anodo, 2 catodo, 3 NC, "
+             "4 salida (colector abierto), 5 GND, 6 Vcc.",
+        ds="",
+        pins=[("1", "A", -10.16, 2.54, 0), ("2", "K", -10.16, 0.0, 0),
+              ("3", "NC", -10.16, -2.54, 0), ("4", "VO", 10.16, 0.0, 180),
+              ("5", "GND", 10.16, -2.54, 180), ("6", "VCC", 10.16, 2.54, 180)],
+    ),
+    "LVC1G17": dict(
+        ref="U", w=7.62, h=7.62,
+        desc="Buffer Schmitt de una compuerta SN74LVC1G17 (SC-70-5 / DCK). "
+             "Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT SIN VERIFICAR "
+             "contra el datasheet (tomado de memoria): 1 NC, 2 A, 3 GND, "
+             "4 Y, 5 VCC.",
+        ds="",
+        pins=[("1", "NC", -7.62, 2.54, 0), ("2", "A", -7.62, 0.0, 0),
+              ("3", "GND", -7.62, -2.54, 0), ("4", "Y", 7.62, 0.0, 180),
+              ("5", "VCC", 7.62, 2.54, 180)],
+    ),
     "SW_SMD": dict(
         ref="SW", w=7.62, h=5.08,
         desc="Pulsador SMD 5.1x5.1 XKB TS-1187A (BOOTSEL / RUN). Pads 1,1,2,2 "
@@ -356,7 +386,7 @@ SYMS = {
 # ya se confirmaron contra sus datasheets. En los dos casos la
 # verificacion encontro errores reales, asi que el mecanismo se gano el
 # lugar: no quitar esta tabla, usarla para lo que entre nuevo.
-PINOUT_SIN_VERIFICAR = ()
+PINOUT_SIN_VERIFICAR = ("H11L1", "LVC1G17")
 
 # ---------------------------------------------------------------- footprints
 # El tact de V2 es de 6x6 (spec 4.2) pero esa parte todavia no esta importada
@@ -763,6 +793,45 @@ INSTANCES += [
     ("Conn_01x02", "J5", "SPEAKER 8R", 330.0, 265.0,
      {"1": "SPK_P", "2": "SPK_N"},
      {"FP": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"}),
+]
+
+# ==================================================================== MIDI
+#
+#   MIDI OUT (J7, TRS tipo A): Tip = DIN 5, Ring = DIN 4, Sleeve = DIN 2.
+#       3V3 -[33R R40]- Ring        MIDI_TX -> U9 (74LVC1G17) -[10R R41]- Tip
+#   Norma MIDI 1.0 electrica, variante 3.3V (CA-033). U9 pone los 5mA del
+#   lazo; el GPIO solo ve la entrada CMOS del buffer.
+#
+#   MIDI IN (J6): Tip -[220R R42]- anodo del LED de U10 (H11L1); Ring - catodo.
+#   D3 antiparalelo al LED. La salida Schmitt de U10 es colector abierto:
+#   R43 4k7 a 3V3 -> MIDI_RX. La MALLA de J6 queda al aire: el receptor no
+#   aterriza el blindaje (lazo de masa con el emisor).
+INSTANCES += [
+    ("JACK_AUDIO", "J7", "MIDI OUT", 280.0, 300.0, {
+        "S": "GND", "T": "MIDI_OUT_T", "R": "MIDI_OUT_R", "TN": NC, "RN": NC},
+     {"FP": JACK_FP}),
+    ("R", "R40", "33R", 288.0, 290.0,
+     {"1": "3V3", "2": "MIDI_OUT_R"}, {"FP": R_FP}),
+    ("R", "R41", "10R", 288.0, 300.0,
+     {"1": "MIDI_TX_BUF", "2": "MIDI_OUT_T"}, {"FP": R_FP}),
+    ("LVC1G17", "U9", "74LVC1G17", 300.0, 300.0,
+     {"1": NC, "2": "MIDI_TX", "3": "GND", "4": "MIDI_TX_BUF", "5": "3V3"},
+     {"FP": "Package_TO_SOT_SMD:SOT-353_SC-70-5"}),
+    ("JACK_AUDIO", "J6", "MIDI IN", 280.0, 330.0, {
+        "S": NC, "T": "MIDI_IN_T", "R": "MIDI_IN_K", "TN": NC, "RN": NC},
+     {"FP": JACK_FP}),
+    ("R", "R42", "220R", 288.0, 325.0,
+     {"1": "MIDI_IN_T", "2": "MIDI_IN_A"}, {"FP": R_FP}),
+    ("D_1N4148", "D3", "1N4148W", 288.0, 335.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K"}, {"FP": D_FP}),
+    ("H11L1", "U10", "H11L1M", 300.0, 330.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K", "3": NC, "4": "MIDI_RX",
+      "5": "GND", "6": "3V3"},
+     {"FP": "Package_DIP:SMDIP-6_W7.62mm"}),
+    ("R", "R43", "4.7k", 312.0, 325.0,
+     {"1": "3V3", "2": "MIDI_RX"}, {"FP": R_FP}),
+    ("C", "C56", "100nF", 312.0, 335.0,
+     {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
 ]
 
 # =========================================================== NUCLEO RP2350A

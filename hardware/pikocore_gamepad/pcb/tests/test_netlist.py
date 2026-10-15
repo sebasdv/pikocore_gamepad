@@ -1071,3 +1071,69 @@ def Counter_de_nets():
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMidi(unittest.TestCase):
+    """MIDI IN/OUT en TRS tipo A (spec 2026-10-15)."""
+
+    def test_los_jacks_midi_reusan_el_simbolo_y_la_huella_del_de_auriculares(self):
+        for ref in ("J6", "J7"):
+            inst = [i for i in netlist.INSTANCES if i[1] == ref][0]
+            self.assertEqual(inst[0], "JACK_AUDIO")
+            self.assertEqual(inst[6]["FP"], netlist.JACK_FP)
+
+    def test_midi_out_tiene_la_malla_a_masa_y_midi_in_no(self):
+        # La norma pide que el RECEPTOR no aterrice la malla (lazo de masa
+        # con el emisor). El emisor si.
+        self.assertEqual(nets_of("J7")["S"], "GND")
+        self.assertEqual(nets_of("J6")["S"], netlist.NC)
+
+    def test_midi_out_es_tipo_a_de_3v3(self):
+        # Tipo A: Tip = DIN 5 (sumidero, desde el driver), Ring = DIN 4
+        # (fuente, desde 3V3). Norma 3.3V (CA-033): 10R al driver, 33R a Vdd.
+        self.assertEqual(nets_of("J7")["T"], "MIDI_OUT_T")
+        self.assertEqual(nets_of("J7")["R"], "MIDI_OUT_R")
+        r41 = [i for i in netlist.INSTANCES if i[1] == "R41"][0]
+        r40 = [i for i in netlist.INSTANCES if i[1] == "R40"][0]
+        self.assertEqual(r41[2], "10R")
+        self.assertEqual(set(r41[5].values()), {"MIDI_OUT_T", "MIDI_TX_BUF"})
+        self.assertEqual(r40[2], "33R")
+        self.assertEqual(set(r40[5].values()), {"MIDI_OUT_R", "3V3"})
+
+    def test_el_gpio_de_midi_tx_solo_ve_al_buffer(self):
+        # La corriente del lazo (5mA) la pone U9, nunca el GPIO.
+        usan = [i[1] for i in netlist.INSTANCES if "MIDI_TX" in i[5].values()]
+        self.assertEqual(sorted(usan), ["U1", "U9"])
+
+    def test_midi_in_tiene_opto_con_diodo_antiparalelo(self):
+        # Tip -> 220R -> anodo del LED (MIDI_IN_A); Ring -> catodo (MIDI_IN_K).
+        # D3 va en antiparalelo: anodo en MIDI_IN_K, catodo en MIDI_IN_A.
+        self.assertEqual(nets_of("J6")["T"], "MIDI_IN_T")
+        self.assertEqual(nets_of("J6")["R"], "MIDI_IN_K")
+        self.assertEqual(set(nets_of("R42").values()), {"MIDI_IN_T", "MIDI_IN_A"})
+        d3 = nets_of("D3")
+        self.assertEqual(d3["1"], "MIDI_IN_A")   # pin 1 = catodo (huella KiCad)
+        self.assertEqual(d3["2"], "MIDI_IN_K")   # pin 2 = anodo
+        u10 = nets_of("U10")
+        self.assertEqual(u10["1"], "MIDI_IN_A")  # anodo del LED
+        self.assertEqual(u10["2"], "MIDI_IN_K")  # catodo del LED
+        self.assertEqual(u10["4"], "MIDI_RX")    # salida Schmitt (colector abierto)
+        self.assertEqual(u10["5"], "GND")
+        self.assertEqual(u10["6"], "3V3")
+        self.assertEqual(set(nets_of("R43").values()), {"MIDI_RX", "3V3"})
+
+    def test_el_buffer_de_salida_sigue_el_sc70_de_ti(self):
+        # SN74LVC1G17 DCK: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC.
+        u9 = nets_of("U9")
+        self.assertEqual(u9["2"], "MIDI_TX")
+        self.assertEqual(u9["3"], "GND")
+        self.assertEqual(u9["4"], "MIDI_TX_BUF")
+        self.assertEqual(u9["5"], "3V3")
+
+    def test_los_pinouts_nuevos_estan_marcados_sin_verificar(self):
+        for s in ("H11L1", "LVC1G17"):
+            self.assertIn(s, netlist.PINOUT_SIN_VERIFICAR)
+
+    def test_el_diodo_de_senal_tiene_el_catodo_en_el_pin_1(self):
+        # Como D_Schottky y como la huella D_SOD-123 de KiCad (pad 1 = K).
+        self.assertEqual([p[1] for p in netlist.SYMS["D_1N4148"]["pins"]], ["K", "A"])
