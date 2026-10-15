@@ -176,8 +176,15 @@ PLACEMENTS = [
     # desde y 42.75): 7mm de luz para un cuerpo de 6.6, y lo que asoma cae
     # sobre el anillo de un pad, que es plano. check_placement y el DRC
     # miran pads y courtyards del MISMO lado, asi que esto no choca.
-    ("U5",  "gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL", 49.00, 53.50, 0, True),
-    ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              62.00, 53.00, 0, True),
+    # El DAC va a la derecha y el op-amp en el medio: los carriles del LCD
+    # bajan del chip por x 44..52 hacia J4 y no pueden tener un TSSOP debajo.
+    ("U3",  "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",              56.00, 52.50, 0, True),
+    ("U5",  "gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL", 65.00, 53.50, 0, True),
+    # Pads de prueba SWD en la columna derecha: en la banda del audio le
+    # quitaban lugar a los desacoplos del DAC.
+    ("TP1", "TestPoint:TestPoint_Pad_D1.0mm",                   97.00,    3.00, 0, True),
+    ("TP2", "TestPoint:TestPoint_Pad_D1.0mm",                   97.00,    6.00, 0, True),
+    ("TP3", "TestPoint:TestPoint_Pad_D1.0mm",                   97.00,    9.00, 0, True),
     ("C23", "Capacitor_SMD:CP_Elec_6.3x5.4",               74.50,   39.40, 0, True),
     ("C24", "Capacitor_SMD:CP_Elec_6.3x5.4",               85.00,   39.40, 0, True),
     ("R19", "Resistor_SMD:R_0603_1608Metric",              91.50,   37.50, 0, True),
@@ -210,9 +217,12 @@ FREE_REGIONS = [
     # Contra el borde las regiones arrancan en 1.5: con 0.5 los pads quedaban
     # a 0.8mm del canto (regla del proyecto: 1.0).
     (31.0, 49.0, 69.5, 58.5),    # banda del audio, bajo el nucleo
-    (32.0, 46.3, 69.5, 48.9),    # franja bajo el nucleo: sus zonas terminan en y 40.9
+    # Bajo el nucleo (sus piezas terminan en y 42.4 a rot 270) pero FUERA
+    # del pasillo x 43.5..53 por donde bajan los carriles del LCD hacia J4.
+    (32.0, 44.0, 43.5, 48.9),
+    (53.0, 44.0, 69.5, 48.9),
     (69.5, 35.8, 94.5, 43.0),    # banda derecha, alrededor de los 470uF
-    (31.0, 16.8, 69.5, 20.9),    # franja entre los jacks y el nucleo
+    (31.0, 16.8, 69.5, 21.5),    # franja entre los jacks y el nucleo (piezas desde y 22.7)
     (40.9,  1.5, 45.1, 14.5),    # entre J6 y J1
     (54.9,  1.5, 59.1, 14.5),    # entre J1 y J7
     (94.5,  1.5, 98.5, 20.0),    # columna derecha, a la derecha del gatillo R
@@ -226,8 +236,11 @@ FREE_REGIONS = [
     (74.5,  1.5, 77.5, 13.0),    # entre el buffer MIDI y las patas de X
 ]
 
-# Nucleo del RP2350A (rp_core.py): U1 en (x, y) del dorso, bloque a rot 90
-# como en la placa de 80 (ruteo probado). A rot 90 el bloque ocupa
-# x-21..x+15, y-16.5..y+11.5: con (53, 37.5) queda en x 32..68, y 21..49,
-# detras del panel, la unica zona sin patas pasantes del frente.
-NUCLEO = (53.0, 37.5, 90.0)
+# Nucleo del RP2350A (rp_core.py): U1 en (x, y) del dorso, bloque a rot 270.
+# A rot 90 (la de la placa de 80) la fila de pines 1-15 —LCD, I2S_DIN, D-pad
+# y X/Y/A/B— miraba hacia los jacks, con el flex y el DAC del otro lado del
+# chip: freerouting se estancaba con 5-7 de esas senales sin rutear (ciclos 1
+# y 2 del 2026-10-15). Media vuelta mas y esa fila mira a J4. A rot 270 el
+# bloque ocupa x-15..x+21, y-11.5..y+16.5: con (47, 30.5) queda en x 32..68,
+# y 19..47, detras del panel, la unica zona sin patas pasantes del frente.
+NUCLEO = (47.0, 30.5, 270.0)

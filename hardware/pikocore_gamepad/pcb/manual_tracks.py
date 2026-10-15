@@ -275,11 +275,16 @@ for _nom, _dy, _ly in (("BB_L2", -0.5, -1.4), ("BB_L1", 0.5, 1.4)):
 # Coordenadas relativas a U1 con el nucleo a rot 90 (placements.NUCLEO): la
 # fila de pines de arriba en y = U1 - 3.45, paso 0.4, pin 1 en x = U1 - 2.8.
 from placements import NUCLEO
-assert NUCLEO[2] == 90.0, "las pistas de U1 asumen el nucleo a 90 grados"
 _U1X, _U1Y = NUCLEO[0], NUCLEO[1]
 
 
 def _u1(dx, dy):
+    """Offsets escritos en el marco del nucleo a rot 90 (fila 1-15 arriba).
+    A rot 270 el bloque esta girado media vuelta: (dx, dy) -> (-dx, -dy)."""
+    if NUCLEO[2] == 270.0:
+        dx, dy = -dx, -dy
+    elif NUCLEO[2] != 90.0:
+        raise SystemExit(f"nucleo a rot {NUCLEO[2]}: las pistas estan para 90 o 270")
     return (round(_U1X + dx, 3), round(_U1Y + dy, 3))
 
 

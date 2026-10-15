@@ -365,25 +365,28 @@ class TestFootprints(unittest.TestCase):
             self.assertTrue(0 <= x <= 100 and 0 <= y <= 60,
                             f"{ref} en ({x}, {y}) fuera de la placa")
 
-    def test_el_nucleo_queda_detras_del_panel(self):
-        # El bloque del RP2350A (rp_core.py) ocupa NUCLEO + (-21..+15, -16.5..
-        # +11.5) a rot 90. Detras del panel no hay patas pasantes del frente.
+    def test_el_nucleo_queda_detras_del_panel_y_mira_al_flex(self):
+        # El bloque del RP2350A (rp_core.py) va a rot 270: la fila de pines
+        # 1-15 (LCD, I2S_DIN, D-pad, X/Y/A/B) queda hacia +Y, mirando a J4 y
+        # al DAC. A rot 90 (placa de 80) miraba hacia los jacks y freerouting
+        # se estancaba con 5-7 de esas senales sin rutear. A rot 270 el
+        # bloque ocupa NUCLEO + (-15..+21, -11.5..+16.5). Detras del panel no
+        # hay patas pasantes del frente.
         import placements
         x, y, rot = placements.NUCLEO
-        self.assertEqual(rot, 90.0)
-        self.assertGreaterEqual(x - 21, 30.0)
-        self.assertLessEqual(x + 15, 70.0)
-        self.assertGreaterEqual(y - 16.5, 19.0)
-        self.assertLessEqual(y + 11.5, 50.0)
+        self.assertEqual(rot, 270.0)
+        self.assertGreaterEqual(x - 14, 30.0)
+        self.assertLessEqual(x + 19, 70.0)
+        self.assertGreaterEqual(y - 8, 19.0)
+        self.assertLessEqual(y + 12, 50.0)
 
     def test_las_regiones_libres_no_pisan_el_nucleo(self):
-        # Caja de las piezas del nucleo. El bloque declara +11.5 hacia abajo,
-        # pero sus piezas mas bajas (C37/C40) terminan en y+8.0 y el cobre
-        # copiado no baja de ahi: la franja y+8.8..y+11.4 queda para el
-        # empaquetador (medido en el plano del dorso, 2026-10-15).
+        # Caja de las PIEZAS del nucleo a rot 270, medida en la placa
+        # (2026-10-15): x 33.1..66.0, y 22.7..42.4 con U1 en (47, 30.5). Sus
+        # zonas quedan entre y 27 y 34, dentro de esa caja.
         import placements
         x, y, _ = placements.NUCLEO
-        core = (x - 21, y - 16.5, x + 15, y + 8.0)
+        core = (x - 14, y - 8, x + 19, y + 12)
         self.assertTrue(placements.FREE_REGIONS, "sin regiones para el empaquetador")
         for r in placements.FREE_REGIONS:
             solapa = not (r[2] <= core[0] or r[0] >= core[2]
