@@ -129,7 +129,7 @@ PLACEMENTS = [
     # USB-C en x=49, o sea en mitad de la placa, donde no se puede enchufar
     # nada. Con 270 el conector queda contra el borde IZQUIERDO (x~4), que es
     # el unico borde largo que no tiene controles.
-    ("U1",  "gamesetup_fp:RP2350-Plus_Socket",           26.50,   27.50, 270, True),
+    ("U1",  "gamesetup_fp:RP2350-Plus_Castellated",          26.50,   27.50, 270, True),
 
     # ================================================ DORSO: audio
     # Agrupado a la derecha del display, lejos del MCU y de los controles. El

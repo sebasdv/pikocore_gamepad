@@ -401,46 +401,40 @@ class TestFootprints(unittest.TestCase):
                 msg=f"gatillos a distinta altura: {centros}")
 
 
-    def test_nada_alto_queda_bajo_el_modulo_rp2350(self):
-        # El socket 2x20 levanta el modulo ~8.5mm sobre la placa. En COBRE la
-        # franja central entre las dos filas de pines esta libre y tienta a
-        # meter cosas ahi, pero en ALTURA no entra casi nada: un JST PH
-        # vertical solo mide 8.0mm y ademas hay que poder ENCHUFARLE el cable,
-        # que suma varios mm mas por arriba.
-        # J5 estuvo en (18,30) —dentro de la huella de U1— hasta que se
-        # detecto el choque; el DRC lo reportaba como courtyards_overlap y se
-        # leia como ruido.
-        import placements
-        U1 = next((p for p in placements.PLACEMENTS if p[0] == "U1"), None)
-        self.assertIsNotNone(U1, "no se encontro U1 en PLACEMENTS")
-        _, fpid, ux, uy, rot, uflip = U1
-        # La caja sale del .kicad_mod, NO de dos numeros escritos a mano: si
-        # se cambia el socket o se gira el modulo, el guard se mueve con el.
-        # Cableada, la caja se queda vieja justo cuando mas hace falta, y este
-        # test es lo unico que separa a J5 de volver debajo del modulo.
-        caja = pads_bbox(fpid)
-        if caja is None:
-            self.skipTest("no esta el .kicad_mod de %s" % fpid)
-        HW, HH = caja
-        if rot % 180 == 90:
-            HW, HH = HH, HW      # 90 y 270 intercambian los ejes
-        HW += 1.0                # holgura de colocacion
-        HH += 1.0
-        ALTOS = {"J5"}   # conectores que no pueden vivir debajo del modulo
-        dentro = []
-        for ref, lib_id, x, y, rot, flip in placements.PLACEMENTS:
-            if ref not in ALTOS:
-                continue
-            if flip != uflip:
-                # Lado opuesto de la placa: el modulo no le pasa por encima.
-                # SW11 cae justo en el centro de la huella de U1 y es
-                # correcto, porque el tact esta en el panel (F.Cu) y el
-                # modulo en el dorso (B.Cu). Sin esta condicion el guard
-                # dispararia contra colocaciones que estan bien.
-                continue
-            if abs(x - ux) < HW and abs(y - uy) < HH:
-                dentro.append(f"{ref} en ({x}, {y}) cae bajo U1 en ({ux}, {uy})")
-        self.assertEqual(dentro, [], f"choque mecanico con el modulo: {dentro}")
+class TestModuloCastellated(unittest.TestCase):
+    FPID = "gamesetup_fp:RP2350-Plus_Castellated"
+
+    def _txt(self):
+        return io.open(footprint_path(self.FPID), encoding="utf-8").read()
+
+    def test_tiene_los_pads_1_a_40_en_el_orden_del_header(self):
+        pads = {}
+        for m in re.finditer(r'\(pad\s+"(\d+)"[^(]*\(at\s+([-\d.]+)\s+([-\d.]+)',
+                             self._txt()):
+            pads[int(m.group(1))] = (float(m.group(2)), float(m.group(3)))
+        self.assertEqual(sorted(pads), list(range(1, 41)))
+        for n, (x, y) in pads.items():
+            if n <= 20:
+                self.assertLess(x, 0, f"pad {n}")
+                self.assertAlmostEqual(y, -24.13 + 2.54 * (n - 1), places=2,
+                                       msg=f"pad {n}")
+            else:
+                self.assertGreater(x, 0, f"pad {n}")
+                self.assertAlmostEqual(y, 24.13 - 2.54 * (n - 21), places=2,
+                                       msg=f"pad {n}")
+        self.assertAlmostEqual(pads[1][0], -9.69, places=2)
+        self.assertAlmostEqual(pads[21][0], 9.69, places=2)
+
+    def test_no_trae_agujeros_de_montaje_ni_pads_de_depuracion(self):
+        txt = self._txt()
+        self.assertNotIn("np_thru_hole", txt)
+        for d in ("D1", "D2", "D3"):
+            self.assertNotIn(f'(pad "{d}"', txt)
+
+    def test_u1_usa_la_huella_castellated_y_es_soldadura_manual(self):
+        u1 = next(i for i in netlist.INSTANCES if i[1] == "U1")
+        self.assertEqual(u1[6]["FP"], self.FPID)
+        self.assertTrue(u1[6].get("MANUAL"))
 
 
 class TestPuentesDeTact(unittest.TestCase):

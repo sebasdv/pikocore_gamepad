@@ -431,7 +431,7 @@ TACTS = [
 INSTANCES = [
     # ---------------------------------------------------------------- MCU
     ("RP2350-Plus", "U1", "RP2350-Plus-16MB", 60.0, 60.0, _mcu_nets(),
-     {"FP": "gamesetup_fp:RP2350-Plus_Socket"}),
+     {"FP": "gamesetup_fp:RP2350-Plus_Castellated", "MANUAL": True}),
 
     # ------------------------------------------------------------ display
     # Panel desnudo por FPC. CS a masa: siempre seleccionado, igual que hacia

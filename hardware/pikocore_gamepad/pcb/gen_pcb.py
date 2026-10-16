@@ -324,19 +324,13 @@ MODELOS_PROPIOS = {
         (1.0, 5.0, 7.0),
         (-180.0, 0.0, -90.0),
     ),
-    # El socket 2x20 es un header generico sin modelo; el que interesa ver es
-    # el MODULO que se enchufa encima (Waveshare RP2350-Plus, STEP en mm).
-    #
-    # AJUSTADOS A MANO en KiCad con el preview a la vista. No re-derivarlos por
-    # calculo: el STEP es un ENSAMBLAJE de 93 solidos, cada uno con su propia
-    # transformacion, asi que muestrear sus CARTESIAN_POINT en crudo da ejes
-    # equivocados — por ese camino salio una rotacion de 90 que dejaba el
-    # modulo perpendicular al socket.
-    # Si hay que retocarlos: doble clic en U1 -> pestana 3D Models, y copiar
-    # los numeros de vuelta aca.
-    "gamesetup_fp:RP2350-Plus_Socket": (
+    # Modulo Waveshare RP2350-Plus soldado plano por castellations (STEP en
+    # mm). Sin offset: el origen de la huella es el centro del modulo. Solo
+    # afecta renders; si hay que retocarlo: doble clic en U1 -> pestana 3D
+    # Models, y copiar los numeros de vuelta aca.
+    "gamesetup_fp:RP2350-Plus_Castellated": (
         "RP2350-Plus_Module.step",
-        (-10.54, -25.40, 2.00),
+        (0, 0, 0.0),
         (0.0, 0.0, 0.0),
     ),
 }

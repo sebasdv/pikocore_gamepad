@@ -15,7 +15,7 @@ revisado, y pinout confirmado contra datasheet o contra la pieza física.
 
 | Ref | Parte | LCSC | Footprint |
 |---|---|---|---|
-| U1 | Waveshare RP2350-Plus 16MB (socket 2×20) | — | `gamesetup_fp:RP2350-Plus_Socket` |
+| U1 | Waveshare RP2350-Plus 16MB (soldado plano por castellations, a mano) | — | `gamesetup_fp:RP2350-Plus_Castellated` |
 | U5 | PCM5102A TSSOP-20 | `C107671` | `gamesetup_lcsc:TSSOP-20_L6.5-W4.4-P0.65-LS6.4-BL` |
 | U3 | NJM4556AD DIP-8 | `C2838125` | `gamesetup_lcsc:DIP-8_L8.8-W6.4-P2.54-LS7.6-BL` |
 | U4 | PAM8302A MSOP-8 | `C113367` | `gamesetup_lcsc:MSOP-8_L3.0-W3.0-P0.65-LS5.0-BL` |
@@ -139,11 +139,8 @@ No bloquea nada del flujo de fabricación (los gerbers no usan modelos 3D). Solo
 importa si se quiere un render o el ensamble STEP para el enclosure; en ese caso,
 re-importar con `easyeda2kicad` y copiar el `.wrl` a `lib/gamesetup_lcsc.3dshapes/`.
 
-Aparte: `RP2350-Plus_Socket` **no referencia** ningún modelo desde el footprint —
-en V1 tampoco lo hacía. Su `RP2350-Plus_Socket.step` existe en
-`lib/gamesetup_fp.3dshapes/` y lo consume el pipeline de ensamble STEP, que
-trabaja a nivel de placa y no por la propiedad `(model ...)` del footprint. No es
-una regresión; queda anotado para que nadie lo "arregle" pensando que falta.
+Aparte: `RP2350-Plus_Castellated` apunta a `RP2350-Plus_Module.step` (modelo del modulo de Waveshare)
+desde el propio footprint; el offset de render se ajusta en `MODELOS_PROPIOS` de `gen_pcb.py`.
 
 El footprint del LCD tampoco declara modelo 3D: es una pieza que no existe en
 ninguna librería. Su altura para el enclosure es el header macho soldado directo
