@@ -145,10 +145,10 @@ def setup_stackup(board):
 def setup_netclasses(board):
     """Netclass Power a 0.4mm para los tres rieles.
 
-    0.4 y no 0.5: el hueco entre pads castellated de U1 es 0.34mm (pads 3.8x2.2
-    a paso 2.54) y una pista de
-    0.4 mas 2x0.2 de clearance da 0.8, que pasa justo. Con 0.5 serian 0.9 y no
-    entra. El DSN lleva la clase y freerouting la respeta.
+    0.4 y no 0.5: con el modulo castellated ya no hay un corredor entre pads
+    de U1 que condicione el ancho (el hueco es 0.34mm, no entra ninguna pista
+    ahi); 0.4 sale de la corriente del riel de 5V hacia el amplificador. El DSN
+    lleva la clase y freerouting la respeta.
     """
     ns = board.GetDesignSettings().m_NetSettings
     nc = pcbnew.NETCLASS("Power")
