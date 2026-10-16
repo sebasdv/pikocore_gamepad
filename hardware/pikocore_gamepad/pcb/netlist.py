@@ -149,10 +149,11 @@ SYMS = {
     "LVC1G17": dict(
         ref="U", w=7.62, h=7.62,
         desc="Buffer Schmitt de una compuerta SN74LVC1G17 (SC-70-5 / DCK). "
-             "Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT SIN VERIFICAR "
-             "contra el datasheet (tomado de memoria): 1 NC, 2 A, 3 GND, "
-             "4 Y, 5 VCC.",
-        ds="",
+             "Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT VERIFICADO "
+             "contra el datasheet de TI SCES351Y (rev. octubre 2025, pagina 3, "
+             "tabla Pin Functions, columna DBV/DCK/DRL/DPW): 1 NC, 2 A, 3 GND, "
+             "4 Y, 5 VCC. VCC 1.65-5.5V; IOL/IOH 16mA a 3V (el lazo MIDI pide 5).",
+        ds="https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf",
         pins=[("1", "NC", -7.62, 2.54, 0), ("2", "A", -7.62, 0.0, 0),
               ("3", "GND", -7.62, -2.54, 0), ("4", "Y", 7.62, 0.0, 180),
               ("5", "VCC", 7.62, 2.54, 180)],
@@ -386,7 +387,7 @@ SYMS = {
 # ya se confirmaron contra sus datasheets. En los dos casos la
 # verificacion encontro errores reales, asi que el mecanismo se gano el
 # lugar: no quitar esta tabla, usarla para lo que entre nuevo.
-PINOUT_SIN_VERIFICAR = ("H11L1", "LVC1G17")
+PINOUT_SIN_VERIFICAR = ("H11L1",)
 
 # ---------------------------------------------------------------- footprints
 # El tact de V2 es de 6x6 (spec 4.2) pero esa parte todavia no esta importada

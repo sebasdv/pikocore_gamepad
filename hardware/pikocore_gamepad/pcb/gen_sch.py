@@ -412,7 +412,8 @@ NOTAS = {
         "antiparalelo al LED aguanta un cable al reves. La MALLA de J6 NO va a masa: la norma\n"
         "pide que el receptor no aterrice el blindaje.\n"
         "\n"
-        "PINOUTS DE U9 Y U10 SIN VERIFICAR contra sus datasheets (ver netlist.PINOUT_SIN_VERIFICAR).",
+        "U9 verificado contra TI SCES351Y (DCK: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC). PINOUT DE U10 SIN\n"
+        "VERIFICAR contra su datasheet (ver netlist.PINOUT_SIN_VERIFICAR).",
 }
 
 

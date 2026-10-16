@@ -612,8 +612,8 @@
       (property "Reference" "U" (at 0 10.16 0) (effects (font (size 1.27 1.27))))
       (property "Value" "LVC1G17" (at 0 -10.16 0) (effects (font (size 1.27 1.27))))
       (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
-      (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
-      (property "Description" "Buffer Schmitt de una compuerta SN74LVC1G17 (SC-70-5 / DCK). Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT SIN VERIFICAR contra el datasheet (tomado de memoria): 1 NC, 2 A, 3 GND, 4 Y, 5 VCC." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Buffer Schmitt de una compuerta SN74LVC1G17 (SC-70-5 / DCK). Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT VERIFICADO contra el datasheet de TI SCES351Y (rev. octubre 2025, pagina 3, tabla Pin Functions, columna DBV/DCK/DRL/DPW): 1 NC, 2 A, 3 GND, 4 Y, 5 VCC. VCC 1.65-5.5V; IOL/IOH 16mA a 3V (el lazo MIDI pide 5)." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "LVC1G17_0_1"
         (rectangle (start -7.62 7.62) (end 7.62 -7.62) (stroke (width 0.254) (type default)) (fill (type background)))
       )

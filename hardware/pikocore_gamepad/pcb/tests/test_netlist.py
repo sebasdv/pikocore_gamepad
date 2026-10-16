@@ -1200,9 +1200,14 @@ class TestMidi(unittest.TestCase):
         self.assertEqual(u9["4"], "MIDI_TX_BUF")
         self.assertEqual(u9["5"], "3V3")
 
-    def test_los_pinouts_nuevos_estan_marcados_sin_verificar(self):
-        for s in ("H11L1", "LVC1G17"):
-            self.assertIn(s, netlist.PINOUT_SIN_VERIFICAR)
+    def test_el_opto_sigue_sin_verificar_y_el_buffer_ya_no(self):
+        # El 74LVC1G17 se confirmo contra el datasheet de TI (SCES351Y, rev.
+        # octubre 2025, pagina 3): DCK 1 NC, 2 A, 3 GND, 4 Y, 5 VCC. El H11L1
+        # sigue pendiente.
+        self.assertIn("H11L1", netlist.PINOUT_SIN_VERIFICAR)
+        self.assertNotIn("LVC1G17", netlist.PINOUT_SIN_VERIFICAR)
+        self.assertNotIn("SIN VERIFICAR", netlist.SYMS["LVC1G17"]["desc"])
+        self.assertIn("SCES351Y", netlist.SYMS["LVC1G17"]["desc"])
 
     def test_el_diodo_de_senal_tiene_el_catodo_en_el_pin_1(self):
         # Como D_Schottky y como la huella D_SOD-123 de KiCad (pad 1 = K).

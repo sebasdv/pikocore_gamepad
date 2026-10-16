@@ -161,9 +161,11 @@ gates specific to this change:
 
 ## Not verified by any source yet
 
-- U9 (74LVC1G17) and U10 (H11L1) pinouts: entered from memory and marked
-  `PINOUT SIN VERIFICAR` in `netlist.py` and on the schematic; confirm against
-  the TI and onsemi datasheets before fabrication.
+- U10 (H11L1) pinout: entered from memory and marked `PINOUT SIN VERIFICAR`
+  in `netlist.py` and on the schematic; confirm against the onsemi datasheet
+  before fabrication. U9 (74LVC1G17) is verified against TI SCES351Y
+  (rev. October 2025, page 3): DCK 1 NC, 2 A, 3 GND, 4 Y, 5 VCC; a copy is in
+  `hardware/pikocore_gamepad/datasheets/`.
 - LCSC codes blank in the fab package: 10 Ω, 33 Ω, 220 Ω (0603), 1N4148W,
   74LVC1G17, H11L1M, plus the pre-existing hand-soldered lines (buttons,
   jacks, panel, speaker, LiPo, 24 Ω, 470 µF).
