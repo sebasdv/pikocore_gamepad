@@ -113,19 +113,22 @@ def main():
                     and mx0 < x < mx1 and my0 < y < my1):
                 bajo_modulo.append(f"{fp.GetReference()}.{p.GetNumber()}")
 
-    # Sus pastillas se sueldan a mano: una via encima chupa el estano.
+    # Sus pastillas se sueldan a mano: una via que toca el cobre de una
+    # chupa el estano. Circulo de la via contra el rectangulo de la pastilla.
     via_en_modulo = []
     u1 = board.FindFootprintByReference("U1")
     for v in board.GetTracks():
         if v.GetClass() != "PCB_VIA":
             continue
-        r = v.GetWidth(pcbnew.F_Cu) // 2
+        r = v.GetWidth(pcbnew.F_Cu) / 2
+        vx, vy = v.GetPosition().x, v.GetPosition().y
         for p in (u1.Pads() if u1 else []):
             if not p.GetNumber():
                 continue
-            caja = p.GetBoundingBox()
-            caja.Inflate(r)
-            if caja.Contains(v.GetPosition()):
+            c = p.GetBoundingBox()
+            dx = max(c.GetLeft() - vx, 0, vx - c.GetRight())
+            dy = max(c.GetTop() - vy, 0, vy - c.GetBottom())
+            if dx * dx + dy * dy < r * r:
                 via_en_modulo.append(f"U1.{p.GetNumber()} [{v.GetNetname()}]")
 
     print(f"{len(piezas)} piezas, {len(pads)} pads. "
