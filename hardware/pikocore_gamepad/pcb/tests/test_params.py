@@ -42,6 +42,13 @@ class TestParams(unittest.TestCase):
         self.assertFalse(params.ALL["LCD_FPC_PIN_ORDER"].verified)
 
 
+class TestPlaca(unittest.TestCase):
+
+    def test_la_placa_mide_100_por_60(self):
+        self.assertEqual(params.v("BOARD_W"), 100.0)
+        self.assertEqual(params.v("BOARD_H"), 60.0)
+
+
 class TestAccesorV(unittest.TestCase):
     """params.v() lo consumen gen_fp.py y placements.py. Su unico motivo de
     existir es fallar fuerte ante un typo, asi que ese es el comportamiento

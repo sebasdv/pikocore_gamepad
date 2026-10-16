@@ -33,6 +33,41 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
 
 
+def vias_sueltas(board):
+    """Vias que tocan menos de dos capas de cobre.
+
+    Quedan cuando se borra el stub que llegaba a ellas, o cuando freerouting
+    deja una via con pista de un solo lado. El DRC las marca como
+    via_dangling y no conectan nada. Cuenta como capa: una pista que termina
+    en la via, un pad que la contiene, o una zona de la misma net que la
+    contiene (el plano GND/3V3, o las zonas del nucleo RP2350A en la cara
+    del chip, que no llevan pista).
+    """
+    tramos = [t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK"]
+    pads = [p for fp in board.GetFootprints() for p in fp.Pads()]
+    zonas = [z for z in board.Zones() if not z.GetIsRuleArea()]
+    out = []
+    for v in board.GetTracks():
+        if v.GetClass() != "PCB_VIA":
+            continue
+        c, r = v.GetPosition(), v.GetWidth(pcbnew.F_Cu) // 2
+        capas = set()
+        for t in tramos:
+            if (t.GetNetCode() == v.GetNetCode()
+                    and ((t.GetStart() - c).EuclideanNorm() <= r
+                         or (t.GetEnd() - c).EuclideanNorm() <= r)):
+                capas.add(t.GetLayer())
+        for p in pads:
+            if p.GetNetCode() == v.GetNetCode() and p.HitTest(c):
+                capas.update(p.GetLayerSet().CuStack())
+        for z in zonas:
+            if z.GetNetCode() == v.GetNetCode() and z.Outline().Contains(c):
+                capas.update(z.GetLayerSet().CuStack())
+        if len(capas) < 2:
+            out.append(v)
+    return out
+
+
 def main():
     if not os.path.isfile(PCB):
         print(f"FALTA: {PCB}")
@@ -56,19 +91,26 @@ def main():
     # como track_dangling una vez por cada pista que lo toca (21 avisos por
     # un stub de 0.6mm). Se borran iterando, porque quitar uno puede dejar
     # colgando al anterior.
-    borrados = 0
+    # BuildConnectivity() en cada vuelta y las pistas sacadas vivas en una
+    # lista hasta guardar: sin eso KiCad 9.0.1 se cae con un access violation
+    # (la conectividad queda apuntando a pistas ya removidas; paso con la
+    # placa del chip-down, que tiene cientos de pistas mas).
+    sacadas = []
     while True:
+        board.BuildConnectivity()
         conn = board.GetConnectivity()
         colgantes = [t for t in board.GetTracks()
                      if t.GetClass() == "PCB_TRACK"
                      and conn.TestTrackEndpointDangling(t, False)]
+        colgantes += vias_sueltas(board)
         if not colgantes:
             break
         for t in colgantes:
             board.Remove(t)
-        borrados += len(colgantes)
-    if borrados:
-        print(f"stubs colgantes borrados: {borrados}")
+        sacadas += colgantes
+    board.BuildConnectivity()
+    if sacadas:
+        print(f"stubs colgantes borrados: {len(sacadas)}")
 
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())
     pcbnew.SaveBoard(PCB, board)

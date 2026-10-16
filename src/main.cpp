@@ -993,8 +993,8 @@ void pwm_interrupt_handler() {
       beat_led = 1;
       beat_num_total = 0;
     }
-    gpio_put(LED_PIN, beat_led);
-    output_trigger.Trigger();
+    if (LED_PIN >= 0) gpio_put(LED_PIN, beat_led);
+    if (TRIGO_PIN >= 0) output_trigger.Trigger();
 
     if (do_mute_debounce > 0) {
       do_mute_debounce--;
@@ -1854,10 +1854,14 @@ int main(void) {
   audio_out(0);
 
   // setup gpio pins
-  gpio_init(LED_PIN);
-  gpio_set_dir(LED_PIN, GPIO_OUT);
-  gpio_init(CLOCK_PIN);
-  gpio_set_dir(CLOCK_PIN, GPIO_IN);
+  if (LED_PIN >= 0) {  // -1 = no LED on this board
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+  }
+  if (CLOCK_PIN >= 0) {  // -1 = no clock input (PIKO_GAMEPAD, GP27/28 are MIDI)
+    gpio_init(CLOCK_PIN);
+    gpio_set_dir(CLOCK_PIN, GPIO_IN);
+  }
 #if PIKO_GAMEPI13
   // GP22 has no external clock-jack circuit on the GamePi13 board (unlike
   // pikocore's original PCB, where the jack's own analog frontend normalizes
@@ -1867,9 +1871,9 @@ int main(void) {
   // silence shortly after boot (do_sync_play never toggles true again).
   // Pull up instead so idle reads HIGH -> inverted 0, matching the polarity
   // the edge-detection logic expects when no external clock is connected.
-  gpio_pull_up(CLOCK_PIN);
+  if (CLOCK_PIN >= 0) gpio_pull_up(CLOCK_PIN);
 #else
-  gpio_pull_down(CLOCK_PIN);
+  if (CLOCK_PIN >= 0) gpio_pull_down(CLOCK_PIN);
 #endif
 #if !PIKO_GAMEPI13
   // Pico power-save pin; on the GamePi13, GP23 is the L button.
@@ -1931,7 +1935,7 @@ int main(void) {
   save_data[SAVE_CLOCK_INPUT_MODE] = CLOCK_INPUT_CLOCK;
 
   // initializer trigger
-  output_trigger.Init(TRIGO_PIN, 10, MAIN_LOOP_HZ);
+  if (TRIGO_PIN >= 0) output_trigger.Init(TRIGO_PIN, 10, MAIN_LOOP_HZ);
 
   // initialize control loop variables
   uint32_t clock_ms = 0;
@@ -2010,9 +2014,12 @@ int main(void) {
   };
 
   // initialize one wire midi
-  onewiremidi =
-      Onewiremidi_new(pio1, 0, CLOCK_PIN, midi_note_on, midi_note_off,
-                      midi_start, midi_continue, midi_stop, midi_timing);
+  // No clock pin (-1): no one-wire receiver; onewiremidi stays NULL.
+  if (CLOCK_PIN >= 0) {
+    onewiremidi =
+        Onewiremidi_new(pio1, 0, CLOCK_PIN, midi_note_on, midi_note_off,
+                        midi_start, midi_continue, midi_stop, midi_timing);
+  }
 
 // LED
 #if WS2812_ENABLED == 1
@@ -2048,7 +2055,7 @@ int main(void) {
     clock_ms++;
     clock_sync_ms++;
 
-    if (clock_input_ittybittymidi) {
+    if (clock_input_ittybittymidi && onewiremidi) {
       Onewiremidi_receive(onewiremidi);
     }
 #if WS2812_ENABLED == 1
@@ -2981,7 +2988,8 @@ int main(void) {
 
     if (!clock_input_ittybittymidi) {
       // trigger in
-      uint8_t clock_pin = 1 - gpio_get(CLOCK_PIN);
+      // CLOCK_PIN -1 = not present: treat as idle (reads HIGH -> 0).
+      uint8_t clock_pin = (CLOCK_PIN >= 0) ? 1 - gpio_get(CLOCK_PIN) : 0;
       // code to verify polarity -KEEP
       // if (clock_pin == 1 && clock_pin_last == 0) {
       //   printf("[%d] on\n", clock_sync_ms);

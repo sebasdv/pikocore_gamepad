@@ -62,7 +62,7 @@
 > 0.5 mm, contactos de las dos caras), huella y STEP importados con
 > easyeda2kicad a `gamesetup_lcsc`. Panel = `LCD1`, huella sin pads generada
 > por `gen_fp.py` (origen en el centro del área activa), DNP para el CPL pero
-> en el BOM. Backlight: R21 24 Ω (0805, sin LCSC todavía) + Q1 2N7002 (C8545)
+> en el BOM. Backlight: R21 27 Ω (0805, C17594) + Q1 2N7002 (C8545)
 > + R22 100k; C30/C31 de desacoplo. TE → GP26 (`LCD_TE`). Layout del estudio:
 > panel con el BL en y 3.0, grupos centrados en y 53.2, Select (50, 51) y
 > Start (50, 63), J4 en (50, 44.6) rot 180, R19/R20 bajados a y 72.5/75.5;

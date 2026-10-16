@@ -62,7 +62,8 @@ SYMS = {
     "RP2350-Plus": dict(
         ref="U", w=15.24, h=27.94,
         desc="Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, "
-             "USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. "
+             "USB-C). Pin-compatible Raspberry Pi Pico, soldado plano por sus "
+             "bordes castellated. "
              "GP23/24/25 son internos del modulo y GP29 no sale al header.",
         ds="https://www.waveshare.com/wiki/RP2350-Plus",
         pins=_mcu_pin_geometry(),
@@ -266,6 +267,38 @@ SYMS = {
               pins=[("1", "1", -5.08, 0.0, 0), ("2", "2", 5.08, 0.0, 180)]),
     "D": dict(ref="D", w=2.54, h=7.62, desc="Diodo de senal SMD", ds="",
               pins=[("1", "A", -5.08, 0.0, 0), ("2", "K", 5.08, 0.0, 180)]),
+    "D_1N4148": dict(
+        ref="D", w=2.54, h=7.62,
+        desc="Diodo de senal 1N4148W (SOD-123). Pin 1 = CATODO, como todos los "
+             "footprints de diodo de KiCad; pin 2 = anodo. Antiparalelo al LED "
+             "del opto de MIDI IN: protege contra un cable con polaridad al reves.",
+        ds="",
+        pins=[("1", "K", 5.08, 0.0, 180), ("2", "A", -5.08, 0.0, 0)],
+    ),
+    "H11L1": dict(
+        ref="U", w=10.16, h=10.16,
+        desc="Optoacoplador con salida Schmitt (onsemi H11L1M, SMDIP-6). "
+             "PINOUT VERIFICADO contra el datasheet Fairchild/onsemi H11L1M "
+             "Rev. 1.0.7 (septiembre 2014, figura 1, esquema): 1 anodo, 2 "
+             "catodo, 3 sin conexion, 4 VO (colector abierto, hunde 16mA a "
+             "0.4V), 5 GND, 6 VCC. Copia en hardware/pikocore_gamepad/datasheets/.",
+        ds="https://www.onsemi.com/products/interfaces/optocouplers/h11l1m",
+        pins=[("1", "A", -10.16, 2.54, 0), ("2", "K", -10.16, 0.0, 0),
+              ("3", "NC", -10.16, -2.54, 0), ("4", "VO", 10.16, 0.0, 180),
+              ("5", "GND", 10.16, -2.54, 180), ("6", "VCC", 10.16, 2.54, 180)],
+    ),
+    "LVC1G17": dict(
+        ref="U", w=7.62, h=7.62,
+        desc="Buffer Schmitt de una compuerta SN74LVC1G17 (SC-70-5 / DCK). "
+             "Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT VERIFICADO "
+             "contra el datasheet de TI SCES351Y (rev. octubre 2025, pagina 3, "
+             "tabla Pin Functions, columna DBV/DCK/DRL/DPW): 1 NC, 2 A, 3 GND, "
+             "4 Y, 5 VCC. VCC 1.65-5.5V; IOL/IOH 16mA a 3V (el lazo MIDI pide 5).",
+        ds="https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf",
+        pins=[("1", "NC", -7.62, 2.54, 0), ("2", "A", -7.62, 0.0, 0),
+              ("3", "GND", -7.62, -2.54, 0), ("4", "Y", 7.62, 0.0, 180),
+              ("5", "VCC", 7.62, 2.54, 180)],
+    ),
 }
 
 # Simbolos cuyo pinout NO viene verificado de V1. Su descripcion lo dice, asi
@@ -399,7 +432,7 @@ TACTS = [
 INSTANCES = [
     # ---------------------------------------------------------------- MCU
     ("RP2350-Plus", "U1", "RP2350-Plus-16MB", 60.0, 60.0, _mcu_nets(),
-     {"FP": "gamesetup_fp:RP2350-Plus_Socket"}),
+     {"FP": "gamesetup_fp:RP2350-Plus_Castellated", "MANUAL": True}),
 
     # ------------------------------------------------------------ display
     # Panel desnudo por FPC. CS a masa: siempre seleccionado, igual que hacia
@@ -423,10 +456,12 @@ INSTANCES = [
     # Desde VSYS (3.4-4.2V con LiPo) y no desde 3V3 (0.3V de margen sobre la
     # Vf: la corriente quedaria a merced de la dispersion del LED) ni desde
     # el riel de 5V (es el riel del op-amp y el PWM le meteria ruido).
-    # R21 fija el brillo maximo: a 3.9V nominal, (3.9-3.0)/24 = 37mA.
-    # ponytail: R21 es la perilla de calibracion; con la LiPo llena da ~50mA
-    # y vacia ~17mA. Si molesta, driver de corriente constante en V2.
-    ("R", "R21", "24R", 190.0, 20.0,
+    # R21 fija el brillo maximo: a 3.9V nominal, (3.9-3.0)/27 = 33mA.
+    # ponytail: R21 es la perilla de calibracion; con la LiPo llena da ~44mA
+    # y vacia ~15mA. 27R y no 24R: el 24R (C17576) no tiene stock en JLC y no
+    # hay 24R de reemplazo; 27R es el valor E24 vecino y queda bajo los 40mA del
+    # panel casi todo el rango. Si molesta, driver de corriente constante en V2.
+    ("R", "R21", "27R", 190.0, 20.0,
      {"1": "VSYS", "2": "BL_A"}, {"FP": C0805_FP}),
     ("Q_NMOS", "Q1", "2N7002", 190.0, 40.0,
      {"1": "LCD_BLK", "2": "GND", "3": "BL_K"},
@@ -690,6 +725,49 @@ INSTANCES += [
      {"FP": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"}),
 ]
 
+# ==================================================================== MIDI
+#
+#   MIDI OUT (J7, TRS tipo A): Tip = DIN 5, Ring = DIN 4, Sleeve = DIN 2.
+#       3V3 -[33R R40]- Ring        MIDI_TX -> U9 (74LVC1G17) -[10R R41]- Tip
+#   Norma MIDI 1.0 electrica, variante 3.3V (CA-033). U9 pone los 5mA del
+#   lazo; el GPIO solo ve la entrada CMOS del buffer.
+#
+#   MIDI IN (J6): el emisor pone corriente por DIN 4 (= Ring en tipo A) y la
+#   recibe por DIN 5 (= Tip). Ring -[220R R42]- anodo del LED de U10 (H11L1);
+#   Tip - catodo. D3 antiparalelo al LED, para un cable al reves. La salida Schmitt de U10 es colector abierto:
+#   R43 4k7 a 3V3 -> MIDI_RX. La MALLA de J6 queda al aire: el receptor no
+#   aterriza el blindaje (lazo de masa con el emisor).
+INSTANCES += [
+    ("JACK_AUDIO", "J7", "MIDI OUT", 280.0, 300.0, {
+        "S": "GND", "T": "MIDI_OUT_T", "R": "MIDI_OUT_R", "TN": NC, "RN": NC},
+     {"FP": JACK_FP}),
+    ("R", "R40", "33R", 288.0, 290.0,
+     {"1": "3V3", "2": "MIDI_OUT_R"}, {"FP": R_FP}),
+    ("R", "R41", "10R", 288.0, 300.0,
+     {"1": "MIDI_TX_BUF", "2": "MIDI_OUT_T"}, {"FP": R_FP}),
+    ("LVC1G17", "U9", "SN74LVC1G17DCKR", 300.0, 300.0,
+     {"1": NC, "2": "MIDI_TX", "3": "GND", "4": "MIDI_TX_BUF", "5": "3V3"},
+     {"LCSC": "C10425", "FP": "Package_TO_SOT_SMD:SOT-353_SC-70-5"}),
+    ("JACK_AUDIO", "J6", "MIDI IN", 280.0, 330.0, {
+        "S": NC, "T": "MIDI_IN_K", "R": "MIDI_IN_R", "TN": NC, "RN": NC},
+     {"FP": JACK_FP}),
+    ("R", "R42", "220R", 288.0, 325.0,
+     {"1": "MIDI_IN_R", "2": "MIDI_IN_A"}, {"FP": R_FP}),
+    ("D_1N4148", "D3", "1N4148W", 288.0, 335.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K"}, {"LCSC": "C81598", "FP": D_FP}),
+    # H11L1SR2M = el H11L1M en version de montaje superficial (patas
+    # gull-wing, "SOP-6-2.54mm" en LCSC), en carrete; el C16587 es el DIP
+    # pasante y no va con la huella SMDIP-6.
+    ("H11L1", "U10", "H11L1SR2M", 300.0, 330.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K", "3": NC, "4": "MIDI_RX",
+      "5": "GND", "6": "3V3"},
+     {"LCSC": "C20082", "FP": "Package_DIP:SMDIP-6_W7.62mm"}),
+    ("R", "R43", "4.7k", 312.0, 325.0,
+     {"1": "3V3", "2": "MIDI_RX"}, {"FP": R_FP}),
+    ("C", "C56", "100nF", 312.0, 335.0,
+     {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
+]
+
 # ---------------------------------------------------------------- codigos LCSC
 # Partes concretas por (valor, footprint). Se aplican abajo a toda instancia
 # que no traiga un LCSC propio en sus props.
@@ -715,6 +793,13 @@ LCSC_PASIVOS = {
     ("470R", R_FP): "C23179",
     ("4.7k", R_FP): "C23162",
     ("47k",  R_FP): "C25819",
+    # MIDI (verificados en lcsc.com el 2026-10-16): 10R y 33R de la salida
+    # (norma 3.3V), 220R de la entrada.
+    ("10R",  R_FP): "C22859",   # 0603WAF100JT5E
+    ("33R",  R_FP): "C23140",   # 0603WAF330JT5E
+    ("220R", R_FP): "C22962",   # 0603WAF2200T5E
+    # Backlight (R21, 0805): UNI-ROYAL 0805W8F270JT5E, 1%, JLC preferred.
+    ("27R",  C0805_FP): "C17594",
     # Ceramicos.
     ("100nF", C_FP):     "C14663",   # 50V X7R
     ("1uF",   C_FP):     "C15849",   # 50V X5R

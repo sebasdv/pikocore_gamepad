@@ -116,8 +116,11 @@ ALL = {
         "regenerarlo con gen_template_dxf.py si se vuelve a editar ahi.",
         "V-0"),
     "BOARD_H": Param(
-        80.00, True,
-        "Contorno definitivo, tomado de la capa BOARD_OUTLINE del DXF que el usuario ordeno en Rhino.",
+        60.00, True,
+        "Eleccion de diseno de la variante con modulo (Micro 100x60 + MIDI), "
+        "no una medicion: el modulo RP2350-Plus va soldado plano al dorso "
+        "por castellations y la placa baja de 80 a 60. El DXF de Rhino (80) quedo "
+        "desactualizado.",
         "V-0"),
 }
 

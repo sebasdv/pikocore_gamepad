@@ -12,12 +12,15 @@ Footprints:
                          contorno, area activa y cola del FPC en Cmts.User,
                          para el enclosure y para Rhino). El conector del FPC
                          es una pieza aparte, importada de LCSC.
-  - RP2350-Plus_Socket : se copia de V1 sin cambios de geometria.
+  - RP2350-Plus_Castellated : el modulo se suelda plano al dorso por sus
+                         castellations; se deriva de la huella oficial de la
+                         Pico (KiCad), sin agujeros de montaje ni pads D1-D3.
 
 ORIGEN del footprint del panel = centro del AREA ACTIVA: es lo que se mide
 sobre la placa impresa y lo que decide la ergonomia.
 """
 import os
+import re
 import uuid as uuidlib
 
 import params
@@ -144,29 +147,86 @@ def build_panel():
 # el modelo 3D reapuntado a ${KIPRJMOD}/lib/gamesetup_lcsc.3dshapes/.
 
 
-# El socket 2x20 no trae modelo 3D propio (es un header generico), pero el
-# MODULO que se enchufa encima si: RP2350-Plus_Module.step, de Waveshare.
-# Lo asigna gen_pcb.py via MODELOS_PROPIOS, igual que el jack.
+# El modulo (Waveshare RP2350-Plus, 21x51mm) tiene la misma geometria de pads
+# que la Pico, asi que se deriva de la huella oficial de KiCad. Su modelo 3D
+# (RP2350-Plus_Module.step) lo asigna gen_pcb.py via MODELOS_PROPIOS.
+KICAD_SHARE_FP = "C:/Program Files/KiCad/9.0/share/kicad/footprints"
+PICO_SMD_HAND = os.path.join(KICAD_SHARE_FP, "Module.pretty",
+                             "RaspberryPi_Pico_SMD_HandSolder.kicad_mod")
+CASTELLATED_NAME = "RP2350-Plus_Castellated"
 
 
-def copiar_socket_de_v1():
-    """El socket 2x20 del RP2350-Plus se reusa tal cual de V1.
+def _quitar_pads(s, quitar):
+    """Quita de un .kicad_mod los bloques (pad ...) para los que quitar(bloque)
+    es verdadero, contando parentesis (respeta los strings entre comillas).
+    El resto del texto queda byte a byte igual."""
+    out, i = [], 0
+    while True:
+        j = s.find("(pad ", i)
+        if j < 0:
+            out.append(s[i:])
+            return "".join(out)
+        depth, k, en_str = 0, j, False
+        while True:
+            c = s[k]
+            if en_str:
+                if c == "\\":
+                    k += 1
+                elif c == '"':
+                    en_str = False
+            elif c == '"':
+                en_str = True
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            k += 1
+        k += 1
+        if quitar(s[j:k]):
+            # tambien el salto de linea y la indentacion que precedian al pad
+            ini = j
+            while ini > i and s[ini - 1] in "\t ":
+                ini -= 1
+            if ini > i and s[ini - 1] == "\n":
+                ini -= 1
+                if ini > i and s[ini - 1] == "\r":
+                    ini -= 1
+            out.append(s[i:ini])
+        else:
+            out.append(s[i:k])
+        i = k
 
-    Solo se cambia la ruta del modelo 3D a la libreria de este proyecto: la
-    geometria de pads no se toca, porque ya esta verificada contra el modulo
-    fisico.
-    """
-    src = os.path.join(HERE, "..", "..", "NEWSETUP", "pcb", "lib",
-                       "newsetup_fp.pretty", "RP2350-Plus_Socket.kicad_mod")
-    dst = os.path.join(OUT, "RP2350-Plus_Socket.kicad_mod")
-    if not os.path.isfile(src):
-        print(f"AVISO: no se encontro {src}")
+
+def derivar_modulo_castellated():
+    """Huella oficial de la Pico (SMD hand solder) sin los 4 agujeros de
+    montaje (el modulo no los tiene y su dorso debe quedar libre) ni los pads
+    de depuracion D1-D3, ni la pasta sin nombre que la huella trae para esos
+    tres (bajo el modulo, un esten imprimiria bolitas de estano). Quedan los
+    pads 1-40 y los 40 de pasta sin nombre de las pastillas."""
+    if not os.path.isfile(PICO_SMD_HAND):
+        print(f"AVISO: no se encontro {PICO_SMD_HAND}")
         return False
-    with open(src, encoding="utf-8") as f:
+    with open(PICO_SMD_HAND, encoding="utf-8", newline="") as f:
         s = f.read()
-    s = s.replace("newsetup_fp.3dshapes", "gamesetup_fp.3dshapes")
-    s = s.replace("/NEWSETUP/pcb/lib/", "/lib/")
-    with open(dst, "w", encoding="utf-8") as f:
+
+    def quitar(bloque):
+        if bloque.startswith('(pad ""'):
+            # La pasta de D1-D3 esta en x -2.54/0/2.54; la de las pastillas en
+            # x +-8.89.
+            x = float(re.search(r"\(at\s+([-\d.]+)", bloque).group(1))
+            return abs(x) < 8
+        return ("np_thru_hole" in bloque[:30]
+                or bloque.startswith(('(pad "D1"', '(pad "D2"', '(pad "D3"')))
+
+    s = _quitar_pads(s, quitar)
+    s = s.replace("${KICAD9_3DMODEL_DIR}/Module.3dshapes/RaspberryPi_Pico.wrl",
+                  "${KIPRJMOD}/lib/gamesetup_fp.3dshapes/RP2350-Plus_Module.step")
+    s = s.replace('(footprint "RaspberryPi_Pico_SMD_HandSolder"',
+                  f'(footprint "{CASTELLATED_NAME}"')
+    with open(os.path.join(OUT, CASTELLATED_NAME + ".kicad_mod"), "w",
+              encoding="utf-8", newline="") as f:
         f.write(s)
     return True
 
@@ -177,9 +237,8 @@ def main():
     with open(path, "w", encoding="utf-8") as f:
         f.write(build_panel())
     print(f"OK -> {path}")
-    if copiar_socket_de_v1():
-        print(f"OK -> {os.path.join(OUT, 'RP2350-Plus_Socket.kicad_mod')} "
-              f"(copiado de V1)")
+    if derivar_modulo_castellated():
+        print(f"OK -> {os.path.join(OUT, CASTELLATED_NAME + '.kicad_mod')}")
 
 
 if __name__ == "__main__":
