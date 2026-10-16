@@ -16,13 +16,12 @@
 #define GAMEPI_I2S_SM 0
 // RP2350-Plus onboard LED (module-internal GP25, not on the header).
 #define GAMEPI_LED_PIN 25
-// The carrier PCB has no clock jack nor trigger jack. GP27/GP28 are the two
-// FREE (unconnected, ADC-capable) header pins per pinmap.py; parking the
-// clock input there with its pull-up reads idle HIGH (no false clock pulses,
-// same reasoning as the GamePi13 branch in main()), and the trigger output
-// toggles a pin nothing listens to. Wire them to a jack and they just work.
-#define GAMEPI_CLOCK_PIN 27
-#define GAMEPI_TRIGO_PIN 28
+// The carrier PCB has no clock jack nor trigger jack, and GP27/GP28 (the last
+// two header pins the module exposes) are MIDI_RX/MIDI_TX. -1 = not present:
+// main.cpp skips the clock-in setup (the clock reads idle) and the trigger
+// output.
+#define GAMEPI_CLOCK_PIN -1
+#define GAMEPI_TRIGO_PIN -1
 
 // The 8 pikocore music buttons, pikocore order 0..7 (same as GamePi13):
 //                            Up            Dn              Lt              Rt              Y          X          B          A

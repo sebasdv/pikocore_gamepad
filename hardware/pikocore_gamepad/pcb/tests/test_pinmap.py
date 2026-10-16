@@ -33,9 +33,14 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_SCK"), pinmap.SPI0_SCK_OK)
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
-    def test_quedan_exactamente_dos_pines_libres(self):
-        # GP27/28, con ADC. GP26 es LCD_TE (tearing effect del panel).
-        self.assertEqual(len(pinmap.FREE), 2)
+    def test_midi_usa_los_dos_pines_libres_del_modulo(self):
+        # El modulo expone GP0-22 y GP26-28; GP27/28 eran los unicos libres.
+        self.assertEqual(pinmap.GPIO[28], "MIDI_TX")
+        self.assertEqual(pinmap.GPIO[27], "MIDI_RX")
+        self.assertEqual(pinmap.FREE, ())
+
+    def test_midi_tx_es_un_pin_tx_de_uart0(self):
+        self.assertIn(pinmap.gpio_of("MIDI_TX"), pinmap.UART0_TX_OK)
 
     def test_los_libres_no_chocan_con_los_asignados(self):
         self.assertEqual(set(pinmap.FREE) & set(pinmap.GPIO.keys()), set())
@@ -48,13 +53,6 @@ class TestPinmap(unittest.TestCase):
         declarados = set(pinmap.GPIO) | set(pinmap.FREE)
         self.assertEqual(expuestos - declarados, set(),
                          "GPIO expuestos sin declarar")
-
-    def test_quedan_dos_pines_con_adc_libres(self):
-        # GP26/27/28 son los unicos con ADC del header. GP26 es LCD_TE;
-        # GP27/28 siguen disponibles (sensado de bateria, por ejemplo).
-        for g in (27, 28):
-            self.assertIn(g, pinmap.FREE)
-        self.assertEqual(pinmap.gpio_of("LCD_TE"), 26)
 
     def test_el_pin_fisico_del_header_se_deriva_bien(self):
         # GP0 es el pin 1 del header tipo Pico; GP22 es el pin 29.
@@ -125,6 +123,32 @@ class TestCheckPinmap(unittest.TestCase):
         from checks import check_pinmap
         self.assertEqual(
             check_pinmap.sobrantes({"LCD_SCK": 2}, {"PIN_LCD_SCK": 2}), [])
+
+
+class TestFirmwareStubs(unittest.TestCase):
+    """src/hw_gamepi13.h elige pines SOLO de firmware (LED, stubs de clock y
+    trigger) con numeros literales que G-4 no ve: G-4 lee config.h. Si uno
+    de esos literales cae en un GPIO que la placa ya usa, compila y se
+    descubre al enchufar."""
+
+    def _bloque_gamepad(self):
+        import os, re
+        raiz = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            "..", "..", "..", ".."))
+        txt = open(os.path.join(raiz, "src", "hw_gamepi13.h"), encoding="utf-8").read()
+        ini = txt.index("#if PIKO_GAMEPAD")
+        bloque = txt[ini:txt.index(chr(10) + "#else", ini)]   # la rama GamePi13 no cuenta
+        return dict(re.findall(r"#define\s+(GAMEPI_\w+_PIN)\s+(-?\d+)", bloque))
+
+    def test_los_pines_solo_de_firmware_no_pisan_la_placa(self):
+        # -1 = sin pin, el firmware lo salta. 25 = LED onboard del modulo, que
+        # no sale al header. Cualquier otro numero pisaria un GPIO de la placa
+        # (GP27/28 son MIDI_RX/MIDI_TX).
+        pines = self._bloque_gamepad()
+        self.assertTrue(pines, "no se encontro ningun GAMEPI_*_PIN literal")
+        for nombre, n in pines.items():
+            self.assertIn(int(n), (-1, 25),
+                          f"{nombre} = {n}: solo -1 (sin pin) o 25 (LED del modulo)")
 
 
 if __name__ == "__main__":
