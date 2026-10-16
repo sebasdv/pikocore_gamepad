@@ -1,7 +1,7 @@
 (export (version "E")
   (design
     (source "C:\\pikocore_gamepad\\hardware\\pikocore_gamepad\\pcb\\pikocore_gamepad.kicad_sch")
-    (date "2026-10-16T16:48:19-0300")
+    (date "2026-10-16T17:20:58-0300")
     (tool "Eeschema 9.0.1")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
@@ -531,16 +531,17 @@
       (tstamps "b1e7c2a4-9f31-4d6e-8a52-0000000000b2"))
     (comp (ref "U1")
       (value "RP2350-Plus-16MB")
-      (footprint "gamesetup_fp:RP2350-Plus_Socket")
+      (footprint "gamesetup_fp:RP2350-Plus_Castellated")
       (datasheet "https://www.waveshare.com/wiki/RP2350-Plus")
       (description "Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. GP23/24/25 son internos del modulo y GP29 no sale al header.")
       (fields
-        (field (name "Footprint") "gamesetup_fp:RP2350-Plus_Socket")
+        (field (name "Footprint") "gamesetup_fp:RP2350-Plus_Castellated")
         (field (name "Datasheet") "https://www.waveshare.com/wiki/RP2350-Plus")
         (field (name "Description") "Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. GP23/24/25 son internos del modulo y GP29 no sale al header."))
       (libsource (lib "pikocore_gamepad") (part "RP2350-Plus") (description "Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. GP23/24/25 son internos del modulo y GP29 no sale al header."))
       (property (name "Sheetname") (value "MCU, pantalla y controles"))
       (property (name "Sheetfile") (value "02_mcu_controles.kicad_sch"))
+      (property (name "dnp"))
       (sheetpath (names "/MCU, pantalla y controles/") (tstamps "/b1e7c2a4-9f31-4d6e-8a52-f00000000001/"))
       (tstamps "b1e7c2a4-9f31-4d6e-8a52-000000000049"))
     (comp (ref "C8")

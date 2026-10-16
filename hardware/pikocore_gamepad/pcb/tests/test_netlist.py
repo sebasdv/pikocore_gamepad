@@ -516,6 +516,15 @@ class TestModuloCastellated(unittest.TestCase):
         for d in ("D1", "D2", "D3"):
             self.assertNotIn(f'(pad "{d}"', txt)
 
+    def test_la_pasta_sin_nombre_es_solo_la_de_las_pastillas(self):
+        # 40 pads de pasta, uno por pastilla en x +-8.89; los 3 que la huella
+        # oficial trae para D1-D3 caerian bajo el modulo.
+        xs = [float(m.group(1)) for m in re.finditer(
+            r'\(pad\s+""[^(]*\(at\s+([-\d.]+)', self._txt())]
+        self.assertEqual(len(xs), 40)
+        for x in xs:
+            self.assertAlmostEqual(abs(x), 8.89, places=2)
+
     def test_u1_usa_la_huella_castellated_y_es_soldadura_manual(self):
         u1 = next(i for i in netlist.INSTANCES if i[1] == "U1")
         self.assertEqual(u1[6]["FP"], self.FPID)

@@ -66,6 +66,16 @@ import pcbnew
 HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
 
+# El modulo soldado plano por castellations. Sus pastillas se sueldan a mano:
+# una via en la pastilla (o pegada a ella) chupa el estano por el taladro, y
+# debajo del modulo ademas queda tapada. Su via va AFUERA de la caja de sus
+# pastillas, a AIRE_MODULO del cobre, unida por un tramo en B.Cu.
+MODULO = "U1"
+AIRE_MODULO = 0.3
+# Del centro de la pastilla al borde exterior de su cobre hay 1.6mm; mas el
+# aire y el radio de la via, 2.15mm.
+DIST_MODULO = (2.2, 2.4, 2.6, 2.8, 3.0)
+
 # net -> capa donde vive su plano. Si se agrega un plano nuevo, va aca.
 PLANOS = {"GND": "GND", "3V3": "PWR"}
 
@@ -272,7 +282,24 @@ def ancho_stub(h):
     return ancho if ancho >= ANCHO_STUB_MIN else None
 
 
-def lugar_para_via(board, pad, diam, ancho):
+def toca_caja(x, y, r, caja):
+    """True si el circulo (x, y, r) pisa el rectangulo caja=(x0, y0, x1, y1)."""
+    x0, y0, x1, y1 = caja
+    return x0 - r < x < x1 + r and y0 - r < y < y1 + r
+
+
+def caja_modulo(board):
+    """(x0, y0, x1, y1) en mm del cobre de las pastillas del modulo + AIRE."""
+    t = pcbnew.ToMM
+    cajas = [p.GetBoundingBox() for p in
+             board.FindFootprintByReference(MODULO).Pads() if p.GetNumber()]
+    return (min(t(b.GetLeft()) for b in cajas) - AIRE_MODULO,
+            min(t(b.GetTop()) for b in cajas) - AIRE_MODULO,
+            max(t(b.GetRight()) for b in cajas) + AIRE_MODULO,
+            max(t(b.GetBottom()) for b in cajas) + AIRE_MODULO)
+
+
+def lugar_para_via(board, pad, diam, ancho, dists=DIST_FANOUT, fuera_de=None):
     """Punto (x, y) en mm donde SI entra una via de `diam` unida al pad, o None.
 
     Barre en circulo alrededor del pad, de mas cerca a mas lejos. La distancia
@@ -289,12 +316,14 @@ def lugar_para_via(board, pad, diam, ancho):
     necesita_via = diam / 2.0 + CLEARANCE
     necesita_pista = ancho / 2.0 + CLEARANCE
 
-    for dist in DIST_FANOUT:
+    for dist in dists:
         candidatos = []
         for paso in range(360 // PASO_ANG):
             ang = math.radians(paso * PASO_ANG)
             x = px + dist * math.cos(ang)
             y = py + dist * math.sin(ang)
+            if fuera_de and toca_caja(x, y, diam / 2.0, fuera_de):
+                continue
             h_via = hueco_en(board, x, y, net)
             if h_via < necesita_via or via_prohibida(board, x, y, diam):
                 continue
@@ -396,6 +425,22 @@ def main():
             vecinas += 1
             continue
         h = hueco_libre(board, pad)
+        if ref == MODULO:
+            # Nunca en la pastilla: via afuera del modulo + tramo.
+            ancho = ancho_stub(h)
+            destino = (lugar_para_via(board, pad, VIA_D_MIN, ancho,
+                                      DIST_MODULO, caja_modulo(board))
+                       if ancho else None)
+            if destino:
+                poner_stub(board, pad, destino[0], destino[1], VIA_D_MIN, ancho)
+                desplazadas += 1
+                fanouts.append(f"{ref}.{pad.GetNumber()} [{pad.GetNetname()}]"
+                               f" -> via fuera del modulo en "
+                               f"({destino[0]:.2f}, {destino[1]:.2f})")
+            else:
+                sin_lugar.append(f"{ref}.{pad.GetNumber()} "
+                                 f"[{pad.GetNetname()}] fuera del modulo")
+            continue
         if via_prohibida(board, pcbnew.ToMM(pad.GetPosition().x),
                          pcbnew.ToMM(pad.GetPosition().y), VIA_D):
             h = min(h, HUECO_MIN - 0.001)   # en el centro no: desplazarla

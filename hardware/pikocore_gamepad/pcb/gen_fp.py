@@ -20,6 +20,7 @@ ORIGEN del footprint del panel = centro del AREA ACTIVA: es lo que se mide
 sobre la placa impresa y lo que decide la ergonomia.
 """
 import os
+import re
 import uuid as uuidlib
 
 import params
@@ -201,7 +202,9 @@ def _quitar_pads(s, quitar):
 def derivar_modulo_castellated():
     """Huella oficial de la Pico (SMD hand solder) sin los 4 agujeros de
     montaje (el modulo no los tiene y su dorso debe quedar libre) ni los pads
-    de depuracion D1-D3. Quedan los pads 1-40 y los auxiliares sin nombre."""
+    de depuracion D1-D3, ni la pasta sin nombre que la huella trae para esos
+    tres (bajo el modulo, un esten imprimiria bolitas de estano). Quedan los
+    pads 1-40 y los 40 de pasta sin nombre de las pastillas."""
     if not os.path.isfile(PICO_SMD_HAND):
         print(f"AVISO: no se encontro {PICO_SMD_HAND}")
         return False
@@ -209,6 +212,11 @@ def derivar_modulo_castellated():
         s = f.read()
 
     def quitar(bloque):
+        if bloque.startswith('(pad ""'):
+            # La pasta de D1-D3 esta en x -2.54/0/2.54; la de las pastillas en
+            # x +-8.89.
+            x = float(re.search(r"\(at\s+([-\d.]+)", bloque).group(1))
+            return abs(x) < 8
         return ("np_thru_hole" in bloque[:30]
                 or bloque.startswith(('(pad "D1"', '(pad "D2"', '(pad "D3"')))
 

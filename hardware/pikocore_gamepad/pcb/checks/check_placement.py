@@ -113,6 +113,21 @@ def main():
                     and mx0 < x < mx1 and my0 < y < my1):
                 bajo_modulo.append(f"{fp.GetReference()}.{p.GetNumber()}")
 
+    # Sus pastillas se sueldan a mano: una via encima chupa el estano.
+    via_en_modulo = []
+    u1 = board.FindFootprintByReference("U1")
+    for v in board.GetTracks():
+        if v.GetClass() != "PCB_VIA":
+            continue
+        r = v.GetWidth(pcbnew.F_Cu) // 2
+        for p in (u1.Pads() if u1 else []):
+            if not p.GetNumber():
+                continue
+            caja = p.GetBoundingBox()
+            caja.Inflate(r)
+            if caja.Contains(v.GetPosition()):
+                via_en_modulo.append(f"U1.{p.GetNumber()} [{v.GetNetname()}]")
+
     print(f"{len(piezas)} piezas, {len(pads)} pads. "
           f"Placa {bx1 - bx0:.2f} x {by1 - by0:.2f} mm.\n")
 
@@ -134,7 +149,12 @@ def main():
     if bajo_modulo:
         print()
 
-    if not fuera and not choques and not bajo_modulo:
+    for n in via_en_modulo:
+        print(f"VIA EN PASTILLA DEL MODULO: {n}")
+    if via_en_modulo:
+        print()
+
+    if not fuera and not choques and not bajo_modulo and not via_en_modulo:
         print("OK: sin solapamientos de pads y todo dentro de la placa.")
         return 0
     return 1

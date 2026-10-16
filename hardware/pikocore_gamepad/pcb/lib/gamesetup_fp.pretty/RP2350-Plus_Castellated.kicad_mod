@@ -1265,33 +1265,6 @@
 		(uuid "e0dc1f2d-27e3-4c11-940f-5b7b38fa37e3")
 	)
 	(pad "" smd rect
-		(at -2.54 23.9)
-		(size 2.2 3.8)
-		(drill
-			(offset 0 0.8)
-		)
-		(layers "F.Paste")
-		(uuid "8266c0a8-d83b-4f7e-bf41-0b1961612f17")
-	)
-	(pad "" smd rect
-		(at 0 23.9)
-		(size 2.2 3.8)
-		(drill
-			(offset 0 0.8)
-		)
-		(layers "F.Paste")
-		(uuid "417681b2-590d-44f4-a35f-5c479ab24046")
-	)
-	(pad "" smd rect
-		(at 2.54 23.9)
-		(size 2.2 3.8)
-		(drill
-			(offset 0 0.8)
-		)
-		(layers "F.Paste")
-		(uuid "e8052b80-af63-45c5-9494-2c48b90996a8")
-	)
-	(pad "" smd rect
 		(at 8.89 -24.13)
 		(size 3.8 2.2)
 		(drill
