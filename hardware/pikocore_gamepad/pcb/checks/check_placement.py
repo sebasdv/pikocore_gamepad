@@ -32,6 +32,8 @@ PCB = os.path.join(PCB_DIR, "pikocore_gamepad.kicad_pcb")
 
 MARGEN_BORDE = 1.0    # mm minimos entre cobre y borde de placa
 
+from placements import MODULE_BOX   # noqa: E402  (el modulo apoya plano)
+
 
 def pads_de(fp):
     """[(ref.num, caja, pasante, cara)] de cada pad, en mm."""
@@ -100,6 +102,17 @@ def main():
             cara = "misma cara" if fa == fb else "caras opuestas, hay pasante"
             choques.append((na, nb, cara))
 
+    # El modulo va soldado plano al dorso: una cola pasante del frente
+    # debajo de el lo levanta (o lo cortocircuita contra su cara inferior).
+    mx0, my0, mx1, my1 = MODULE_BOX
+    bajo_modulo = []
+    for fp in board.GetFootprints():
+        for p in fp.Pads():
+            x, y = pcbnew.ToMM(p.GetX()), pcbnew.ToMM(p.GetY())
+            if (p.GetAttribute() == pcbnew.PAD_ATTRIB_PTH
+                    and mx0 < x < mx1 and my0 < y < my1):
+                bajo_modulo.append(f"{fp.GetReference()}.{p.GetNumber()}")
+
     print(f"{len(piezas)} piezas, {len(pads)} pads. "
           f"Placa {bx1 - bx0:.2f} x {by1 - by0:.2f} mm.\n")
 
@@ -116,7 +129,12 @@ def main():
             print(f"  ... y {len(choques) - 20} mas")
         print()
 
-    if not fuera and not choques:
+    for n in bajo_modulo:
+        print(f"TACTO BAJO EL MODULO: {n}")
+    if bajo_modulo:
+        print()
+
+    if not fuera and not choques and not bajo_modulo:
         print("OK: sin solapamientos de pads y todo dentro de la placa.")
         return 0
     return 1

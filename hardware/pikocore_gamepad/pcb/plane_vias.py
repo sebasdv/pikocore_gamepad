@@ -237,6 +237,20 @@ def hueco_en(board, x, y, net):
     return best
 
 
+def via_prohibida(board, x, y, diam):
+    """True si una via de `diam` en (x, y) toca un area que prohibe vias.
+
+    Las que importan son las del modulo soldado plano (U1): "Pad Keep Out
+    TPn", debajo de sus pads de prueba. El conector del flex (J4, frente)
+    queda justo detras, y sin esto sus vias a GND caian adentro.
+    """
+    p = pcbnew.VECTOR2I(mm(x), mm(y))
+    zonas = list(board.Zones()) + [z for fp in board.GetFootprints()
+                                   for z in fp.Zones()]
+    return any(z.GetIsRuleArea() and z.GetDoNotAllowVias()
+               and z.Outline().Collide(p, mm(diam / 2.0)) for z in zonas)
+
+
 def ancho_stub(h):
     """Ancho del tramo que sale de un pad con `h` mm de hueco, o None.
 
@@ -282,7 +296,7 @@ def lugar_para_via(board, pad, diam, ancho):
             x = px + dist * math.cos(ang)
             y = py + dist * math.sin(ang)
             h_via = hueco_en(board, x, y, net)
-            if h_via < necesita_via:
+            if h_via < necesita_via or via_prohibida(board, x, y, diam):
                 continue
             # hueco_en ignora el cobre de la MISMA net, asi que dos fanouts
             # vecinos del conector del FPC (3V3 en los pads 4/5/6, GND en
@@ -382,6 +396,9 @@ def main():
             vecinas += 1
             continue
         h = hueco_libre(board, pad)
+        if via_prohibida(board, pcbnew.ToMM(pad.GetPosition().x),
+                         pcbnew.ToMM(pad.GetPosition().y), VIA_D):
+            h = min(h, HUECO_MIN - 0.001)   # en el centro no: desplazarla
         if h >= HUECO_NORMAL:
             poner_via(board, pad, VIA_D)
             puestas += 1

@@ -353,6 +353,91 @@ class TestFootprints(unittest.TestCase):
                          f"regiones fuera de la placa "
                          f"{placements.BOARD_W}x{placements.BOARD_H}: {malas}")
 
+    def test_el_frente_es_la_disposicion_micro(self):
+        # Spec 2026-10-15 (rama chip-down): panel al centro, cruceta a la
+        # izquierda y rombo a la derecha, todos centrados en y=24 (area
+        # activa del panel). Las cruces miden 8.5mm de paso; cuerpos =
+        # origen + (3.25, 2.25).
+        import placements
+        pos = {ref: (x, y) for ref, _, x, y, _, _ in placements.PLACEMENTS}
+        self.assertEqual(pos["LCD1"], (50.0, 24.0))
+        cuerpo = lambda r: (pos[r][0] + 3.25, pos[r][1] + 2.25)
+        self.assertEqual(cuerpo("SW1"), (18.0, 15.5))   # UP
+        self.assertEqual(cuerpo("SW3"), (9.5, 24.0))    # LEFT
+        self.assertEqual(cuerpo("SW4"), (26.5, 24.0))   # RIGHT
+        self.assertEqual(cuerpo("SW2"), (18.0, 32.5))   # DOWN
+        self.assertEqual(cuerpo("SW5"), (82.0, 15.5))   # X
+        self.assertEqual(cuerpo("SW6"), (73.5, 24.0))   # Y
+        self.assertEqual(cuerpo("SW7"), (90.5, 24.0))   # A
+        self.assertEqual(cuerpo("SW8"), (82.0, 32.5))   # B
+        self.assertEqual(cuerpo("SW12"), (76.0, 46.0))  # SELECT
+        self.assertEqual(cuerpo("SW11"), (88.0, 46.0))  # START
+        self.assertEqual(pos["J4"], (50.0, 52.4))
+
+    def test_todo_el_frente_cae_dentro_de_100x60(self):
+        import placements
+        for ref, _, x, y, _, flip in placements.PLACEMENTS:
+            if flip:
+                continue
+            self.assertTrue(0 <= x <= 100 and 0 <= y <= 60,
+                            f"{ref} en ({x}, {y}) fuera de la placa")
+
+    def test_los_gatillos_van_en_las_esquinas_superiores(self):
+        # Origen = pad 1; el cuerpo esta 2.25 hacia +X: 9.75 y 85.75 dejan
+        # los cuerpos en 12 y 88, a 12mm de cada lateral.
+        import placements
+        pos = {ref: (x, y) for ref, _, x, y, _, _ in placements.PLACEMENTS}
+        self.assertEqual(pos["SW9"], (9.75, 1.89))
+        self.assertEqual(pos["SW10"], (85.75, 1.89))
+        self.assertEqual(pos["SW9"][0] + 2.25, 12.0)
+        self.assertEqual(pos["SW10"][0] + 2.25, 88.0)
+
+    def test_el_modulo_va_en_su_posicion_y_en_el_dorso(self):
+        # Spec: centro (50, 33), eje largo en Y, soldado plano al DORSO.
+        # MODULE_BOX = centro +- (11.1, 25.5): hasta donde llegan sus pads.
+        import placements
+        self.assertEqual(placements.MODULE_POS, (50.0, 33.0))
+        self.assertEqual(placements.MODULE_BOX, (38.9, 7.5, 61.1, 58.5))
+        u1 = [r for r in placements.PLACEMENTS if r[0] == "U1"]
+        self.assertEqual(len(u1), 1)
+        _, _, x, y, _, flip = u1[0]
+        self.assertEqual((x, y), placements.MODULE_POS)
+        self.assertTrue(flip, "U1 va soldado al dorso")
+
+    def test_nada_anclado_cae_dentro_del_modulo(self):
+        # El modulo apoya plano: debajo no puede haber ninguna pieza del dorso.
+        import placements
+        x0, y0, x1, y1 = placements.MODULE_BOX
+        adentro = [ref for ref, _, x, y, _, flip in placements.PLACEMENTS
+                   if flip and ref != "U1" and x0 < x < x1 and y0 < y < y1]
+        self.assertEqual(adentro, [], f"piezas bajo el modulo: {adentro}")
+
+    def test_las_regiones_libres_no_pisan_el_modulo(self):
+        import placements
+        m = placements.MODULE_BOX
+        self.assertTrue(placements.FREE_REGIONS, "sin regiones para el empaquetador")
+        for r in placements.FREE_REGIONS:
+            solapa = not (r[2] <= m[0] or r[0] >= m[2]
+                          or r[3] <= m[1] or r[1] >= m[3])
+            self.assertFalse(solapa, f"region {r} pisa el modulo {m}")
+
+    def test_los_jacks_estan_donde_dice_el_spec(self):
+        # MIDI IN arriba a la izquierda, MIDI OUT arriba a la derecha (el
+        # extremo superior del modulo, y=7.5, tapa el centro del borde), y
+        # auriculares por el borde IZQUIERDO, girado 90.
+        import placements
+        pos = {ref: (x, y, rot % 360, flip)
+               for ref, _, x, y, rot, flip in placements.PLACEMENTS}
+        for ref in ("J1", "J6", "J7"):
+            self.assertTrue(pos[ref][3], f"{ref} tiene que ir en el dorso")
+        x, y, _, _ = pos["J6"]
+        self.assertTrue(25 <= x <= 36 and y == 3.0, f"J6 en {pos['J6']}")
+        x, y, _, _ = pos["J7"]
+        self.assertTrue(64 <= x <= 75 and y == 3.0, f"J7 en {pos['J7']}")
+        x, y, rot, _ = pos["J1"]
+        self.assertTrue(x == 3.0 and 40 <= y <= 50 and rot in (90, 270),
+                        f"J1 en {pos['J1']}")
+
     def test_los_gatillos_L_y_R_quedan_simetricos(self):
         # El origen del tact angulado es el PAD 1, que no esta en el centro de
         # la pieza: su cuerpo esta 2.25mm corrido en X local. Como L y R usan
