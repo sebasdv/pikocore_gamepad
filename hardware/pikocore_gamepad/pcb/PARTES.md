@@ -73,11 +73,9 @@ PCM5102A (0.65 mm). Va sí o sí por ensamblado de JLC.
 |---|---|---|---|
 | J1 | Jack audio 3.5 mm THT con contacto NC | 1 | **V-3**, ver abajo |
 | SW1–SW12 | Tact 6×6 mm THT | 12 | modelo y fuerza de actuación (100–160 gf) |
-| J2, J3 | Jack TRS 3.5 mm THT | 2 | 3 conductores, sin detección |
-| J6 | Socket microSD push-push | 1 | el pinout varía entre fabricantes: hace falta el datasheet |
+| J6, J7 | Jack TRS 3.5 mm THT (MIDI IN / OUT, tipo A) | 2 | 3 conductores, sin detección |
 
-Fuera del netlist pero necesarios: **2 × header hembra 1×20** (el socket del
-RP2350-Plus), **1 × header macho 1×7** (para el módulo LCD), el **parlante 8 Ω**
+Fuera del netlist pero necesarios: **1 × header macho 1×7** (para el módulo LCD), el **parlante 8 Ω**
 y la **batería LiPo** con conector PH1.25.
 
 ### Pinouts sin verificar

@@ -118,8 +118,8 @@ ALL = {
     "BOARD_H": Param(
         60.00, True,
         "Eleccion de diseno de la variante con modulo (Micro 100x60 + MIDI), "
-        "no una medicion: el modulo RP2350-Plus va en un socket de header de "
-        "40 pines y la placa baja de 80 a 60. El DXF de Rhino (80) quedo "
+        "no una medicion: el modulo RP2350-Plus va soldado plano al dorso "
+        "por castellations y la placa baja de 80 a 60. El DXF de Rhino (80) quedo "
         "desactualizado.",
         "V-0"),
 }

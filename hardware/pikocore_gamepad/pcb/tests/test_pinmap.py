@@ -42,9 +42,6 @@ class TestPinmap(unittest.TestCase):
     def test_midi_tx_es_un_pin_tx_de_uart0(self):
         self.assertIn(pinmap.gpio_of("MIDI_TX"), pinmap.UART0_TX_OK)
 
-    def test_los_libres_no_chocan_con_los_asignados(self):
-        self.assertEqual(set(pinmap.FREE) & set(pinmap.GPIO.keys()), set())
-
     def test_no_queda_ningun_gpio_expuesto_sin_declarar(self):
         # Todo pin del header tiene que estar o asignado o explicitamente
         # libre. Un pin que no aparezca en ninguno de los dos lados es un

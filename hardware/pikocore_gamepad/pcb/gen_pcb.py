@@ -145,7 +145,8 @@ def setup_stackup(board):
 def setup_netclasses(board):
     """Netclass Power a 0.4mm para los tres rieles.
 
-    0.4 y no 0.5: el hueco entre pads del socket U1 es 0.84mm, y una pista de
+    0.4 y no 0.5: el hueco entre pads castellated de U1 es 0.34mm (pads 3.8x2.2
+    a paso 2.54) y una pista de
     0.4 mas 2x0.2 de clearance da 0.8, que pasa justo. Con 0.5 serian 0.9 y no
     entra. El DSN lleva la clase y freerouting la respeta.
     """
@@ -482,7 +483,8 @@ def _zona(board, layer, net, x0, y0, x1, y1, redondeada=True):
         z.SetNet(net)
     # 0.2 y no 0.25: con 0.25 el relleno no pasaba entre taladros vecinos y el
     # plano quedaba en 15 islas. El paso critico es la columna de pads del
-    # socket U1 (2.54mm entre centros, pad de 1.7): con 0.25 de clearance el
+    # modulo U1 (2.54mm entre centros, pad castellated de 2.2 de alto, hueco
+    # 0.34mm): con 0.25 de clearance el
     # cuello queda en 0.34mm y con min_thickness 0.25 apenas entra; a 0.2 el
     # cuello sube a 0.44 y pasa con margen.
     z.SetLocalClearance(mm(0.2))

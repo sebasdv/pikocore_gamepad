@@ -57,8 +57,9 @@ OUT = os.path.join(HERE, "pikocore_gamepad_template.dxf")
 
 
 # Excepciones al criterio "THT = mecanico": conectores o controles que vengan
-# en SMD y que igual los ubique el enclosure. Hoy no hay ninguno.
-MECANICOS_SMD = set()
+# en SMD y que igual los ubique el enclosure. U1: el modulo castellated es
+# todo SMD y es la pieza mecanica mayor (corte USB-C, acceso BOOT/RESET).
+MECANICOS_SMD = {"U1"}
 
 
 def to_mm(v):

@@ -147,7 +147,7 @@ module outline; the USB-C end faces the bottom edge in a render.
 
 ## Not verified (state on 2026-10-16, after routing)
 
-The board is routed and every automated gate except G-0 is green: 202 tests,
+The board is routed and every automated gate except G-0 is green: 201 tests,
 G-5/G-4/G-2/placement, ERC 0, DRC 0 errors / 0 unconnected / 0 parity (15
 silkscreen and library warnings). **G-0 stays red for `LCD_FPC_PIN_ORDER`**, as
 on `main`, until the panel is measured; `gen_fab.py --force` therefore writes
@@ -168,6 +168,11 @@ the missing unsuffixed zip for the same reason. What no gate checks:
 - Enclosure: USB-C cutout at the bottom edge, access holes for BOOT/RESET,
   jack cut-outs (MIDI at the top edge, phones on the left edge), and the LiPo's
   place behind the module.
+- MIDI decoupling: U9 has no bypass capacitor of its own and the only MIDI
+  100 nF, C56, sits ~27 mm from U10. It should work at 31.25 kbaud off the 3V3
+  plane, but a 100 nF at U9 pin 5 and C56 next to U10 would need one more
+  placement + routing cycle.
+- The module's 3D model in the render is offset (renders only, not the board).
 - No board has been built.
 
 ## Out of scope
