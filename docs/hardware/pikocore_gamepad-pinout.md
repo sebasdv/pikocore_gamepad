@@ -44,7 +44,7 @@ when built with `-DPIKO_GAMEPAD=ON` (see `hardware/pikocore_gamepad/README.md`).
 Display (since 2026-10-14): bare 1.3" panel DisplayModule DM-TFT13-377, 24-pin
 0.5 mm FPC into J4 (XUNPU FPC-05FB-24PH20). 4-SPI with IM=1; CS is tied to GND
 (always selected, as the old 7-pin module was), RD and DB0–DB7 to GND. Backlight:
-2 white LEDs from VSYS through R21 (24 Ω) and Q1 (2N7002) switched by `LCD_BLK`.
+2 white LEDs from VSYS through R21 (27 Ω) and Q1 (2N7002) switched by `LCD_BLK`.
 
 The electrical topology is the same one the superseded from-scratch plan called for
 — each button switches its GPIO net to GND, and firmware enables `gpio_pull_up()` on

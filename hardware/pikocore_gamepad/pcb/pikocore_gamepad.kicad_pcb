@@ -19564,7 +19564,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "24R"
+		(property "Value" "27R"
 			(at 0 -1.68 0)
 			(layer "Cmts.User")
 			(uuid "58c4dc54-eb73-4829-b930-d120effff45b")

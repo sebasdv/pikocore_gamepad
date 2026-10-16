@@ -456,10 +456,12 @@ INSTANCES = [
     # Desde VSYS (3.4-4.2V con LiPo) y no desde 3V3 (0.3V de margen sobre la
     # Vf: la corriente quedaria a merced de la dispersion del LED) ni desde
     # el riel de 5V (es el riel del op-amp y el PWM le meteria ruido).
-    # R21 fija el brillo maximo: a 3.9V nominal, (3.9-3.0)/24 = 37mA.
-    # ponytail: R21 es la perilla de calibracion; con la LiPo llena da ~50mA
-    # y vacia ~17mA. Si molesta, driver de corriente constante en V2.
-    ("R", "R21", "24R", 190.0, 20.0,
+    # R21 fija el brillo maximo: a 3.9V nominal, (3.9-3.0)/27 = 33mA.
+    # ponytail: R21 es la perilla de calibracion; con la LiPo llena da ~44mA
+    # y vacia ~15mA. 27R y no 24R: el 24R (C17576) no tiene stock en JLC y no
+    # hay 24R de reemplazo; 27R es el valor E24 vecino y queda bajo los 40mA del
+    # panel casi todo el rango. Si molesta, driver de corriente constante en V2.
+    ("R", "R21", "27R", 190.0, 20.0,
      {"1": "VSYS", "2": "BL_A"}, {"FP": C0805_FP}),
     ("Q_NMOS", "Q1", "2N7002", 190.0, 40.0,
      {"1": "LCD_BLK", "2": "GND", "3": "BL_K"},
@@ -796,6 +798,8 @@ LCSC_PASIVOS = {
     ("10R",  R_FP): "C22859",   # 0603WAF100JT5E
     ("33R",  R_FP): "C23140",   # 0603WAF330JT5E
     ("220R", R_FP): "C22962",   # 0603WAF2200T5E
+    # Backlight (R21, 0805): UNI-ROYAL 0805W8F270JT5E, 1%, JLC preferred.
+    ("27R",  C0805_FP): "C17594",
     # Ceramicos.
     ("100nF", C_FP):     "C14663",   # 50V X7R
     ("1uF",   C_FP):     "C15849",   # 50V X5R

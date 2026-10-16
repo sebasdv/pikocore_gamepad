@@ -290,7 +290,7 @@ NOTAS = {
         "0.5mm al conector J4 (XUNPU FPC-05FB-24PH20, contactos de las dos caras). 4-SPI con\n"
         "IM=1 y CS A MASA (siempre seleccionado, como hacia el modulo de 7 pines): el bus SPI0\n"
         "sigue sin poder compartirse. RD y DB0-7 a masa, TE a GP26. Backlight: 2 LED blancos en\n"
-        "paralelo (3.0V, 40mA) desde VSYS por R21 (24R, PERILLA de brillo maximo) y Q1 (2N7002)\n"
+        "paralelo (3.0V, 40mA) desde VSYS por R21 (27R, PERILLA de brillo maximo) y Q1 (2N7002)\n"
         "a masa, con el PWM de LCD_BLK en la puerta y R22 de pulldown. No cuelga del riel de 5V\n"
         "para no meter el PWM en la alimentacion del op-amp.\n"
         "\n"

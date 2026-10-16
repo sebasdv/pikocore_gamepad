@@ -1,7 +1,7 @@
 (export (version "E")
   (design
     (source "C:\\pikocore_gamepad\\hardware\\pikocore_gamepad\\pcb\\pikocore_gamepad.kicad_sch")
-    (date "2026-10-16T17:35:07-0300")
+    (date "2026-10-16T19:43:47-0300")
     (tool "Eeschema 9.0.1")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
@@ -346,14 +346,16 @@
       (sheetpath (names "/MCU, pantalla y controles/") (tstamps "/b1e7c2a4-9f31-4d6e-8a52-f00000000001/"))
       (tstamps "b1e7c2a4-9f31-4d6e-8a52-00000000008d"))
     (comp (ref "R21")
-      (value "24R")
+      (value "27R")
       (footprint "Capacitor_SMD:C_0805_2012Metric")
       (description "Resistencia SMD 0603")
       (fields
+        (field (name "LCSC") "C17594")
         (field (name "Footprint") "Capacitor_SMD:C_0805_2012Metric")
         (field (name "Datasheet"))
         (field (name "Description") "Resistencia SMD 0603"))
       (libsource (lib "pikocore_gamepad") (part "R") (description "Resistencia SMD 0603"))
+      (property (name "LCSC") (value "C17594"))
       (property (name "Sheetname") (value "MCU, pantalla y controles"))
       (property (name "Sheetfile") (value "02_mcu_controles.kicad_sch"))
       (sheetpath (names "/MCU, pantalla y controles/") (tstamps "/b1e7c2a4-9f31-4d6e-8a52-f00000000001/"))
