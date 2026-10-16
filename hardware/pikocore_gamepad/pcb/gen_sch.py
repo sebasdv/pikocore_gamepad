@@ -255,12 +255,14 @@ def verificar_colisiones(instancias):
 # que viene a verificar el diseno sin haberlo hecho.
 NOTAS = {
     "NOTA_RAIZ":
-        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 120x80mm, panel unico.\n"
-        "MCU: modulo Waveshare RP2350-Plus 16MB sobre socket 2x20.\n"
+        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 100x60mm, panel unico.\n"
+        "MCU: modulo Waveshare RP2350-Plus 16MB soldado plano al dorso por sus bordes\n"
+        "castellated.\n"
         "\n"
-        "La bateria LiPo va al PH1.25 DEL PROPIO MODULO, que trae cargador ETA6096 a bordo:\n"
-        "esta placa NO lleva circuito de carga. SW15 no corta la bateria, corta 3V3_EN del\n"
-        "modulo, que tiene pull-up interno de 100K a VSYS.\n"
+        "La bateria LiPo va al conector DEL PROPIO MODULO (modelo sin confirmar), que trae\n"
+        "cargador ETA6096 a bordo: esta placa NO lleva circuito de carga. SW15 no corta la\n"
+        "bateria, corta 3V3_EN del modulo, que tiene pull-up interno de 100K a VSYS.\n"
+        "\n"
         "MIDI IN/OUT en TRS tipo A (hoja 7).\n"
         "\n"
         "TODAS las conexiones son por GLOBAL LABEL, validas en las seis hojas. La hoja raiz\n"
@@ -531,7 +533,7 @@ def build_root():
              '    (title "pikocore_gamepad - indice")',
              f'    (date "{FECHA}")',
              '    (rev "A")',
-             '    (comment 1 "MCU: Waveshare RP2350-Plus 16MB en socket | LiPo al PH1.25 del modulo")',
+             '    (comment 1 "MCU: Waveshare RP2350-Plus 16MB soldado plano | LiPo al conector del modulo")',
              '    (comment 2 "Pinout: pinmap.py, verificado contra el firmware por la puerta G-4")',
              '  )',
              '  (lib_symbols',

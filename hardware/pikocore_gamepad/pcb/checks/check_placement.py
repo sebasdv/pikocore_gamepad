@@ -114,7 +114,9 @@ def main():
                 bajo_modulo.append(f"{fp.GetReference()}.{p.GetNumber()}")
 
     # Sus pastillas se sueldan a mano: una via que toca el cobre de una
-    # chupa el estano. Circulo de la via contra el rectangulo de la pastilla.
+    # chupa el estano. Circulo de la via contra el rectangulo que envuelve la
+    # pastilla: las pastillas son estadios, asi que la prueba es conservadora
+    # (puede marcar una via junto a una esquina redondeada que no la toca).
     via_en_modulo = []
     u1 = board.FindFootprintByReference("U1")
     for v in board.GetTracks():

@@ -8,7 +8,7 @@
       (property "Value" "RP2350-Plus" (at 0 -30.48 0) (effects (font (size 1.27 1.27))))
       (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (property "Datasheet" "https://www.waveshare.com/wiki/RP2350-Plus" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
-      (property "Description" "Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. GP23/24/25 son internos del modulo y GP29 no sale al header." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, USB-C). Pin-compatible Raspberry Pi Pico, soldado plano por sus bordes castellated. GP23/24/25 son internos del modulo y GP29 no sale al header." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "RP2350-Plus_0_1"
         (rectangle (start -15.24 27.94) (end 15.24 -27.94) (stroke (width 0.254) (type default)) (fill (type background)))
       )

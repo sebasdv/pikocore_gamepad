@@ -62,7 +62,8 @@ SYMS = {
     "RP2350-Plus": dict(
         ref="U", w=15.24, h=27.94,
         desc="Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, "
-             "USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. "
+             "USB-C). Pin-compatible Raspberry Pi Pico, soldado plano por sus "
+             "bordes castellated. "
              "GP23/24/25 son internos del modulo y GP29 no sale al header.",
         ds="https://www.waveshare.com/wiki/RP2350-Plus",
         pins=_mcu_pin_geometry(),
