@@ -116,6 +116,11 @@ HOJAS = [
         "R16", "R17", "C25", "C26",                # suma mono
         "U4", "C27", "C28", "J5",                  # class-D y parlante
     ], ["NOTA_JACK", "NOTA_SPK"]),
+
+    ("07_midi", "MIDI - entrada y salida TRS tipo A", [
+        "J7", "U9", "R40", "R41",                  # MIDI OUT
+        "J6", "R42", "D3", "U10", "R43", "C56",    # MIDI IN
+    ], ["NOTA_MIDI"]),
 ]
 
 
@@ -256,8 +261,9 @@ NOTAS = {
         "La bateria LiPo va al PH1.25 DEL PROPIO MODULO, que trae cargador ETA6096 a bordo:\n"
         "esta placa NO lleva circuito de carga. SW15 no corta la bateria, corta 3V3_EN del\n"
         "modulo, que tiene pull-up interno de 100K a VSYS.\n"
+        "MIDI IN/OUT en TRS tipo A (hoja 7).\n"
         "\n"
-        "TODAS las conexiones son por GLOBAL LABEL, validas en las cinco hojas. La hoja raiz\n"
+        "TODAS las conexiones son por GLOBAL LABEL, validas en las seis hojas. La hoja raiz\n"
         "no tiene ninguna senal cableada: solo los simbolos de hoja y esta nota.",
     "NOTA_ALIM":
         "El riel de 5V alimenta SOLO al op-amp U3 (hoja 4). Es a proposito: el riel analogico\n"
@@ -359,6 +365,23 @@ NOTAS = {
         "El apagado del parlante al enchufar auriculares es POR FIRMWARE (JACK_DET -> SPK_SHDN),\n"
         "no por hardware. Es deliberado: permite politicas como oir el parlante con los\n"
         "auriculares puestos, que un corte mecanico prohibe.",
+    "NOTA_MIDI":
+        "MIDI en jacks 3.5mm TRS TIPO A, el estandar de la MIDI Association (RP-054): Tip =\n"
+        "DIN 5, Ring = DIN 4, Sleeve = DIN 2. Los equipos tipo B (Korg y otros) tienen Tip y\n"
+        "Ring al reves: necesitan un adaptador A-B. TX en GP28 (UART0); RX en GP27, que no\n"
+        "tiene UART de hardware: el firmware lo lee con una UART en PIO.\n"
+        "\n"
+        "SALIDA (J7): norma electrica 3.3V (CA-033): 33R de 3V3 al Ring, 10R del buffer al Tip.\n"
+        "U9 (74LVC1G17) pone los 5mA del lazo; el GPIO ve solo una entrada CMOS.\n"
+        "\n"
+        "ENTRADA (J6): el emisor pone corriente por DIN 4 (Ring) y la recibe por DIN 5 (Tip):\n"
+        "Ring -> 220R -> anodo del LED del H11L1, Tip -> catodo (salida Schmitt, colector\n"
+        "abierto, pull-up 4k7). D3 en antiparalelo al LED aguanta un cable al reves. La MALLA\n"
+        "de J6 NO va a masa: la norma pide que el receptor no aterrice el blindaje.\n"
+        "\n"
+        "PINOUTS VERIFICADOS: U9 contra TI SCES351Y (DCK: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC); U10 contra\n"
+        "Fairchild/onsemi H11L1M rev. 1.0.7 (1 anodo, 2 catodo, 3 NC, 4 VO, 5 GND, 6 VCC; opera de\n"
+        "3 a 15V). Copias en hardware/pikocore_gamepad/datasheets/.",
 }
 
 
