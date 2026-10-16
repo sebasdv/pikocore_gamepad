@@ -167,9 +167,13 @@ gates specific to this change:
   against the Fairchild/onsemi datasheet Rev. 1.0.7 (September 2014,
   figure 1): 1 anode, 2 cathode, 3 no connection, 4 VO, 5 GND, 6 VCC;
   operating voltage 3 to 15 V, output sinks 16 mA at 0.4 V.
-- LCSC codes blank in the fab package: 10 Ω, 33 Ω, 220 Ω (0603), 1N4148W,
-  74LVC1G17, H11L1M, plus the pre-existing hand-soldered lines (buttons,
-  jacks, panel, speaker, LiPo, 24 Ω, 470 µF).
+- LCSC codes for the MIDI parts are in `netlist.py`, each checked on its
+  lcsc.com product page on 2026-10-16: C22859 (10 Ω), C23140 (33 Ω), C22962
+  (220 Ω), C81598 (1N4148W, ST Semtech SOD-123), C10425 (SN74LVC1G17DCKR,
+  SC-70-5), C20082 (H11L1SR2M, the surface-mount gull-wing H11L1M on reel;
+  C16587 is the through-hole DIP and does not fit the SMDIP-6 footprint).
+  The fab package's 20 remaining blanks are the pre-existing hand-soldered
+  lines (buttons, jacks, panel, speaker, LiPo, 24 Ω, 470 µF), as on `main`.
 - MIDI IN at 3.3 V with an H11L1M: 3 V is the datasheet's minimum, but its
   threshold current (1.6 mA turn-on) is specified at Vcc = 5 V; the MIDI loop
   delivers about 5 mA, so the margin is ×3. Still worth a bench check with a

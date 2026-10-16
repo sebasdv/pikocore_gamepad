@@ -70,8 +70,8 @@ Gates: 210 tests, ERC 0/0, DRC 0 errors / 0 unconnected / 0 parity
 the 470 µF outlines), G-5/G-4/G-2/placement green, G-0 red only for
 `LCD_FPC_PIN_ORDER`; the `PIKO_GAMEPAD` firmware builds. U9 (74LVC1G17) and
 U10 (H11L1M) pinouts are verified against their datasheets (copies in
-`datasheets/`). Not verified: LCSC codes for the MIDI parts and
-the 0603 10 Ω / 33 Ω / 220 Ω, the enclosure for 100 × 60, and nothing has
+`datasheets/`); the MIDI parts carry LCSC codes checked on lcsc.com. Not
+verified: the enclosure for 100 × 60, and nothing has
 been built.
 
 **Branch `hw/chipdown-rp2350` (2026-10-15): RP2350A soldered to the board.**

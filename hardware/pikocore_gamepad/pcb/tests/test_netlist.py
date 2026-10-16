@@ -1212,6 +1212,19 @@ class TestMidi(unittest.TestCase):
             self.assertNotIn("SIN VERIFICAR", netlist.SYMS[sym]["desc"])
             self.assertIn(doc, netlist.SYMS[sym]["desc"])
 
+    def test_toda_pieza_del_midi_tiene_codigo_lcsc(self):
+        # Verificados en las paginas de producto de LCSC el 2026-10-16:
+        # C22859 10R, C23140 33R, C22962 220R (UNI-ROYAL 0603 1%), C81598
+        # 1N4148W (ST Semtech, SOD-123), C10425 SN74LVC1G17DCKR (SC-70-5),
+        # C20082 H11L1SR2M (onsemi, gull-wing "SOP-6-2.54mm", carrete).
+        esperado = {"R40": "C23140", "R41": "C22859", "R42": "C22962",
+                    "R43": "C23162", "C56": "C14663", "D3": "C81598",
+                    "U9": "C10425", "U10": "C20082"}
+        for inst in netlist.INSTANCES:
+            if inst[1] in esperado:
+                self.assertEqual(inst[6].get("LCSC"), esperado[inst[1]],
+                                 f"{inst[1]} ({inst[2]})")
+
     def test_el_diodo_de_senal_tiene_el_catodo_en_el_pin_1(self):
         # Como D_Schottky y como la huella D_SOD-123 de KiCad (pad 1 = K).
         self.assertEqual([p[1] for p in netlist.SYMS["D_1N4148"]["pins"]], ["K", "A"])

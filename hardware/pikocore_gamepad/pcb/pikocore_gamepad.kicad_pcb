@@ -8080,7 +8080,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "H11L1M"
+		(property "Value" "H11L1SR2M"
 			(at 0 -4.87 180)
 			(layer "Cmts.User")
 			(uuid "a38853fd-515c-4b4e-bde3-a6aa2e05753b")
@@ -17450,7 +17450,7 @@
 				(justify mirror)
 			)
 		)
-		(property "Value" "74LVC1G17"
+		(property "Value" "SN74LVC1G17DCKR"
 			(at 0 -2 180)
 			(layer "Cmts.User")
 			(uuid "98960b69-bb60-4dc9-a27f-fbe83a238430")

@@ -817,20 +817,23 @@ INSTANCES += [
      {"1": "3V3", "2": "MIDI_OUT_R"}, {"FP": R_FP}),
     ("R", "R41", "10R", 288.0, 300.0,
      {"1": "MIDI_TX_BUF", "2": "MIDI_OUT_T"}, {"FP": R_FP}),
-    ("LVC1G17", "U9", "74LVC1G17", 300.0, 300.0,
+    ("LVC1G17", "U9", "SN74LVC1G17DCKR", 300.0, 300.0,
      {"1": NC, "2": "MIDI_TX", "3": "GND", "4": "MIDI_TX_BUF", "5": "3V3"},
-     {"FP": "Package_TO_SOT_SMD:SOT-353_SC-70-5"}),
+     {"LCSC": "C10425", "FP": "Package_TO_SOT_SMD:SOT-353_SC-70-5"}),
     ("JACK_AUDIO", "J6", "MIDI IN", 280.0, 330.0, {
         "S": NC, "T": "MIDI_IN_K", "R": "MIDI_IN_R", "TN": NC, "RN": NC},
      {"FP": JACK_FP}),
     ("R", "R42", "220R", 288.0, 325.0,
      {"1": "MIDI_IN_R", "2": "MIDI_IN_A"}, {"FP": R_FP}),
     ("D_1N4148", "D3", "1N4148W", 288.0, 335.0,
-     {"1": "MIDI_IN_A", "2": "MIDI_IN_K"}, {"FP": D_FP}),
-    ("H11L1", "U10", "H11L1M", 300.0, 330.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K"}, {"LCSC": "C81598", "FP": D_FP}),
+    # H11L1SR2M = el H11L1M en version de montaje superficial (patas
+    # gull-wing, "SOP-6-2.54mm" en LCSC), en carrete; el C16587 es el DIP
+    # pasante y no va con la huella SMDIP-6.
+    ("H11L1", "U10", "H11L1SR2M", 300.0, 330.0,
      {"1": "MIDI_IN_A", "2": "MIDI_IN_K", "3": NC, "4": "MIDI_RX",
       "5": "GND", "6": "3V3"},
-     {"FP": "Package_DIP:SMDIP-6_W7.62mm"}),
+     {"LCSC": "C20082", "FP": "Package_DIP:SMDIP-6_W7.62mm"}),
     ("R", "R43", "4.7k", 312.0, 325.0,
      {"1": "3V3", "2": "MIDI_RX"}, {"FP": R_FP}),
     ("C", "C56", "100nF", 312.0, 335.0,
@@ -1037,6 +1040,11 @@ LCSC_PASIVOS = {
     ("5.1k", R_FP): "C23186",
     ("100R", R_FP): "C22775",
     ("150k", R_FP): "C22807",   # 0603WAF1503T5E (ISET del ETA6096)
+    # MIDI (verificados en lcsc.com el 2026-10-16): 10R y 33R de la salida
+    # (norma 3.3V), 220R de la entrada.
+    ("10R",  R_FP): "C22859",   # 0603WAF100JT5E
+    ("33R",  R_FP): "C23140",   # 0603WAF330JT5E
+    ("220R", R_FP): "C22962",   # 0603WAF2200T5E
     # Ceramicos.
     ("100nF", C_FP):     "C14663",   # 50V X7R
     ("1uF",   C_FP):     "C15849",   # 50V X5R
