@@ -68,9 +68,9 @@ Spec and open items:
 Gates: 210 tests, ERC 0/0, DRC 0 errors / 0 unconnected / 0 parity
 (15 warnings: 11 silk at the edge, 2 library mismatch, 2 silk over copper on
 the 470 µF outlines), G-5/G-4/G-2/placement green, G-0 red only for
-`LCD_FPC_PIN_ORDER`; the `PIKO_GAMEPAD` firmware builds. U9 (74LVC1G17) is
-verified against TI SCES351Y (copy in `datasheets/`). Not verified: the U10
-(H11L1) pinout (marked SIN VERIFICAR in the schematic), LCSC codes for the MIDI parts and
+`LCD_FPC_PIN_ORDER`; the `PIKO_GAMEPAD` firmware builds. U9 (74LVC1G17) and
+U10 (H11L1M) pinouts are verified against their datasheets (copies in
+`datasheets/`). Not verified: LCSC codes for the MIDI parts and
 the 0603 10 Ω / 33 Ω / 220 Ω, the enclosure for 100 × 60, and nothing has
 been built.
 

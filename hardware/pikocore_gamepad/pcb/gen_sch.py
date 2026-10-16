@@ -412,8 +412,9 @@ NOTAS = {
         "antiparalelo al LED aguanta un cable al reves. La MALLA de J6 NO va a masa: la norma\n"
         "pide que el receptor no aterrice el blindaje.\n"
         "\n"
-        "U9 verificado contra TI SCES351Y (DCK: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC). PINOUT DE U10 SIN\n"
-        "VERIFICAR contra su datasheet (ver netlist.PINOUT_SIN_VERIFICAR).",
+        "PINOUTS VERIFICADOS: U9 contra TI SCES351Y (DCK: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC); U10 contra\n"
+        "Fairchild/onsemi H11L1M rev. 1.0.7 (1 anodo, 2 catodo, 3 NC, 4 VO, 5 GND, 6 VCC; opera de\n"
+        "3 a 15V). Copias en hardware/pikocore_gamepad/datasheets/.",
 }
 
 

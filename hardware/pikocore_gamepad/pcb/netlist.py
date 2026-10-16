@@ -137,11 +137,12 @@ SYMS = {
     ),
     "H11L1": dict(
         ref="U", w=10.16, h=10.16,
-        desc="Optoacoplador con salida Schmitt (onsemi H11L1M, SMDIP-6). Vcc "
-             "minimo 3V: funciona a 3V3. PINOUT SIN VERIFICAR contra el "
-             "datasheet (tomado de memoria): 1 anodo, 2 catodo, 3 NC, "
-             "4 salida (colector abierto), 5 GND, 6 Vcc.",
-        ds="",
+        desc="Optoacoplador con salida Schmitt (onsemi H11L1M, SMDIP-6). "
+             "PINOUT VERIFICADO contra el datasheet Fairchild/onsemi H11L1M "
+             "Rev. 1.0.7 (septiembre 2014, figura 1, esquema): 1 anodo, 2 "
+             "catodo, 3 sin conexion, 4 VO (colector abierto, hunde 16mA a "
+             "0.4V), 5 GND, 6 VCC. Copia en hardware/pikocore_gamepad/datasheets/.",
+        ds="https://www.onsemi.com/products/interfaces/optocouplers/h11l1m",
         pins=[("1", "A", -10.16, 2.54, 0), ("2", "K", -10.16, 0.0, 0),
               ("3", "NC", -10.16, -2.54, 0), ("4", "VO", 10.16, 0.0, 180),
               ("5", "GND", 10.16, -2.54, 180), ("6", "VCC", 10.16, 2.54, 180)],
@@ -387,7 +388,7 @@ SYMS = {
 # ya se confirmaron contra sus datasheets. En los dos casos la
 # verificacion encontro errores reales, asi que el mecanismo se gano el
 # lugar: no quitar esta tabla, usarla para lo que entre nuevo.
-PINOUT_SIN_VERIFICAR = ("H11L1",)
+PINOUT_SIN_VERIFICAR = ()
 
 # ---------------------------------------------------------------- footprints
 # El tact de V2 es de 6x6 (spec 4.2) pero esa parte todavia no esta importada

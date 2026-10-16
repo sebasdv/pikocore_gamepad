@@ -161,16 +161,19 @@ gates specific to this change:
 
 ## Not verified by any source yet
 
-- U10 (H11L1) pinout: entered from memory and marked `PINOUT SIN VERIFICAR`
-  in `netlist.py` and on the schematic; confirm against the onsemi datasheet
-  before fabrication. U9 (74LVC1G17) is verified against TI SCES351Y
-  (rev. October 2025, page 3): DCK 1 NC, 2 A, 3 GND, 4 Y, 5 VCC; a copy is in
-  `hardware/pikocore_gamepad/datasheets/`.
+- Both MIDI pinouts are now verified, copies in
+  `hardware/pikocore_gamepad/datasheets/`: U9 (74LVC1G17) against TI SCES351Y
+  (rev. October 2025, page 3): DCK 1 NC, 2 A, 3 GND, 4 Y, 5 VCC; U10 (H11L1M)
+  against the Fairchild/onsemi datasheet Rev. 1.0.7 (September 2014,
+  figure 1): 1 anode, 2 cathode, 3 no connection, 4 VO, 5 GND, 6 VCC;
+  operating voltage 3 to 15 V, output sinks 16 mA at 0.4 V.
 - LCSC codes blank in the fab package: 10 Ω, 33 Ω, 220 Ω (0603), 1N4148W,
   74LVC1G17, H11L1M, plus the pre-existing hand-soldered lines (buttons,
   jacks, panel, speaker, LiPo, 24 Ω, 470 µF).
-- MIDI IN at 3.3 V with an H11L1: Vcc min 3 V per datasheet; check on the
-  bench with a 5 V sender.
+- MIDI IN at 3.3 V with an H11L1M: 3 V is the datasheet's minimum, but its
+  threshold current (1.6 mA turn-on) is specified at Vcc = 5 V; the MIDI loop
+  delivers about 5 mA, so the margin is ×3. Still worth a bench check with a
+  5 V sender.
 - `route_io.py` export/repaso used to hang on a modal "wxWidgets Debug Alert"
   (a benign non-closed-outline assert inside `ExportSpecctraDSN`); it now
   calls `wx.DisableAsserts()` at import. Routing is near its limit around the

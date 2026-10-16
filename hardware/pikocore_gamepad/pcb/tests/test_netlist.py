@@ -1200,14 +1200,17 @@ class TestMidi(unittest.TestCase):
         self.assertEqual(u9["4"], "MIDI_TX_BUF")
         self.assertEqual(u9["5"], "3V3")
 
-    def test_el_opto_sigue_sin_verificar_y_el_buffer_ya_no(self):
-        # El 74LVC1G17 se confirmo contra el datasheet de TI (SCES351Y, rev.
-        # octubre 2025, pagina 3): DCK 1 NC, 2 A, 3 GND, 4 Y, 5 VCC. El H11L1
-        # sigue pendiente.
-        self.assertIn("H11L1", netlist.PINOUT_SIN_VERIFICAR)
+    def test_los_dos_pinouts_del_midi_estan_verificados(self):
+        # 74LVC1G17 contra TI SCES351Y (rev. octubre 2025, pagina 3): DCK
+        # 1 NC, 2 A, 3 GND, 4 Y, 5 VCC. H11L1M contra el datasheet
+        # Fairchild/onsemi rev. 1.0.7 (septiembre 2014, figura 1): 1 anodo,
+        # 2 catodo, 3 sin conexion, 4 VO, 5 GND, 6 VCC. Ninguno queda en la
+        # lista de pendientes.
+        self.assertNotIn("H11L1", netlist.PINOUT_SIN_VERIFICAR)
         self.assertNotIn("LVC1G17", netlist.PINOUT_SIN_VERIFICAR)
-        self.assertNotIn("SIN VERIFICAR", netlist.SYMS["LVC1G17"]["desc"])
-        self.assertIn("SCES351Y", netlist.SYMS["LVC1G17"]["desc"])
+        for sym, doc in (("LVC1G17", "SCES351Y"), ("H11L1", "1.0.7")):
+            self.assertNotIn("SIN VERIFICAR", netlist.SYMS[sym]["desc"])
+            self.assertIn(doc, netlist.SYMS[sym]["desc"])
 
     def test_el_diodo_de_senal_tiene_el_catodo_en_el_pin_1(self):
         # Como D_Schottky y como la huella D_SOD-123 de KiCad (pad 1 = K).
