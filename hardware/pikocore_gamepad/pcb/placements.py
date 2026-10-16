@@ -131,11 +131,14 @@ PLACEMENTS = [
     ("L4",  "Inductor_SMD:L_1210_3225Metric",               8.00,   46.60, 0, True),
     ("C50", "Capacitor_SMD:C_0603_1608Metric",             12.20,   46.60, 90, True),
     ("D2",  "Diode_SMD:D_SOD-123F",                        16.50,   46.60, 0, True),
-    # Bateria: PicoBlade vertical en el margen izquierdo, bajo las patas de
-    # LEFT (hasta y 27.25). x=4.0: el courtyard arranca en x 1.0 y los pads
-    # de anclaje a 1.45 del canto (a 3.5 el DRC los marcaba en el keepout).
-    ("J3",  "Connector_Molex:Molex_PicoBlade_53398-0271_1x02-1MP_P1.25mm_Vertical",
-       4.00,   33.00, 90, True),
+    # Bateria: JST GH vertical (BM02B-GHS-TBT, courtyard 7.0 x 6.6, pads de
+    # senal en y local +1.95 y anclajes en -1.4) en el margen izquierdo, bajo
+    # las patas de LEFT (hasta y 27.25) y sobre el cargador (D1 desde y 36.6
+    # en x 11+). A rot 90 ocupa x 1.3..7.9, y 29.5..36.5; el pad mas cercano
+    # al canto queda a 1.8mm. Era un PicoBlade: las celdas del usuario traen
+    # GH, que no entra en el PicoBlade (2026-10-16).
+    ("J3",  "Connector_JST:JST_GH_BM02B-GHS-TBT_1x02-1MP_P1.25mm_Vertical",
+       4.60,   33.00, 90, True),
     # RUN en la esquina superior izquierda y BOOTSEL debajo, los dos a rot 90
     # (x 0.7..6.3): a rot 0 RUN medía 7.6 de ancho y su pad caía a 0.9mm del
     # agujero NPTH del gatillo L (8.5, 4.4). Paso 8.5 en Y: con 7 se pisaban

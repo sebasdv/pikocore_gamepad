@@ -683,8 +683,8 @@
       (property "Reference" "J" (at 0 7.62 0) (effects (font (size 1.27 1.27))))
       (property "Value" "Conn_Bat" (at 0 -7.62 0) (effects (font (size 1.27 1.27))))
       (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
-      (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
-      (property "Description" "Conector de bateria Molex PicoBlade 1.25mm 2P vertical SMD (compatible MX1.25). 1 = +, 2 = -, MP = lenguetas de anclaje. OJO: las LiPo con este conector vienen en las dos polaridades." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Datasheet" "https://www.lcsc.com/product-detail/C161690.html" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
+      (property "Description" "Conector de bateria JST GH 1.25mm 2P vertical SMD (BM02B-GHS-TBT, con traba): es el que traen las celdas del usuario y NO entra en el PicoBlade/MX1.25 aunque tenga el mismo paso (2026-10-16). 1 = +, 2 = -, MP = lenguetas de anclaje. OJO: las LiPo vienen en las dos polaridades." (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))
       (symbol "Conn_Bat_0_1"
         (rectangle (start -5.08 5.08) (end 5.08 -5.08) (stroke (width 0.254) (type default)) (fill (type background)))
       )

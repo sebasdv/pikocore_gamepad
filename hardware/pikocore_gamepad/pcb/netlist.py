@@ -173,10 +173,12 @@ SYMS = {
     ),
     "Conn_Bat": dict(
         ref="J", w=5.08, h=5.08,
-        desc="Conector de bateria Molex PicoBlade 1.25mm 2P vertical SMD "
-             "(compatible MX1.25). 1 = +, 2 = -, MP = lenguetas de anclaje. "
-             "OJO: las LiPo con este conector vienen en las dos polaridades.",
-        ds="",
+        desc="Conector de bateria JST GH 1.25mm 2P vertical SMD (BM02B-GHS-TBT, "
+             "con traba): es el que traen las celdas del usuario y NO entra en "
+             "el PicoBlade/MX1.25 aunque tenga el mismo paso (2026-10-16). "
+             "1 = +, 2 = -, MP = lenguetas de anclaje. OJO: las LiPo vienen en "
+             "las dos polaridades.",
+        ds="https://www.lcsc.com/product-detail/C161690.html",
         pins=[("1", "BAT+", -7.62, 2.54, 0), ("2", "BAT-", -7.62, 0.0, 0),
               ("MP", "MP", -7.62, -2.54, 0)],
     ),
@@ -977,7 +979,8 @@ INSTANCES += [
     ("R", "R31", "150k", 0.0, 0.0, {"1": "CHG_ISET", "2": "GND"},
      {"FP": R_FP}),
     ("Conn_Bat", "J3", "LiPo", 0.0, 0.0, {"1": "VBAT", "2": "GND", "MP": "GND"},
-     {"FP": "Connector_Molex:Molex_PicoBlade_53398-0271_1x02-1MP_P1.25mm_Vertical"}),
+     {"LCSC": "C161690",
+      "FP": "Connector_JST:JST_GH_BM02B-GHS-TBT_1x02-1MP_P1.25mm_Vertical"}),
     # 3V3: TPS63001, circuito de aplicacion de SLVS520C (2.2uH, 10uF de
     # entrada, 2x10uF de salida, VINA filtrado con 100R + 100nF).
     ("TPS63001", "U7", "TPS63001DRCR", 0.0, 0.0, {

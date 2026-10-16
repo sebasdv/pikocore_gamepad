@@ -59,7 +59,7 @@ front tacts, the slide switch and J4's SMD pads are avoided:
 | Zone | What | Where (x, y) | Why there |
 |---|---|---|---|
 | Top strip | J6 MIDI IN (x 36), J1 phones (x 50), J7 MIDI OUT (x 64), each 9.2 wide × 14.5 deep, pads 3 mm from the edge; U10 opto left of J6, U9 buffer right of J7 | x 18–78, y 0–18 | between the shoulder tacts; cables up |
-| Bottom-left | J2 USB-C at the bottom edge (mouth down), U8 charger and its loop above it, J3 battery and BOOTSEL/RUN in the left margin | x 0–22, y 36–60 and x 0–6 | away from the panel |
+| Bottom-left | J2 USB-C at the bottom edge (mouth down), U8 charger and its loop above it, J3 battery (JST GH BM02B-GHS-TBT, C161690: the user's cells have GH plugs, not PicoBlade) and BOOTSEL/RUN in the left margin | x 0–22, y 36–60 and x 0–8 | away from the panel |
 | Centre | RP2350A core (`NUCLEO = (47, 30.5, 270)`), footprints x 33–66, y 23–42 | behind the panel | the one area with no THT legs on either side; rot 270 puts the LCD/I2S/button pin row toward J4 and the DAC |
 | Bottom band | U7 TPS63001 loop (left), U3 op-amp (centre), U5 DAC (right), DAC passives packed around them | x 31–69.5, y 49–59 | under the core, behind J4 (front SMD, no conflict); the LCD lanes' corridor x 43.5–53 is kept free of anchored parts |
 | Right band | C23/C24 470 µF (6.3 mm dia) and bleeders R19/R20 | x 69.5–94.5, y 36–43 | the 7 mm gap between the diamond's and Select/Start's pads; the body overhang lands on pad annuli, which DRC accepts (two silk-over-copper warnings) |

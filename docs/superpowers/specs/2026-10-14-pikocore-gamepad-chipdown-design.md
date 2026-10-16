@@ -32,7 +32,7 @@ parallel.
 | Power OR | MBR230LSFT1G ×2 (VBUS→VSYS, VBAT→VSYS) | same | C126673 | Waveshare schematic |
 | 3V3 rail | MP28164 buck-boost | **TI TPS63001** (fixed 3.3 V), 2.2 µH, 10 µF in, 2×10 µF out, VINA 100 Ω + 100 nF | C28060 | TPS6300x datasheet SLVS520C (pinout verified: 1 VOUT, 2 L2, 3 PGND, 4 L1, 5 VIN, 6 EN, 7 PS/SYNC, 8 VINA, 9 GND, 10 FB→VOUT, EP PGND) |
 | Power switch input | 3V3_EN pin (100 k to VSYS) | PWR_EN net: 100 k to VSYS → TPS63001 EN; SW15 shorts it to GND, unchanged | — | — |
-| Battery connector | MX1.25 2P | Molex PicoBlade 53398-0271 (1.25 mm, vertical SMD) | — | KiCad official footprint |
+| Battery connector | MX1.25 2P | ~~Molex PicoBlade 53398-0271~~ → **JST GH BM02B-GHS-TBT** (1.25 mm, vertical SMD, latched): the user's cells carry GH plugs, which do not mate with PicoBlade (changed 2026-10-16) | C161690 | KiCad official footprint; lcsc.com product page |
 | VBUS sense | 51 k / 100 k → GP24 | **100 k / 200 k** → GP24 (5 V → 3.33 V, same ratio class; values already on the BOM) | — | Waveshare schematic, values changed |
 | VSYS monitor | 200 k / 100 k (+ NMOS) → GP29/ADC3 | 200 k / 100 k + 100 nF → GP29, **no NMOS** (≈6 µA into an unpowered pad, harmless; Pico 2 does the same) | — | Waveshare + Pico 2 convention |
 | SMPS mode | GP23 → MP28164 MODE | GP23 → TPS63001 PS/SYNC, 10 k pull-down (power-save by default, firmware can force PWM for lower audio ripple) | — | TPS6300x datasheet |

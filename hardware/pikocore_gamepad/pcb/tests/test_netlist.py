@@ -1139,6 +1139,20 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class TestBateria(unittest.TestCase):
+
+    def test_el_conector_de_bateria_es_jst_gh(self):
+        # Las celdas del usuario traen JST GH de 1.25mm (con traba), que NO
+        # entra en el PicoBlade/MX1.25 aunque tenga el mismo paso
+        # (2026-10-16). Vertical SMD, JST BM02B-GHS-TBT, LCSC C161690
+        # (verificado en lcsc.com: "SMD,P=1.25mm", Surface Mount Vertical).
+        j3 = [i for i in netlist.INSTANCES if i[1] == "J3"][0]
+        self.assertEqual(j3[6]["FP"],
+                         "Connector_JST:JST_GH_BM02B-GHS-TBT_1x02-1MP_P1.25mm_Vertical")
+        self.assertEqual(j3[6].get("LCSC"), "C161690")
+        self.assertEqual(j3[5], {"1": "VBAT", "2": "GND", "MP": "GND"})
+
+
 class TestMidi(unittest.TestCase):
     """MIDI IN/OUT en TRS tipo A (spec 2026-10-15)."""
 
