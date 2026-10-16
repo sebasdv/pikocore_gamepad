@@ -370,23 +370,23 @@ class TestFootprints(unittest.TestCase):
         # 1-15 (LCD, I2S_DIN, D-pad, X/Y/A/B) queda hacia +Y, mirando a J4 y
         # al DAC. A rot 90 (placa de 80) miraba hacia los jacks y freerouting
         # se estancaba con 5-7 de esas senales sin rutear. A rot 270 el
-        # bloque ocupa NUCLEO + (-15..+21, -11.5..+16.5). Detras del panel no
-        # hay patas pasantes del frente.
+        # bloque ocupa NUCLEO + NUCLEO_BOX (medido). Detras del panel no hay
+        # patas pasantes del frente.
         import placements
         x, y, rot = placements.NUCLEO
+        dx0, dy0, dx1, dy1 = placements.NUCLEO_BOX
         self.assertEqual(rot, 270.0)
-        self.assertGreaterEqual(x - 14, 30.0)
-        self.assertLessEqual(x + 19, 70.0)
-        self.assertGreaterEqual(y - 8, 19.0)
-        self.assertLessEqual(y + 12, 50.0)
+        self.assertGreaterEqual(x + dx0, 30.0)
+        self.assertLessEqual(x + dx1, 70.0)
+        self.assertGreaterEqual(y + dy0, 19.0)
+        self.assertLessEqual(y + dy1, 50.0)
 
     def test_las_regiones_libres_no_pisan_el_nucleo(self):
-        # Caja de las PIEZAS del nucleo a rot 270, medida en la placa
-        # (2026-10-15): x 33.1..66.0, y 22.7..42.4 con U1 en (47, 30.5). Sus
-        # zonas quedan entre y 27 y 34, dentro de esa caja.
+        # NUCLEO_BOX: caja medida de las piezas del nucleo (ver placements).
         import placements
         x, y, _ = placements.NUCLEO
-        core = (x - 14, y - 8, x + 19, y + 12)
+        dx0, dy0, dx1, dy1 = placements.NUCLEO_BOX
+        core = (x + dx0, y + dy0, x + dx1, y + dy1)
         self.assertTrue(placements.FREE_REGIONS, "sin regiones para el empaquetador")
         for r in placements.FREE_REGIONS:
             solapa = not (r[2] <= core[0] or r[0] >= core[2]
@@ -1172,11 +1172,15 @@ class TestMidi(unittest.TestCase):
         self.assertEqual(sorted(usan), ["U1", "U9"])
 
     def test_midi_in_tiene_opto_con_diodo_antiparalelo(self):
-        # Tip -> 220R -> anodo del LED (MIDI_IN_A); Ring -> catodo (MIDI_IN_K).
+        # El emisor MIDI pone corriente por DIN 4 y la recibe por DIN 5. En
+        # TRS tipo A, DIN 4 = Ring y DIN 5 = Tip. Receptor: Ring -> 220R ->
+        # anodo del LED (MIDI_IN_A); Tip -> catodo (MIDI_IN_K). La primera
+        # version lo tenia al reves (lo vio la revision final del 2026-10-15)
+        # y solo hubiera recibido de equipos tipo B.
         # D3 va en antiparalelo: anodo en MIDI_IN_K, catodo en MIDI_IN_A.
-        self.assertEqual(nets_of("J6")["T"], "MIDI_IN_T")
-        self.assertEqual(nets_of("J6")["R"], "MIDI_IN_K")
-        self.assertEqual(set(nets_of("R42").values()), {"MIDI_IN_T", "MIDI_IN_A"})
+        self.assertEqual(nets_of("J6")["R"], "MIDI_IN_R")
+        self.assertEqual(nets_of("J6")["T"], "MIDI_IN_K")
+        self.assertEqual(set(nets_of("R42").values()), {"MIDI_IN_R", "MIDI_IN_A"})
         d3 = nets_of("D3")
         self.assertEqual(d3["1"], "MIDI_IN_A")   # pin 1 = catodo (huella KiCad)
         self.assertEqual(d3["2"], "MIDI_IN_K")   # pin 2 = anodo

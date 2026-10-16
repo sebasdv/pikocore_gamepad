@@ -802,8 +802,9 @@ INSTANCES += [
 #   Norma MIDI 1.0 electrica, variante 3.3V (CA-033). U9 pone los 5mA del
 #   lazo; el GPIO solo ve la entrada CMOS del buffer.
 #
-#   MIDI IN (J6): Tip -[220R R42]- anodo del LED de U10 (H11L1); Ring - catodo.
-#   D3 antiparalelo al LED. La salida Schmitt de U10 es colector abierto:
+#   MIDI IN (J6): el emisor pone corriente por DIN 4 (= Ring en tipo A) y la
+#   recibe por DIN 5 (= Tip). Ring -[220R R42]- anodo del LED de U10 (H11L1);
+#   Tip - catodo. D3 antiparalelo al LED, para un cable al reves. La salida Schmitt de U10 es colector abierto:
 #   R43 4k7 a 3V3 -> MIDI_RX. La MALLA de J6 queda al aire: el receptor no
 #   aterriza el blindaje (lazo de masa con el emisor).
 INSTANCES += [
@@ -818,10 +819,10 @@ INSTANCES += [
      {"1": NC, "2": "MIDI_TX", "3": "GND", "4": "MIDI_TX_BUF", "5": "3V3"},
      {"FP": "Package_TO_SOT_SMD:SOT-353_SC-70-5"}),
     ("JACK_AUDIO", "J6", "MIDI IN", 280.0, 330.0, {
-        "S": NC, "T": "MIDI_IN_T", "R": "MIDI_IN_K", "TN": NC, "RN": NC},
+        "S": NC, "T": "MIDI_IN_K", "R": "MIDI_IN_R", "TN": NC, "RN": NC},
      {"FP": JACK_FP}),
     ("R", "R42", "220R", 288.0, 325.0,
-     {"1": "MIDI_IN_T", "2": "MIDI_IN_A"}, {"FP": R_FP}),
+     {"1": "MIDI_IN_R", "2": "MIDI_IN_A"}, {"FP": R_FP}),
     ("D_1N4148", "D3", "1N4148W", 288.0, 335.0,
      {"1": "MIDI_IN_A", "2": "MIDI_IN_K"}, {"FP": D_FP}),
     ("H11L1", "U10", "H11L1M", 300.0, 330.0,

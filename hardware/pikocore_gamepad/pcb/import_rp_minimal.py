@@ -68,7 +68,7 @@ ZONA_MAX_MM2 = 60.0
 # el tramo hasta FANOUT_R mm del centro de U1; ahi queda un extremo libre y
 # freerouting sigue desde el.
 NETS_FANOUT = re.compile(r"^/(GPIO\d+(_ADC\d)?|RUN|SWD|SWCLK)$")
-FANOUT_R = 7.5   # 8.5 llegaba a R32/C54 (lazo del TPS63001), 9mm bajo el chip
+FANOUT_R = 12.5  # hasta el final real de los carriles de RP (8.8..12): extremos escalonados, con lugar para una via en cada punta
 
 
 def recortar(xa, ya, xb, yb, r=FANOUT_R):

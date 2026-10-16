@@ -110,10 +110,11 @@ PLACEMENTS = [
     ("C29", "Capacitor_SMD:C_0603_1608Metric",             56.00,   17.20, 0, True),
 
     # ================================================ DORSO: USB, carga (abajo-izq)
-    # USB-C en el borde INFERIOR con la boca hacia +Y. rot 180 con flip es la
-    # hipotesis; check_placement.py avisa si la boca mira adentro, y entonces
-    # va rot 0. y=55.4: boca a 0.4mm del canto (la boca esta a 4.22 del
-    # origen). Cuerpo x 6.65..17.35; el slide empieza en 19.85.
+    # USB-C en el borde INFERIOR con la boca hacia +Y: a rot 180 con flip los
+    # pads de senal quedan en y 51.66, del lado de adentro, y el cuerpo cruza
+    # el canto (check_placement y el render lo confirmaron). y=55.4: boca a
+    # 0.4mm del canto (esta a 4.22 del origen). Cuerpo x 6.65..17.35; el
+    # slide empieza en 19.85.
     ("J2",  "Connector_USB:USB_C_Receptacle_HCTL_HC-TYPE-C-16P-01A",
       12.00,   55.40, 180, True),
     ("R29", "Resistor_SMD:R_0603_1608Metric",               5.00,   51.00, 0, True),
@@ -208,8 +209,9 @@ PLACEMENTS = [
 # Regiones donde gen_pcb.py empaqueta los pasivos que no estan anclados
 # (los del DAC, el op-amp, la suma mono y el class-D: ~40 piezas de 0603).
 # Dorso 100x60: esquivan las patas pasantes del frente (con 1mm de radio de
-# pad), la franja de jacks (y<19 en x 25..75), el nucleo (x 32..68,
-# y 21..49) y los bloques anclados de arriba.
+# pad), la franja de jacks (y<19 en x 25..75), las piezas del nucleo
+# (NUCLEO + NUCLEO_BOX: x 33..66, y 22.7..42.4) y los bloques anclados de
+# arriba.
 FREE_REGIONS = [
     # El empaquetador recorre las regiones EN ORDEN y pone primero las piezas
     # grandes: la banda del audio va primera para que los desacoplos del DAC
@@ -218,9 +220,11 @@ FREE_REGIONS = [
     # a 0.8mm del canto (regla del proyecto: 1.0).
     (31.0, 49.0, 69.5, 58.5),    # banda del audio, bajo el nucleo
     # Bajo el nucleo (sus piezas terminan en y 42.4 a rot 270) pero FUERA
-    # del pasillo x 43.5..53 por donde bajan los carriles del LCD hacia J4.
+    # del pasillo x 43.5..55 por donde bajan los carriles del LCD y del
+    # D-pad hacia J4 (el de DPAD_UP termina en x 53.5: con la franja desde
+    # x 53 quedaba tapado, ciclo 6 del 2026-10-15).
     (32.0, 44.0, 43.5, 48.9),
-    (53.0, 44.0, 69.5, 48.9),
+    (55.0, 44.0, 69.5, 48.9),
     (69.5, 35.8, 94.5, 43.0),    # banda derecha, alrededor de los 470uF
     (31.0, 16.8, 69.5, 21.5),    # franja entre los jacks y el nucleo (piezas desde y 22.7)
     (40.9,  1.5, 45.1, 14.5),    # entre J6 y J1
@@ -240,7 +244,12 @@ FREE_REGIONS = [
 # A rot 90 (la de la placa de 80) la fila de pines 1-15 —LCD, I2S_DIN, D-pad
 # y X/Y/A/B— miraba hacia los jacks, con el flex y el DAC del otro lado del
 # chip: freerouting se estancaba con 5-7 de esas senales sin rutear (ciclos 1
-# y 2 del 2026-10-15). Media vuelta mas y esa fila mira a J4. A rot 270 el
-# bloque ocupa x-15..x+21, y-11.5..y+16.5: con (47, 30.5) queda en x 32..68,
-# y 19..47, detras del panel, la unica zona sin patas pasantes del frente.
+# y 2 del 2026-10-15). Media vuelta mas y esa fila mira a J4.
 NUCLEO = (47.0, 30.5, 270.0)
+# Caja de las PIEZAS del nucleo relativa a U1, MEDIDA en la placa a rot 270
+# (2026-10-15): x 33.1..66.0, y 22.7..42.4 con U1 en (47, 30.5). Sus zonas
+# de cobre quedan entre y 27 y 34, adentro. Es el unico numero que usan los
+# tests del nucleo y las regiones del empaquetador: si NUCLEO gira o se
+# mueve, medir de nuevo (gen_pcb.py y un bbox de los CORE_REF_MAP) y
+# actualizar esto. Detras del panel no hay patas pasantes del frente.
+NUCLEO_BOX = (-14.0, -8.0, 19.0, 12.0)   # (dx0, dy0, dx1, dy1)

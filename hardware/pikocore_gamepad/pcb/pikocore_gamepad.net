@@ -1,7 +1,7 @@
 (export (version "E")
   (design
     (source "C:\\pikocore_gamepad\\hardware\\pikocore_gamepad\\pcb\\pikocore_gamepad.kicad_sch")
-    (date "2026-10-15T17:10:45-0300")
+    (date "2026-10-15T21:17:02-0300")
     (tool "Eeschema 9.0.1")
     (sheet (number "1") (name "/") (tstamps "/")
       (title_block
@@ -3038,10 +3038,10 @@
       (node (ref "U10") (pin "1") (pinfunction "A") (pintype "passive")))
     (net (code "55") (name "MIDI_IN_K") (class "Default")
       (node (ref "D3") (pin "2") (pinfunction "A") (pintype "passive"))
-      (node (ref "J6") (pin "R") (pinfunction "RING") (pintype "passive"))
-      (node (ref "U10") (pin "2") (pinfunction "K") (pintype "passive")))
-    (net (code "56") (name "MIDI_IN_T") (class "Default")
       (node (ref "J6") (pin "T") (pinfunction "TIP") (pintype "passive"))
+      (node (ref "U10") (pin "2") (pinfunction "K") (pintype "passive")))
+    (net (code "56") (name "MIDI_IN_R") (class "Default")
+      (node (ref "J6") (pin "R") (pinfunction "RING") (pintype "passive"))
       (node (ref "R42") (pin "1") (pinfunction "1") (pintype "passive")))
     (net (code "57") (name "MIDI_OUT_R") (class "Default")
       (node (ref "J7") (pin "R") (pinfunction "RING") (pintype "passive"))

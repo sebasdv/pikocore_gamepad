@@ -95,8 +95,11 @@ Sleeve = DIN pin 2 (shield).
 - Sleeve → GND.
 
 **MIDI IN (J6).**
-- Tip → 220 Ω (R42) → anode of U10's LED; Ring → cathode. D3 1N4148 (SOD-123)
-  in anti-parallel across the LED for reverse polarity.
+- The sender sources current on DIN 4 and sinks it on DIN 5; type A puts
+  DIN 4 on Ring. So: Ring → 220 Ω (R42) → anode of U10's LED; Tip → cathode.
+  D3 1N4148 (SOD-123) in anti-parallel across the LED for a reversed (type B)
+  cable. (The first draft of this spec had Tip and Ring swapped here; the
+  final review caught it.)
 - U10 = H11L1 Schmitt-output optocoupler (DIP-6 or SMD-6 package), Vcc 3V3,
   100 nF decoupling (C56), output (open collector) → 4.7 kΩ pull-up (R43) to
   3V3 → `MIDI_RX`.
@@ -166,9 +169,19 @@ gates specific to this change:
   jacks, panel, speaker, LiPo, 24 Ω, 470 µF).
 - MIDI IN at 3.3 V with an H11L1: Vcc min 3 V per datasheet; check on the
   bench with a 5 V sender.
-- The second freerouting pass (`route_io.py repaso`) hung once on this board
-  and was not needed (pass 1 closed every net); the cycle script now skips it
-  when pass 1 leaves nothing open. Cause not investigated.
+- `route_io.py` export/repaso used to hang on a modal "wxWidgets Debug Alert"
+  (a benign non-closed-outline assert inside `ExportSpecctraDSN`); it now
+  calls `wx.DisableAsserts()` at import. Routing is near its limit around the
+  QFN: freerouting's result varies run to run, so LCD_DC and LCD_MOSI are
+  hand-dropped from the copied lanes to J4 and PWR_EN is hand-routed into the
+  slide switch; the copied lanes run to 12.5 mm from the chip centre.
+- Gate G-4 reads only `config.h`; firmware-only pins chosen with literal
+  numbers in `src/hw_gamepi13.h` (`GAMEPI_LED_PIN`, `GAMEPI_CLOCK_PIN`,
+  `GAMEPI_TRIGO_PIN`) are outside it. The final review found the beat LED on
+  GP25 (now `MIDI_RX`) and the clock-in stub on GP27 (now `VBUS_SENSE`); both
+  moved (LED and trigger-out off, clock-in on GP28) and
+  `tests/test_pinmap.py::TestFirmwareStubs` now checks those literals against
+  `pinmap.py`. The `PIKO_GAMEPAD` firmware builds; it has not run on hardware.
 - The enclosure study for 100 × 60 (button holes, jack cut-outs on the top
   edge) is not part of this spec.
 - No board has been built.

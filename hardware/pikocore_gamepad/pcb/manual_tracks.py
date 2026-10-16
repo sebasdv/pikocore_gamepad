@@ -292,9 +292,55 @@ def _u1(dx, dy):
 # placa, que aca no existe. Se mete en el anillo de 3V3 bajo el chip, igual
 # que el pin 11 en el cobre copiado. El quiebre a 45 grados deja 0.2mm al
 # pad 2. Sin esto freerouting lo encerraba con la salida del pin 2.
+# LCD_DC y LCD_MOSI: los carriles copiados (rp_core.FANOUT_NETS, hasta 12.5mm
+# del centro) terminan en y U1+12.5, a x U1+0.5 y U1+2.9. freerouting los
+# conecto en los ciclos 3 y 4 y no en el 5 (azar del router: estos cuatro
+# pines estan al limite de canales). Bajada manual: via en la punta del
+# carril y recta por F.Cu, bajo J4, hasta su pad; la entrada al pad es por
+# la columna del pad (paso 0.5: los pads vecinos quedan a 0.27). Medido
+# contra el cobre previo al ruteo (vias de masa de J4 en x 46.9 y 47.75).
+_J4X, _J4Y = _POS["J4"]
+_DC_PAD = (round(_J4X - 1.25, 3), round(_J4Y + 1.62, 3))     # pad 10
+_MOSI_PAD = (round(_J4X - 0.25, 3), round(_J4Y + 1.62, 3))   # pad 12
+PISTAS["U1_LCD_DC_VIA"] = dict(
+    net="LCD_DC", capa="B.Cu", ancho=0.15, via=True,
+    puntos=[_u1(-0.5, -12.5), _u1(-0.5, -12.8)])
+PISTAS["U1_LCD_DC_BAJADA"] = dict(
+    net="LCD_DC", capa="F.Cu", ancho=0.15, via=False,
+    puntos=[_u1(-0.5, -12.8), _u1(-0.5, -19.5),
+            (_DC_PAD[0], round(_U1Y + 19.5 + (_DC_PAD[0] - (_U1X + 0.5)), 3)),
+            _DC_PAD])
+PISTAS["U1_LCD_MOSI_VIA"] = dict(
+    net="LCD_MOSI", capa="B.Cu", ancho=0.15, via=True,
+    puntos=[_u1(-2.9, -12.5), _u1(-2.9, -12.8)])
+PISTAS["U1_LCD_MOSI_BAJADA"] = dict(
+    net="LCD_MOSI", capa="F.Cu", ancho=0.15, via=False,
+    puntos=[_u1(-2.9, -12.8), _u1(-2.9, -20.5),
+            (_MOSI_PAD[0], round(_U1Y + 20.5 + ((_U1X + 2.9) - _MOSI_PAD[0]), 3)),
+            _MOSI_PAD])
+
 PISTAS["U1_3V3_PIN1"] = dict(
     net="3V3", capa="B.Cu", ancho=0.20, via=False, a_zona=True,
     puntos=[_u1(-2.8, -3.45), _u1(-2.8, -2.9), _u1(-2.5, -2.6)])
+
+
+# ------------------------------------------------------------ PWR_EN (SW15)
+# El slide de encendido corta PWR_EN contra GND. Su pad 2 (= origen del
+# footprint) queda metido entre sus propios pads 1, 3 y los anclajes, y el
+# router no entraba (ciclo 4 del 2026-10-15). Se entra por ARRIBA, por la
+# columna del pad, desde el pad 2 de R33 (el pull-up de 100k, a R33 - 0.82
+# en Y): un tramo a y R33+0.68, por encima de los pads del slide (desde
+# y SW15-1.0) y por debajo de la region del empaquetador (hasta y 53).
+_SWX, _SWY = _POS["SW15"]
+_R33X, _R33Y = _POS["R33"]
+PISTAS["SW15_PWR_EN"] = dict(
+    net="PWR_EN", capa="B.Cu", ancho=0.20, via=False,
+    puntos=[(round(_R33X, 3), round(_R33Y - 0.82, 3)),
+            (round(_R33X - 1.3, 3), round(_R33Y - 0.82, 3)),
+            (round(_R33X - 2.8, 3), round(_R33Y + 0.68, 3)),
+            (round(_SWX + 1.0, 3), round(_R33Y + 0.68, 3)),
+            (round(_SWX, 3), round(_R33Y + 1.68, 3)),
+            (round(_SWX, 3), round(_SWY, 3))])
 
 
 # Misma via que usa plane_vias.py: no estrena una medida de broca nueva.
@@ -313,6 +359,12 @@ def pads_de_la_net(board, net):
                 out.append((f"{fp.GetReference()}.{p.GetNumber()}",
                             pcbnew.ToMM(p.GetPosition().x),
                             pcbnew.ToMM(p.GetPosition().y)))
+    # Extremos de pistas de la net ya en la placa: las bajadas del LCD
+    # arrancan en la punta de los carriles copiados del nucleo, no en un pad.
+    for t in board.GetTracks():
+        if t.GetClass() == "PCB_TRACK" and t.GetNetname() == net:
+            for q in (t.GetStart(), t.GetEnd()):
+                out.append(("pista", pcbnew.ToMM(q.x), pcbnew.ToMM(q.y)))
     # Vias ya puestas por una entrada anterior: el puente de VBUS de J2 va
     # de via a via.
     for t in board.GetTracks():

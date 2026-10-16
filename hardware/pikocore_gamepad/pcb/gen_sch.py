@@ -400,13 +400,15 @@ NOTAS = {
         "auriculares puestos, que un corte mecanico prohibe.",
     "NOTA_MIDI":
         "MIDI por UART1 (GP24 TX, GP25 RX) en jacks 3.5mm TRS TIPO A, el estandar de la MIDI\n"
-        "Association (RP-054): Tip = DIN 5, Ring = DIN 4, Sleeve = DIN 2. Korg usa tipo B:\n"
-        "hace falta un adaptador para esos equipos.\n"
+        "Association (RP-054): Tip = DIN 5, Ring = DIN 4, Sleeve = DIN 2. Los equipos tipo B\n"
+        "(Korg y otros) tienen Tip y Ring al reves: necesitan un adaptador A-B.\n"
         "\n"
         "SALIDA (J7): norma electrica 3.3V (CA-033): 33R de 3V3 al Ring, 10R del buffer al Tip.\n"
         "U9 (74LVC1G17) pone los 5mA del lazo; el GPIO ve solo una entrada CMOS.\n"
         "\n"
-        "ENTRADA (J6): 220R + H11L1 (salida Schmitt, colector abierto, pull-up 4k7). D3 en\n"
+        "ENTRADA (J6): el emisor pone corriente por DIN 4 (Ring) y la recibe por DIN 5 (Tip):\n"
+        "Ring -> 220R -> anodo del LED del H11L1, Tip -> catodo (salida Schmitt, colector\n"
+        "abierto, pull-up 4k7). D3 en\n"
         "antiparalelo al LED aguanta un cable al reves. La MALLA de J6 NO va a masa: la norma\n"
         "pide que el receptor no aterrice el blindaje.\n"
         "\n"

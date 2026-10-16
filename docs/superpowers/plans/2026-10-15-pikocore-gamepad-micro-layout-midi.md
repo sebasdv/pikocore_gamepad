@@ -27,7 +27,7 @@
 
 Inputs the spec implies but no gate exercises, most likely to bite first:
 
-1. A MIDI cable plugged into MIDI IN with reversed polarity (type B gear): current must flow through D3, not the opto LED backwards. Test in Task 2: D3's anode is on the Ring node and its cathode on the Tip-side node (anti-parallel to the LED).
+1. A MIDI cable plugged into MIDI IN with reversed polarity (type B gear): current must flow through D3, not the opto LED backwards. Test in Task 2: D3's anode is on the Tip node (opto cathode) and its cathode on the Ring-side node (opto anode), anti-parallel to the LED. (Corrected by the final review: the plan first had Tip and Ring swapped.)
 2. MIDI OUT loop current (5 mA at 3.3 V) must come from the buffer, never from the GPIO: Task 2 tests that `MIDI_TX` connects only to U9's input pin and to U1.
 3. The MIDI IN sleeve must not be grounded (ground loop with the sender): Task 2 tests J6 pad `S` has no net while J7 pad `S` is GND.
 4. `check_pinmap` reads `#define PIN_* <n>` and flags any PIN_ the PCB does not know: Task 1 tests that `config.h` and `pinmap.GPIO` agree in both directions, including the three new/moved names.

@@ -61,7 +61,11 @@ def colocar(board, find_fp):
 # unir la punta con J4. Copiar el fanout de TODOS los GPIO se probo y fue peor
 # (10 a 15 nets abiertas): fija salidas que en esta placa chocan con el
 # cristal y el lazo del TPS63001.
-FANOUT_NETS = {"LCD_DC", "LCD_MOSI", "BTN_START", "DPAD_UP", "DPAD_DOWN"}
+# BTN_START salio de la lista con el nucleo a rot 270: su carril (fila 16-30,
+# ahora a la izquierda) apunta lejos de Start, que esta abajo a la derecha, y
+# el router no cerraba la vuelta (ciclo 4 del 2026-10-15). Sin carril, sale
+# solo.
+FANOUT_NETS = {"LCD_DC", "LCD_MOSI", "DPAD_UP", "DPAD_DOWN"}
 
 
 def net_fanout(rp_net):

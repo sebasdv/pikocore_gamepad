@@ -1,6 +1,6 @@
 #pragma once
 #if PIKO_GAMEPAD
-// Pin map: pikocore_gamepad carrier PCB (Waveshare RP2350-Plus module).
+// Pin map: pikocore_gamepad carrier PCB (RP2350A chip-down, 100x60 Micro layout).
 // The PCB pins (PIN_*) come from src/boards/pikocore_gamepad/config.h, which
 // gate G-4 keeps in sync with hardware/pikocore_gamepad/pcb/pinmap.py. This
 // block only maps them onto the GAMEPI_* names the shared GamePi13 input/UI
@@ -14,15 +14,17 @@
 #define GAMEPI_I2S_HZ 48000
 #define GAMEPI_I2S_PIO pio0  // pio1 sm0 is the one-wire MIDI receiver
 #define GAMEPI_I2S_SM 0
-// RP2350-Plus onboard LED (module-internal GP25, not on the header).
-#define GAMEPI_LED_PIN 25
-// The carrier PCB has no clock jack nor trigger jack. GP27/GP28 are the two
-// FREE (unconnected, ADC-capable) header pins per pinmap.py; parking the
-// clock input there with its pull-up reads idle HIGH (no false clock pulses,
-// same reasoning as the GamePi13 branch in main()), and the trigger output
-// toggles a pin nothing listens to. Wire them to a jack and they just work.
-#define GAMEPI_CLOCK_PIN 27
-#define GAMEPI_TRIGO_PIN 28
+// No user LED: the module's GP25 LED went with the module, and GP25 is now
+// MIDI_RX (the H11L1 opto's open-collector output). -1 = no pin; main()
+// skips the LED when it is negative.
+#define GAMEPI_LED_PIN -1
+// No clock jack nor trigger jack either. GP28 is the ONE free (ADC-capable)
+// GPIO per pinmap.py: the clock input parks there with its pull-up (idle
+// HIGH, no false clock pulses, same reasoning as the GamePi13 branch in
+// main()); wire it to a jack and it just works. The trigger output has no
+// pin left (-1 = skipped). GP27 is VBUS_SENSE since the MIDI change.
+#define GAMEPI_CLOCK_PIN 28
+#define GAMEPI_TRIGO_PIN -1
 
 // The 8 pikocore music buttons, pikocore order 0..7 (same as GamePi13):
 //                            Up            Dn              Lt              Rt              Y          X          B          A

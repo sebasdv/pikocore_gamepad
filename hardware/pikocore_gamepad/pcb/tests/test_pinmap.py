@@ -154,3 +154,31 @@ class TestCheckPinmap(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFirmwareStubs(unittest.TestCase):
+    """src/hw_gamepi13.h elige pines SOLO de firmware (LED, stubs de clock y
+    trigger) con numeros literales que G-4 no ve: G-4 lee config.h. Si uno
+    de esos literales cae en un GPIO que la placa ya usa, compila y se
+    descubre al enchufar (la revision final del 2026-10-15 encontro el LED
+    en GP25 = MIDI_RX y el clock en GP27 = VBUS_SENSE)."""
+
+    def _bloque_gamepad(self):
+        import os, re
+        raiz = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            "..", "..", "..", ".."))
+        txt = open(os.path.join(raiz, "src", "hw_gamepi13.h"), encoding="utf-8").read()
+        ini = txt.index("#if PIKO_GAMEPAD")
+        bloque = txt[ini:txt.index("\n#else", ini)]   # la rama GamePi13 no cuenta
+        return dict(re.findall(r"#define\s+(GAMEPI_\w+_PIN)\s+(-?\d+)", bloque))
+
+    def test_los_pines_solo_de_firmware_no_pisan_la_placa(self):
+        pines = self._bloque_gamepad()
+        self.assertTrue(pines, "no se encontro ningun GAMEPI_*_PIN literal")
+        for nombre, n in pines.items():
+            n = int(n)
+            if n < 0:
+                continue          # -1 = sin pin, el firmware lo salta
+            self.assertNotIn(n, pinmap.GPIO,
+                             f"{nombre} = GP{n}, que la placa usa como {pinmap.GPIO.get(n)}")
+            self.assertIn(n, pinmap.FREE, f"{nombre} = GP{n} no es un pin libre")

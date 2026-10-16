@@ -27,6 +27,18 @@ import sys
 
 import pcbnew
 
+# KiCad 9.0.1: ExportSpecctraDSN dispara un assert benigno de wxWidgets
+# ("non-closed outline added to SHAPE_POLY_SET") y en vez de solo escribirlo
+# por stderr abre un "wxWidgets Debug Alert" MODAL que nadie puede cerrar en
+# CLI: el script queda colgado (paso tres veces el 2026-10-15, en export y
+# en repaso). wxPython comparte la wx de KiCad: apagar los asserts aca apaga
+# el dialogo para todo el proceso.
+try:
+    import wx
+    wx.DisableAsserts()
+except Exception:          # sin wxPython el assert sigue saliendo por stderr
+    pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.join(HERE, "pikocore_gamepad.kicad_pcb")
 DSN = os.path.join(HERE, "pikocore_gamepad.dsn")

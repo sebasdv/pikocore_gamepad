@@ -993,8 +993,8 @@ void pwm_interrupt_handler() {
       beat_led = 1;
       beat_num_total = 0;
     }
-    gpio_put(LED_PIN, beat_led);
-    output_trigger.Trigger();
+    if (LED_PIN >= 0) gpio_put(LED_PIN, beat_led);
+    if (TRIGO_PIN >= 0) output_trigger.Trigger();
 
     if (do_mute_debounce > 0) {
       do_mute_debounce--;
@@ -1854,8 +1854,10 @@ int main(void) {
   audio_out(0);
 
   // setup gpio pins
-  gpio_init(LED_PIN);
-  gpio_set_dir(LED_PIN, GPIO_OUT);
+  if (LED_PIN >= 0) {  // -1 = no LED on this board (PIKO_GAMEPAD)
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+  }
   gpio_init(CLOCK_PIN);
   gpio_set_dir(CLOCK_PIN, GPIO_IN);
 #if PIKO_GAMEPI13
@@ -1931,7 +1933,7 @@ int main(void) {
   save_data[SAVE_CLOCK_INPUT_MODE] = CLOCK_INPUT_CLOCK;
 
   // initializer trigger
-  output_trigger.Init(TRIGO_PIN, 10, MAIN_LOOP_HZ);
+  if (TRIGO_PIN >= 0) output_trigger.Init(TRIGO_PIN, 10, MAIN_LOOP_HZ);
 
   // initialize control loop variables
   uint32_t clock_ms = 0;

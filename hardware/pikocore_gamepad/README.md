@@ -59,15 +59,16 @@ and Start under the diamond, L/R shoulder tacts in the top corners.
 Phones, MIDI IN and MIDI OUT are 3.5 mm TRS jacks on the top edge (back
 side); MIDI is type A on UART1 (GP24 TX, GP25 RX, `PIN_MIDI_TX`/`PIN_MIDI_RX`
 in `config.h`), 3.3 V output resistors through a 74LVC1G17, H11L1 opto input.
-`VBUS_SENSE` moved to GP27. The RP2350A core block sits behind the panel
+`VBUS_SENSE` moved to GP27; the firmware's beat LED and trigger-out stubs are
+off (`-1`) and the clock-in stub sits on GP28, the one free GPIO. The RP2350A core block sits behind the panel
 rotated so its LCD/I2S/button pin row faces the flex connector and the DAC
 (at the old orientation freerouting stalled with 5–7 of those nets open).
 Spec and open items:
 [`docs/superpowers/specs/2026-10-15-pikocore-gamepad-micro-layout-midi-design.md`](../../docs/superpowers/specs/2026-10-15-pikocore-gamepad-micro-layout-midi-design.md).
-Gates: 209 tests, ERC 0/0, DRC 0 errors / 0 unconnected / 0 parity
+Gates: 210 tests, ERC 0/0, DRC 0 errors / 0 unconnected / 0 parity
 (15 warnings: 11 silk at the edge, 2 library mismatch, 2 silk over copper on
 the 470 µF outlines), G-5/G-4/G-2/placement green, G-0 red only for
-`LCD_FPC_PIN_ORDER`. Not verified: U9/U10 pinouts against their datasheets
+`LCD_FPC_PIN_ORDER`; the `PIKO_GAMEPAD` firmware builds. Not verified: U9/U10 pinouts against their datasheets
 (marked SIN VERIFICAR in the schematic), LCSC codes for the MIDI parts and
 the 0603 10 Ω / 33 Ω / 220 Ω, the enclosure for 100 × 60, and nothing has
 been built.
