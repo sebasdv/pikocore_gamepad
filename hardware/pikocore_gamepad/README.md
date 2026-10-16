@@ -52,7 +52,30 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state (2026-10-14, evening):** **100 × 80 mm**, 4 layers, 72 parts.
+**Current state on branch `hw/modulo-micro-midi` (2026-10-16):** **100 × 60 mm**,
+4 layers, 81 parts, the Micro layout ported to the module
+([spec](../../docs/superpowers/specs/2026-10-16-pikocore-gamepad-module-micro-midi-design.md)).
+The front is the Micro arrangement (panel on top, D-pad, X/Y/A/B, Select/Start,
+triggers in the top corners, J4 below the panel). On the back the RP2350-Plus is
+**soldered flat by its castellated edges** — no socket; footprint
+`RP2350-Plus_Castellated`, KiCad's Pico hand-solder footprint without the
+mounting holes — centred at (50, 33) with its USB-C at the bottom edge. MIDI IN
+(J6, H11L1 opto into GP27) and MIDI OUT (J7, GP28 through a 74LVC1G17) are TRS
+type A at the top edge; the phones jack moved to the left edge. Routed in one
+freerouting cycle (`route_cycle.sh`); hand copper is still only the boost loop.
+Gates: 202 tests OK; `run_all.py` red only on G-0 (`LCD_FPC_PIN_ORDER`, as on
+`main`), G-5/G-4 (26 pins)/G-2 (278 connections)/placement green; ERC 0; DRC 0
+errors, 0 unconnected, 0 parity mismatches, 15 warnings (silkscreen, and a
+library mismatch on SW9/SW10). `gen_fab.py --force` writes
+`pikocore_gamepad_fab_NO-FABRICABLE.zip` (49 BOM lines, 20 without LCSC; 61 SMD
+in the CPL), so G-F also stays red: the unsuffixed zip cannot exist until G-0
+closes. The DXF template is regenerated at 100 × 60. Not verified: the Plus's
+castellation copper against the Pico footprint (needs a 1:1 paper print), the
+module's battery connector against the user's JST GH cells, a PIO UART receiver
+on GP27 (firmware), the enclosure. No board has been built and the branch is not
+pushed.
+
+**State on `main` (2026-10-14, evening):** **100 × 80 mm**, 4 layers, 72 parts.
 Display is now a **bare 1.3" panel on a flex**: DisplayModule DM-TFT13-377
 (24-pin variant, LH133T-IF05, ST7789VW) glued to the front, 0.5 mm FPC into
 **J4 = XUNPU FPC-05FB-24PH20 (LCSC C2856831)**; CS tied to GND, 4-SPI, TE on

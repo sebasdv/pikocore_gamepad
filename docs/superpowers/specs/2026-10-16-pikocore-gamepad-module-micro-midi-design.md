@@ -145,15 +145,29 @@ ERC 0, DRC 0 errors / 0 unconnected / 0 parity. G-0 stays red for
 numbers match the Pico header order; no footprint other than U1 overlaps the
 module outline; the USB-C end faces the bottom edge in a render.
 
-## Not verified by any source yet
+## Not verified (state on 2026-10-16, after routing)
 
-- The Plus's castellation copper shape against the Pico footprint's (physical
-  1:1 paper check).
-- The module's battery connector model (see "Battery").
-- Back area closure at 100 × 60 with the module (estimate above).
+The board is routed and every automated gate except G-0 is green: 202 tests,
+G-5/G-4/G-2/placement, ERC 0, DRC 0 errors / 0 unconnected / 0 parity (15
+silkscreen and library warnings). **G-0 stays red for `LCD_FPC_PIN_ORDER`**, as
+on `main`, until the panel is measured; `gen_fab.py --force` therefore writes
+`pikocore_gamepad_fab_NO-FABRICABLE.zip`, and the freshness gate stays red on
+the missing unsuffixed zip for the same reason. What no gate checks:
+
+- The Plus's castellation copper shape against the Pico footprint's. The
+  footprint is KiCad's Pico hand-solder footprint without the mounting holes;
+  it needs a physical 1:1 paper print laid over the module.
+- The module's battery connector model against the user's JST GH 1.25 cells.
+  The carrier cannot reach the module's battery line, so the cells need a
+  GH-to-MX1.25 pigtail or a re-crimped plug. The model is still to be confirmed
+  with the module in hand (see "Battery").
+- Back area: it closed at 100 × 60 with the module. The packer placed all 36 of
+  36 back passives with no part left without a place, so the 100 × 65 fallback
+  was not needed. No free/used area figures were measured.
 - A PIO UART receiver on GP27, and GP28's UART0 TX use, are firmware work.
 - Enclosure: USB-C cutout at the bottom edge, access holes for BOOT/RESET,
-  jack cut-outs, and the LiPo's place behind the module.
+  jack cut-outs (MIDI at the top edge, phones on the left edge), and the LiPo's
+  place behind the module.
 - No board has been built.
 
 ## Out of scope
