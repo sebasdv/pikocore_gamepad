@@ -79,8 +79,8 @@ class TestSimbolos(unittest.TestCase):
             self.assertTrue(s["ref"], f"{name}: falta ref")
 
     # Piezas MECANICAS que existen solo por su contorno (se pegan, no se
-    # sueldan). Cualquier otro simbolo sin pines es un olvido.
-    SIN_PINES = {"LCD_PANEL"}
+    # sueldan). Hoy ninguna: un simbolo sin pines es un olvido.
+    SIN_PINES = set()
 
     def test_cada_simbolo_tiene_al_menos_un_pin(self):
         for name, s in netlist.SYMS.items():
@@ -139,25 +139,15 @@ class TestSimboloMcu(unittest.TestCase):
 
 class TestSimboloLcd(unittest.TestCase):
 
-    def test_el_conector_tiene_los_24_pines_del_panel_mas_dos_anclajes(self):
-        n = pin_names("LCD_FPC24")
-        self.assertEqual(len(n), 26)
-        self.assertEqual(n[24:], ["MP", "MP"])
+    def test_el_modulo_tiene_los_7_pines_en_el_orden_de_su_serigrafia(self):
+        # Un pin corrido aca es una pantalla que no enciende, y no lo ve ni
+        # el ERC ni el DRC.
+        self.assertEqual(pin_names("LCD_ST7789"),
+                         ["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"])
 
-    def test_el_pinout_es_el_del_datasheet_del_panel(self):
-        # DM-TFT13-377 24P, "3. Pin Definition". Un pin corrido aca es un
-        # panel que no enciende, y no lo ve ni el ERC ni el DRC.
-        n = pin_names("LCD_FPC24")
-        self.assertEqual(n[:12], ["LEDA", "LEDK", "GND", "VDD", "VDDIO", "IM",
-                                  "RESET", "CS", "SCL", "D/C", "RD", "SDA"])
-        self.assertEqual(n[12:20], [f"DB{k}" for k in range(8)])
-        self.assertEqual(n[20:24], ["TE", "NC", "GND", "GND"])
-
-    def test_el_panel_es_una_pieza_sin_pines(self):
-        self.assertEqual(pin_names("LCD_PANEL"), [])
-
-    def test_el_nmos_tiene_el_pinout_sot23(self):
-        self.assertEqual(pin_names("Q_NMOS"), ["G", "S", "D"])
+    def test_no_quedan_los_simbolos_del_panel_de_24_pines(self):
+        for sym in ("LCD_FPC24", "LCD_PANEL", "Q_NMOS"):
+            self.assertNotIn(sym, netlist.SYMS)
 
 
 class TestSimboloTact(unittest.TestCase):
@@ -630,6 +620,14 @@ class TestInstanciaMcu(unittest.TestCase):
             self.assertEqual(u1[pin], func,
                              f"GP{gpio} (pin {pin}) deberia ser {func}")
 
+    def test_los_gpio_libres_quedan_sin_conectar(self):
+        # Sin header de expansion no hay quien los consuma: una etiqueta
+        # EXP_GP* de un solo extremo es un aviso de ERC (global_label_dangling).
+        u1 = nets_of("U1")
+        for gpio in pinmap.FREE:
+            self.assertEqual(u1[str(pinmap.header_pin(gpio))], netlist.NC,
+                             f"GP{gpio}")
+
     def test_todos_los_gnd_del_header_van_a_masa(self):
         u1 = nets_of("U1")
         for i, nombre in enumerate(pinmap.HEADER_ORDER):
@@ -655,46 +653,35 @@ class TestInstanciaMcu(unittest.TestCase):
 
 
 class TestInstanciaDisplay(unittest.TestCase):
+    """Modulo IPS de 7 pines pasantes. CS a masa y el transistor del
+    backlight van en el propio modulo: LCD_BLK llega directo al pin BLK."""
 
-    def test_se_alimenta_de_3v3_y_elige_4_spi(self):
-        n = nets_of("J4")
-        self.assertEqual(n["4"], "3V3")    # VDD
-        self.assertEqual(n["5"], "3V3")    # VDDIO
-        self.assertEqual(n["6"], "3V3")    # IM = 1 -> 4-SPI
+    def _j4(self):
+        return next(i for i in netlist.INSTANCES if i[1] == "J4")
 
-    def test_el_spi_y_el_control_llegan_del_mcu(self):
-        n = nets_of("J4")
-        self.assertEqual(n["9"], "LCD_SCK")
-        self.assertEqual(n["12"], "LCD_MOSI")
-        self.assertEqual(n["7"], "LCD_RES")
-        self.assertEqual(n["10"], "LCD_DC")   # WR = D/C en 4-SPI
-        self.assertEqual(n["21"], "LCD_TE")
+    def test_las_nets_del_modulo_pin_por_pin(self):
+        self.assertEqual(nets_of("J4"), {
+            "1": "GND", "2": "3V3", "3": "LCD_SCK", "4": "LCD_MOSI",
+            "5": "LCD_RES", "6": "LCD_DC", "7": "LCD_BLK"})
 
-    def test_cs_rd_y_el_bus_paralelo_van_a_masa(self):
-        # CS a masa = siempre seleccionado (como el modulo de 7 pines). En
-        # 4-SPI el datasheet manda RD y DB0-7 a masa.
-        n = nets_of("J4")
-        self.assertEqual(n["8"], "GND")
-        self.assertEqual(n["11"], "GND")
-        for k in range(13, 21):
-            self.assertEqual(n[str(k)], "GND", f"DB{k - 13}")
-        self.assertEqual(n["22"], netlist.NC)
+    def test_usa_el_simbolo_y_la_huella_del_modulo(self):
+        j4 = self._j4()
+        self.assertEqual(j4[0], "LCD_ST7789")
+        self.assertEqual(j4[6]["FP"], "gamesetup_fp:LCD_ST7789_240x240_7P")
 
-    def test_el_backlight_lo_conmuta_el_gpio_por_el_nmos(self):
-        # Fijar los LED a un riel dejaria el mayor consumidor de la placa
-        # siempre al maximo, sin forma de apagar la pantalla por firmware.
-        self.assertEqual(nets_of("J4")["2"], "BL_K")
-        q = nets_of("Q1")
-        self.assertEqual(q["1"], "LCD_BLK")
-        self.assertEqual(q["2"], "GND")
-        self.assertEqual(q["3"], "BL_K")
-        self.assertEqual(nets_of("R21"), {"1": "VSYS", "2": "BL_A"})
-        self.assertEqual(nets_of("J4")["1"], "BL_A")
+    def test_lo_suelda_el_usuario_y_no_tiene_lcsc(self):
+        j4 = self._j4()
+        self.assertTrue(j4[6].get("MANUAL"))
+        self.assertNotIn("LCSC", j4[6])
 
-    def test_el_panel_es_manual_y_sin_nets(self):
-        inst = next(i for i in netlist.INSTANCES if i[1] == "LCD1")
-        self.assertEqual(inst[5], {})
-        self.assertTrue(inst[6].get("MANUAL"))
+    def test_no_quedan_el_panel_ni_el_backlight_discreto(self):
+        refs = {i[1] for i in netlist.INSTANCES}
+        self.assertEqual(refs & {"LCD1", "R21", "Q1", "R22", "C30", "C31"},
+                         set())
+
+    def test_no_quedan_las_nets_del_panel(self):
+        nets = {n for i in netlist.INSTANCES for n in i[5].values()}
+        self.assertEqual(nets & {"LCD_TE", "BL_A", "BL_K"}, set())
 
 
 def instancias_de(sym):
@@ -1057,10 +1044,8 @@ class TestCoberturaDeNets(unittest.TestCase):
 
     def test_ninguna_net_de_senal_tiene_un_solo_extremo(self):
         # Una net con un solo pin es casi siempre un typo, y el ERC la reporta
-        # recien al generar el esquematico. Se exceptuan los rieles, los
-        # testpoints y los GPIO libres del MCU (EXP_GP*, sin header ni otro
-        # consumidor desde que se elimino el header de expansion), que
-        # legitimamente pueden tener un solo consumidor.
+        # recien al generar el esquematico. Se exceptuan los rieles y los
+        # testpoints, que legitimamente pueden tener un solo consumidor.
         from collections import Counter
         cuenta = Counter()
         for inst in netlist.INSTANCES:
@@ -1070,8 +1055,7 @@ class TestCoberturaDeNets(unittest.TestCase):
         exentas = {"GND", "3V3", "5V", "VSYS", "VBUS"}
         huerfanas = sorted(n for n, c in cuenta.items()
                            if c < 2 and n not in exentas
-                           and not n.startswith("TP_")
-                           and not n.startswith("EXP_"))
+                           and not n.startswith("TP_"))
         self.assertEqual(huerfanas, [], f"nets con un solo extremo: {huerfanas}")
 
     def test_toda_funcion_del_pinmap_llega_a_algun_componente(self):
@@ -1173,6 +1157,16 @@ class TestRepartoEnHojas(unittest.TestCase):
         for _n, titulo, _r, claves in gen_sch.HOJAS:
             for clave in claves:
                 self.assertIn(clave, gen_sch.NOTAS, titulo)
+
+    def test_las_notas_describen_el_modulo_de_7_pines(self):
+        import gen_sch
+        todo = "\n".join(gen_sch.NOTAS.values())
+        for viejo in ("FPC", "R21", "Q1", "R22", "LCD_FPC_PIN_ORDER", "TE a GP26"):
+            self.assertNotIn(viejo, todo)
+        nota = gen_sch.NOTAS["NOTA_ENTRADA"]
+        self.assertIn("CS", nota)
+        self.assertIn("LCD_BLK", nota)
+        self.assertIn("TE", nota)
 
 
 class TestMidi(unittest.TestCase):

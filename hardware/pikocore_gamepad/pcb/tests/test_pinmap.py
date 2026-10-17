@@ -33,11 +33,15 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_SCK"), pinmap.SPI0_SCK_OK)
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
-    def test_midi_usa_los_dos_pines_libres_del_modulo(self):
-        # El modulo expone GP0-22 y GP26-28; GP27/28 eran los unicos libres.
+    def test_midi_usa_gp27_y_gp28(self):
         self.assertEqual(pinmap.GPIO[28], "MIDI_TX")
         self.assertEqual(pinmap.GPIO[27], "MIDI_RX")
-        self.assertEqual(pinmap.FREE, ())
+
+    def test_gp26_queda_libre_porque_el_modulo_no_tiene_te(self):
+        # El modulo de 7 pines no expone TE: GP26 es el unico libre.
+        self.assertNotIn(26, pinmap.GPIO)
+        self.assertNotIn("LCD_TE", pinmap.GPIO.values())
+        self.assertEqual(pinmap.FREE, (26,))
 
     def test_midi_tx_es_un_pin_tx_de_uart0(self):
         self.assertIn(pinmap.gpio_of("MIDI_TX"), pinmap.UART0_TX_OK)

@@ -86,8 +86,7 @@ HOJAS = [
 
     ("02_mcu_controles", "MCU, pantalla y controles", [
         "U1",                                      # modulo RP2350-Plus
-        "J4", "LCD1",                              # conector FPC + panel
-        "Q1", "R21", "R22", "C30", "C31",          # backlight y desacoplo
+        "J4",                                      # modulo LCD de 7 pines
         "SW1", "SW2", "SW3", "SW4",                # D-pad UP DOWN LEFT RIGHT
         "SW5", "SW6", "SW7", "SW8",                # X Y A B
         "SW11", "SW12",                            # START SELECT
@@ -286,17 +285,13 @@ NOTAS = {
         "Los 12 controles van DIRECTO a GPIO del modulo, sin expansor I2C. La asignacion esta\n"
         "en pinmap.py y la verifica la puerta G-4 contra el firmware.\n"
         "\n"
-        "PANTALLA: panel desnudo DM-TFT13-377 de 24 pines (ST7789VW) pegado al frente, FPC de\n"
-        "0.5mm al conector J4 (XUNPU FPC-05FB-24PH20, contactos de las dos caras). 4-SPI con\n"
-        "IM=1 y CS A MASA (siempre seleccionado, como hacia el modulo de 7 pines): el bus SPI0\n"
-        "sigue sin poder compartirse. RD y DB0-7 a masa, TE a GP26. Backlight: 2 LED blancos en\n"
-        "paralelo (3.0V, 40mA) desde VSYS por R21 (27R, PERILLA de brillo maximo) y Q1 (2N7002)\n"
-        "a masa, con el PWM de LCD_BLK en la puerta y R22 de pulldown. No cuelga del riel de 5V\n"
-        "para no meter el PWM en la alimentacion del op-amp.\n"
+        "PANTALLA: modulo IPS 1.3in 240x240 ST7789 de 7 pines pasantes a 2.54 (J4), soldado por\n"
+        "sus propios pines. CS esta atado a GND EN EL MODULO (siempre seleccionado): el bus SPI0\n"
+        "no se puede compartir. El backlight lo maneja directo LCD_BLK (PWM, GP7) sobre el pin\n"
+        "BLK; el transistor esta en el modulo. Sin TE: el modulo no lo expone y GP26 queda libre.\n"
         "\n"
-        "ORDEN DE PINES DEL FPC: J4 va a rot 180 asumiendo contactos hacia la placa. Si el panel\n"
-        "trae los contactos hacia arriba el orden se espeja: LCD_FPC_PIN_ORDER en params.py queda\n"
-        "SIN VERIFICAR hasta medir continuidad con el panel en mano (bloquea G-0).\n"
+        "Pendiente de medir con el modulo en mano (bloquea G-0): eje de pines al borde y diametro\n"
+        "de los pines (LCD7_PIN_ROW_TO_EDGE y LCD7_PIN_DRILL en params.py).\n"
         "\n"
         "Los tacts de 6mm (SW1-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
         "dentro del switch; el simbolo declara 2 pines porque el footprint oficial de KiCad\n"

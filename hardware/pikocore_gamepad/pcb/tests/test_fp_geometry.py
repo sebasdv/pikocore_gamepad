@@ -1,67 +1,72 @@
+import math
 import unittest
 
 import gen_fp
 import params
 
 
-class TestPanelFootprint(unittest.TestCase):
-    """Panel desnudo LCD_LH133T_24P: contorno, area activa y cola del FPC.
-    Sin pads: lo electrico va por el conector J4, que se importa de LCSC."""
+class TestLcdFootprint(unittest.TestCase):
+    """Modulo IPS 1.3in de 7 pines pasantes. Origen = pin 1 (GND), X a lo
+    largo de la fila de pines, Y hacia el cuerpo. Las cotas esperadas son
+    las del spec (dibujo del fabricante, 2026-10-17)."""
 
-    def test_el_origen_es_el_centro_del_area_activa(self):
-        w = gen_fp.panel_window()
-        self.assertAlmostEqual(w["x0"], -w["x1"], places=4)
-        self.assertAlmostEqual(w["y0"], -w["y1"], places=4)
+    def setUp(self):
+        self.pads = gen_fp.lcd_pads()
+        self.holes = gen_fp.lcd_holes()
 
-    def test_la_ventana_es_cuadrada_y_mide_el_area_activa(self):
-        w = gen_fp.panel_window()
-        self.assertAlmostEqual(w["x1"] - w["x0"], params.v("PANEL_AA"), places=4)
-        self.assertAlmostEqual(w["y1"] - w["y0"], params.v("PANEL_AA"), places=4)
+    def caja(self, b, x0, y0, x1, y1):
+        for k, esperado in zip(("x0", "y0", "x1", "y1"), (x0, y0, x1, y1)):
+            self.assertAlmostEqual(b[k], esperado, places=3, msg=k)
 
-    def test_el_contorno_mide_lo_que_el_backlight(self):
-        c = gen_fp.panel_outline()
-        self.assertAlmostEqual(c["x1"] - c["x0"], params.v("PANEL_BL_W"), places=3)
-        self.assertAlmostEqual(c["y1"] - c["y0"], params.v("PANEL_BL_H"), places=3)
+    # ------------------------------------------------------------ pines
+    def test_siete_pines_en_el_orden_del_modulo(self):
+        nombres = [p["name"] for p in sorted(self.pads, key=lambda p: p["num"])]
+        self.assertEqual(nombres,
+                         ["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"])
 
-    def test_la_ventana_cae_dentro_del_contorno_con_sus_margenes(self):
-        c, w = gen_fp.panel_outline(), gen_fp.panel_window()
-        self.assertAlmostEqual(w["x0"] - c["x0"], params.v("PANEL_AA_OFF_X"), places=4)
-        self.assertAlmostEqual(c["x1"] - w["x1"], params.v("PANEL_AA_OFF_X"), places=4)
-        self.assertAlmostEqual(w["y0"] - c["y0"], params.v("PANEL_AA_OFF_TOP"), places=4)
-        # La franja del driver (lado del FPC) es la ancha, y esta ABAJO (+Y).
-        self.assertGreater(c["y1"] - w["y1"], params.v("PANEL_AA_OFF_TOP"))
+    def test_los_pines_van_de_0_a_15_24_en_y_0(self):
+        for p in self.pads:
+            self.assertAlmostEqual(p["x"], (p["num"] - 1) * 2.54, places=4)
+            self.assertAlmostEqual(p["y"], 0.0, places=4)
 
-    def test_el_fpc_sale_por_abajo_y_mide_lo_declarado(self):
-        c, f = gen_fp.panel_outline(), gen_fp.panel_fpc()
-        self.assertAlmostEqual(f["y0"], c["y1"], places=4)
-        self.assertAlmostEqual(f["y1"] - f["y0"], params.v("PANEL_FPC_LEN"), places=4)
-        self.assertAlmostEqual(f["x1"] - f["x0"], params.v("PANEL_FPC_W"), places=4)
-        self.assertAlmostEqual(f["x0"], -f["x1"], places=4)
+    def test_el_pad_y_el_taladro_son_los_declarados(self):
+        for p in self.pads:
+            self.assertAlmostEqual(p["size"], params.v("LCD7_PIN_PAD"), places=4)
+            self.assertAlmostEqual(p["drill"], params.v("LCD7_PIN_DRILL"), places=4)
+            self.assertGreater(p["size"], p["drill"], f"pad {p['num']}: sin anillo")
 
+    # ------------------------------------------------------------ contorno
+    def test_el_contorno_es_el_del_spec(self):
+        self.caja(gen_fp.lcd_outline(), -6.27, -1.27, 21.51, 37.95)
 
-class TestGeneracionDelArchivo(unittest.TestCase):
+    def test_el_contorno_mide_lo_que_el_modulo(self):
+        c = gen_fp.lcd_outline()
+        self.assertAlmostEqual(c["x1"] - c["x0"], params.v("LCD7_BOARD_W"), places=3)
+        self.assertAlmostEqual(c["y1"] - c["y0"], params.v("LCD7_BOARD_H"), places=3)
 
-    def test_el_kicad_mod_no_declara_pads(self):
-        # Pieza pegada: un pad aca seria un pad sin net en el DRC.
-        self.assertEqual(gen_fp.build_panel().count("(pad "), 0)
+    # ------------------------------------------------------- area activa
+    def test_el_area_activa_es_la_del_spec(self):
+        self.caja(gen_fp.lcd_window(), -4.08, 5.06, 19.32, 28.46)
 
-    def test_queda_fuera_del_cpl_pero_dentro_del_bom(self):
-        # La pega el usuario (no va al pick-and-place) pero hay que comprarla.
-        # exclude_from_bom ademas choca con el simbolo (in_bom yes) y el DRC
-        # con --schematic-parity lo reporta.
-        s = gen_fp.build_panel()
-        self.assertIn("exclude_from_pos_files", s)
-        self.assertNotIn("exclude_from_bom", s)
+    def test_el_area_activa_no_pisa_la_fila_de_pines(self):
+        w = gen_fp.lcd_window()
+        self.assertGreater(w["y0"], max(p["y"] + p["size"] / 2 for p in self.pads))
 
-    def test_tiene_courtyard_y_ventana(self):
-        s = gen_fp.build_panel()
-        self.assertEqual(s.count('(layer "F.CrtYd")'), 4)
-        # contorno + ventana + cola del FPC, 4 lineas cada uno
-        self.assertEqual(s.count('(layer "Cmts.User")'), 12)
+    # ------------------------------------------------------- agujeros
+    def test_los_agujeros_son_los_del_spec(self):
+        pos = sorted((round(h["x"], 3), round(h["y"], 3)) for h in self.holes)
+        self.assertEqual(pos, [(-3.77, 1.23), (-3.77, 35.45),
+                               (19.01, 1.23), (19.01, 35.45)])
+        for h in self.holes:
+            self.assertAlmostEqual(h["drill"], params.v("LCD7_HOLE_DIA"), places=4)
 
-    def test_el_archivo_abre_y_cierra_parentesis(self):
-        s = gen_fp.build_panel()
-        self.assertEqual(s.count("("), s.count(")"))
+    def test_los_agujeros_no_pisan_los_pads(self):
+        for h in self.holes:
+            for p in self.pads:
+                d = math.hypot(h["x"] - p["x"], h["y"] - p["y"])
+                self.assertGreater(d, h["drill"] / 2 + p["size"] / 2,
+                                   f"agujero ({h['x']:.2f},{h['y']:.2f}) "
+                                   f"pisa el pad {p['num']}")
 
 
 if __name__ == "__main__":
