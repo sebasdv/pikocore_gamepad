@@ -114,6 +114,8 @@ def build_lcd():
     global _ids
     _ids = itertools.count()
     c, win = lcd_outline(), lcd_window()
+    pads = lcd_pads()
+    ref_x = pads[3]["x"]      # refdes centrado: no pisa las etiquetas GND/BLK
     out = [
         f'(footprint "{LCD_NAME}"\n',
         '  (version 20240108)\n',
@@ -125,12 +127,12 @@ def build_lcd():
         'Los 4 agujeros del modulo van solo dibujados (Cmts.User/F.Fab), no se '
         'taladran. El rectangulo interior de Cmts.User es el area activa: es '
         'lo que hay que recortar en la tapa del enclosure.")\n',
-        f'  (property "Reference" "J**" (at 0 -3 0) (layer "F.SilkS") '
+        f'  (property "Reference" "J**" (at {F(ref_x)} -3 0) (layer "F.SilkS") '
         f'(uuid "{u()}") (effects (font (size 1 1) (thickness 0.15))))\n',
         f'  (property "Value" "{LCD_NAME}" (at 0 -5 0) (layer "F.Fab") '
         f'(uuid "{u()}") (effects (font (size 1 1) (thickness 0.15))))\n',
     ]
-    for p in lcd_pads():
+    for p in pads:
         out.append(f'  (pad "{p["num"]}" thru_hole '
                    f'{"rect" if p["num"] == 1 else "circle"} '
                    f'(at {F(p["x"])} {F(p["y"])}) (size {F(p["size"])} {F(p["size"])}) '
@@ -145,6 +147,12 @@ def build_lcd():
     for layer in ("Cmts.User", "F.Fab"):
         for h in lcd_holes():
             out.append(_circle(layer, h["x"], h["y"], h["drill"] / 2))
+    # Orientacion al soldar: GND sobre el pad cuadrado, BLK en el otro
+    # extremo. Entre el borde del modulo (y=-1.27) y el de la placa.
+    for p in (pads[0], pads[-1]):
+        out.append(f'  (fp_text user "{p["name"]}" (at {F(p["x"])} -2.2 0) '
+                   f'(layer "F.SilkS") (uuid "{u()}") '
+                   f'(effects (font (size 1 1) (thickness 0.15))))\n')
     out.append(')\n')
     return "".join(out)
 

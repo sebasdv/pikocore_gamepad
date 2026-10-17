@@ -75,7 +75,8 @@ mismatch on SW9/SW10). `gen_fab.py --force` writes
 in the CPL), so G-F also stays red: the unsuffixed zip cannot exist until G-0
 closes. The DXF template (100 × 60) now carries J4 with its full module
 outline, for the enclosure window. The display module has no 3D model, so it
-does not appear in renders. No board has been built.
+does not appear in renders (the user's STEP, `pcb/1.3 Inch 1.3.step`, is in
+the repo but not wired to J4). No board has been built.
 
 **Still to measure, with the module in hand** (both `verified=False` in
 `pcb/params.py`, the only reason G-0 is red):
@@ -84,6 +85,9 @@ does not appear in renders. No board has been built.
   relative to the pins.
 - `LCD7_PIN_DRILL` (1.0 assumed): the board drill for the 7 pins, from the real
   pin size.
+- Orientation: screen up, header row at the top, the leftmost label must read
+  GND and goes into the square pad (the board has GND/BLK silk labels). A wrong
+  orientation swaps GND/BLK, 3V3/DC and SCK/RES.
 
 Not verified either: the Plus's castellation copper against the Pico footprint
 (needs a 1:1 paper print), the module's battery connector against the user's

@@ -16,7 +16,8 @@ alguno de los dos es pasante: un THT perfora las cuatro capas.
 
 No mira courtyards: dos piezas cuyos courtyards se rozan suelen ser
 aceptables, y aca lo que interesa es el cobre encimado. La excepcion es el
-cuerpo de la pantalla (su F.CrtYd): ahi no puede asomar ninguna pata pasante.
+cuerpo de la pantalla (su F.CrtYd): ahi no puede asomar ninguna pata pasante,
+ni pads SMD del frente ni courtyards del frente.
 
 Correr con el python de KiCad:
   "$LOCALAPPDATA/Programs/KiCad/9.0/bin/python.exe" checks/check_placement.py
@@ -36,25 +37,22 @@ MARGEN_BORDE = 1.0    # mm minimos entre cobre y borde de placa
 from placements import MODULE_BOX   # noqa: E402  (el modulo apoya plano)
 
 
-def pads_de(fp):
-    """[(ref.num, caja, pasante, cara)] de cada pad, en mm."""
-    t = pcbnew.ToMM
-    out = []
-    for p in fp.Pads():
-        b = p.GetBoundingBox()
-        pasante = p.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH,
-                                       pcbnew.PAD_ATTRIB_NPTH)
-        out.append((f"{fp.GetReference()}.{p.GetNumber() or '-'}",
-                    (t(b.GetLeft()), t(b.GetTop()),
-                     t(b.GetRight()), t(b.GetBottom())),
-                    pasante, fp.IsFlipped()))
-    return out
-
-
-def pads_de_uno(p):
+def caja_pad(p):
+    """Bounding box del pad, en mm."""
     b = p.GetBoundingBox()
     t = pcbnew.ToMM
     return (t(b.GetLeft()), t(b.GetTop()), t(b.GetRight()), t(b.GetBottom()))
+
+
+def pads_de(fp):
+    """[(ref.num, caja, pasante, cara)] de cada pad, en mm."""
+    out = []
+    for p in fp.Pads():
+        pasante = p.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH,
+                                       pcbnew.PAD_ATTRIB_NPTH)
+        out.append((f"{fp.GetReference()}.{p.GetNumber() or '-'}",
+                    caja_pad(p), pasante, fp.IsFlipped()))
+    return out
 
 
 def footprint_bbox(fp):
@@ -154,7 +152,7 @@ def main(board=None):
             continue
         pad_f = any(p.GetAttribute() == pcbnew.PAD_ATTRIB_SMD
                     and p.IsOnLayer(pcbnew.F_Cu)
-                    and solapan(pads_de_uno(p), cuerpo) for p in fp.Pads())
+                    and solapan(caja_pad(p), cuerpo) for p in fp.Pads())
         cc = caja_crtyd(fp)
         if pad_f or (cc and solapan(cc, cuerpo)):
             smd_bajo_pantalla.append(ref)

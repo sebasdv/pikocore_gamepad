@@ -22,7 +22,7 @@ del commit 4d66184. Con ese modulo la unica incertidumbre es una medicion con ca
 | Backlight | R21 27R + Q1 2N7002 + R22 100k + C30/C31 | los lleva el modulo; `LCD_BLK` va directo al pin BLK, como en la placa vieja |
 | Pines | GP2 SCK, GP3 MOSI, GP5 DC, GP6 RES, GP7 BLK, GP26 TE | iguales salvo GP26: el modulo no tiene TE, queda libre |
 | CS / IM | CS a GND, IM=1 en la placa | CS a GND ya esta en el modulo |
-| G-0 | `LCD_FPC_PIN_ORDER` rojo | desaparece; queda un parametro de medicion del modulo |
+| G-0 | `LCD_FPC_PIN_ORDER` rojo | desaparece; quedan dos parametros de medicion del modulo |
 
 Nets del modulo (pin 1 a 7): GND, 3V3, `LCD_SCK`, `LCD_MOSI`, `LCD_RES`, `LCD_DC`, `LCD_BLK`.
 
@@ -69,6 +69,12 @@ modulo como no verificadas), `pinmap.py` + `config.h` (GP26 libre, sin `PIN_LCD_
 
 Hasta entonces esos dos parametros quedan `verified=False` y G-0 sigue rojo; medidos,
 pasan a verificados y el paquete pasa a `FABRICABLE` si no queda otro rojo.
+
+Tampoco verificado:
+
+- Un 1 uF opcional en J4 pin 2 (3V3), a agregar la proxima vez que se regenere la placa.
+- La polaridad y el estado de pull de BLK en el modulo: desconocidos hasta medirlo (el
+  firmware asume activo en alto).
 
 ## Fuera de alcance
 

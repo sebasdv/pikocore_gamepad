@@ -140,6 +140,15 @@ class TestLcdFootprintArchivo(unittest.TestCase):
                               max(x for x, _ in pts), max(y for _, y in pts)),
                              (-6.27, -1.27, 21.51, 37.95), capa)
 
+    def test_etiquetas_gnd_y_blk_sobre_los_pines_extremos(self):
+        # Orientacion al soldar el modulo: GND sobre el pad 1 (cuadrado), BLK
+        # sobre el 7. Al reves se cruzan GND/BLK, 3V3/DC y SCK/RES.
+        txt = dict(re.findall(r'\(fp_text\s+user\s+"([^"]+)"\s+\(at\s+([-\d.]+)\s+'
+                              r'[-\d.]+[^)]*\)\s+\(layer\s+"F\.SilkS"\)', self.txt))
+        self.assertEqual(set(txt), {"GND", "BLK"})
+        self.assertAlmostEqual(float(txt["GND"]), 0.0, places=3)
+        self.assertAlmostEqual(float(txt["BLK"]), 15.24, places=3)
+
     def test_el_area_activa_va_en_cmts(self):
         pts = self._puntos("Cmts.User")
         self.assertIn((-4.08, 5.06), pts)

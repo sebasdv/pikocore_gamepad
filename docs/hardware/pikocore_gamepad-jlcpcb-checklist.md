@@ -304,10 +304,19 @@ Faltan dos cotas, que se miden **con el módulo en mano** (calibre):
 | `LCD7_PIN_ROW_TO_EDGE` | 1.27 | eje de la fila de pines → borde del módulo del lado de los pines; el dibujo no la acota y corre el contorno y el área activa respecto de los pines |
 | `LCD7_PIN_DRILL` | 1.0 | taladro de los 7 pines en la placa; sale del diámetro real de los pines |
 
+Y una comprobación de orientación, también con el módulo en mano: pantalla
+hacia arriba y fila del header arriba, la etiqueta de más a la izquierda tiene
+que decir GND y va en el pad cuadrado (la placa ya tiene las etiquetas GND/BLK
+en serigrafía). Al revés se cruzan GND/BLK, 3V3/DC y SCK/RES.
+
 Medidas, se cargan en `params.py` con `verified=True`; si no queda otro rojo,
 `gen_fab.py` deja de pedir `--force`.
 
 ## 3. ~~Medidas físicas pendientes~~ — ✅ CERRADO
+
+> Nota histórica: el 1.27 salió de un STEP dibujado desde el plano del
+> fabricante, no de un calibre. Hoy es `LCD7_PIN_ROW_TO_EDGE`, otra vez con
+> `verified=False`: ver §2.5.
 
 Las dos cotas del LCD que faltaban salieron del **STEP del módulo** que modeló
 el usuario a partir del dibujo, no de un calibre:
@@ -465,7 +474,7 @@ Hace falta una **regla de excepción para U2** en las reglas de diseño (en KiCa
 clearance global a propósito: bajarlo de 0.2mm afectaría toda la placa, y 0.2mm
 es un buen default para el resto.
 
-### Estado de las puertas
+### Estado de las puertas (2026-08-25, histórico)
 
 ```
 G-0  constantes y footprints verificados ....... FALLA (correcto: §2, §3, §4)
@@ -481,7 +490,7 @@ DRC: 173 infracciones, de las cuales 168 son **pad contra zona de plano**
 reciben su thermal relief. De las 5 restantes, 4 son el SOT-563 de arriba y 1 es
 un solape de courtyard J5↔U1 que ya venía de antes.
 
-## Orden sugerido
+## Orden sugerido (2026-08-25, histórico)
 
 1. Rutear con el contorno provisional (§0) para tener una placa DRC-limpia de
    referencia — no fabricable todavía, pero destraba iterar

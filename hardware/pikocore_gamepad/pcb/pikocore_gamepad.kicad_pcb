@@ -4285,7 +4285,7 @@
 		(at 42.38 5.74)
 		(descr "Modulo IPS 1.3in 240x240 ST7789, 7 pines pasantes, header soldado directo. Origen = pin 1 (GND). Cotas de params.py (LCD7_*). Los 4 agujeros del modulo van solo dibujados (Cmts.User/F.Fab), no se taladran. El rectangulo interior de Cmts.User es el area activa: es lo que hay que recortar en la tapa del enclosure.")
 		(property "Reference" "J4"
-			(at 0 -3 0)
+			(at 7.62 -3 0)
 			(layer "F.Fab")
 			(uuid "54976eb0-db70-4405-bdff-655b0467c51b")
 			(effects
@@ -4578,6 +4578,28 @@
 			(fill no)
 			(layer "F.Fab")
 			(uuid "f981af29-c5b0-4f49-8b8b-d8840c6b9ad8")
+		)
+		(fp_text user "GND"
+			(at 0 -2.2 0)
+			(layer "F.SilkS")
+			(uuid "34d286a3-75d8-4bbf-8996-b2911b57e072")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
+		)
+		(fp_text user "BLK"
+			(at 15.24 -2.2 0)
+			(layer "F.SilkS")
+			(uuid "ce1874fb-39ba-49c7-bf16-34a073e39632")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.15)
+				)
+			)
 		)
 		(pad "1" thru_hole rect
 			(at 0 0)
