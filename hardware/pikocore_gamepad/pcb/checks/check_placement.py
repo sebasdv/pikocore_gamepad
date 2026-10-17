@@ -51,6 +51,12 @@ def pads_de(fp):
     return out
 
 
+def pads_de_uno(p):
+    b = p.GetBoundingBox()
+    t = pcbnew.ToMM
+    return (t(b.GetLeft()), t(b.GetTop()), t(b.GetRight()), t(b.GetBottom()))
+
+
 def footprint_bbox(fp):
     cajas = [c for _, c, _, _ in pads_de(fp)]
     if not cajas:
@@ -63,11 +69,13 @@ def solapan(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
-def main():
-    if not os.path.isfile(PCB):
-        print(f"FALTA: {PCB}")
-        return 1
-    board = pcbnew.LoadBoard(PCB)
+def main(board=None):
+    """rc 0 si el placement es viable. `board` permite probarlo en memoria."""
+    if board is None:
+        if not os.path.isfile(PCB):
+            print(f"FALTA: {PCB}")
+            return 1
+        board = pcbnew.LoadBoard(PCB)
     bb = board.GetBoardEdgesBoundingBox()
     anchos = [d.GetWidth() for d in board.GetDrawings()
               if d.GetLayer() == pcbnew.Edge_Cuts]
@@ -116,16 +124,40 @@ def main():
 
     # La pantalla (J4) apoya en el frente sobre su header: ninguna pata pasante
     # de otra pieza (ni su soldadura, que queda en el frente) bajo su placa.
-    # Los jacks del dorso sueldan sus patas del lado del frente.
-    bajo_pantalla = []
+    # Los jacks del dorso sueldan sus patas del lado del frente. Tampoco una
+    # pieza SMD del frente (pad o courtyard): el cuerpo del modulo la pisa.
     j4 = board.FindFootprintByReference("J4")
-    if j4:
-        j4.BuildCourtyardCaches()
-        cb = j4.GetCourtyard(pcbnew.F_CrtYd).BBox()
-        t = pcbnew.ToMM
-        cuerpo = (t(cb.GetLeft()), t(cb.GetTop()), t(cb.GetRight()), t(cb.GetBottom()))
-        bajo_pantalla = [n for n, c, pasante, _ in pads
-                         if pasante and not n.startswith("J4.") and solapan(c, cuerpo)]
+    if not j4:
+        print("FALTA J4 (la pantalla): no se puede revisar que quede libre bajo ella.")
+        return 1
+    t = pcbnew.ToMM
+
+    def caja_crtyd(fp):
+        fp.BuildCourtyardCaches()
+        poly = fp.GetCourtyard(pcbnew.F_CrtYd)
+        if poly.OutlineCount() == 0:
+            return None
+        b = poly.BBox()
+        return (t(b.GetLeft()), t(b.GetTop()), t(b.GetRight()), t(b.GetBottom()))
+
+    cuerpo = caja_crtyd(j4)
+    if cuerpo is None:
+        print("J4 sin F.CrtYd: no se puede revisar que quede libre bajo la pantalla.")
+        return 1
+    bajo_pantalla = [n for n, c, pasante, _ in pads
+                     if pasante and not n.startswith("J4.") and solapan(c, cuerpo)]
+    # Courtyard por caja: conservador si alguno no es rectangular.
+    smd_bajo_pantalla = []
+    for fp in board.GetFootprints():
+        ref = fp.GetReference()
+        if ref == "J4":
+            continue
+        pad_f = any(p.GetAttribute() == pcbnew.PAD_ATTRIB_SMD
+                    and p.IsOnLayer(pcbnew.F_Cu)
+                    and solapan(pads_de_uno(p), cuerpo) for p in fp.Pads())
+        cc = caja_crtyd(fp)
+        if pad_f or (cc and solapan(cc, cuerpo)):
+            smd_bajo_pantalla.append(ref)
 
     # Sus pastillas se sueldan a mano: una via que toca el cobre de una
     # chupa el estano. Circulo de la via contra el rectangulo que envuelve la
@@ -173,12 +205,18 @@ def main():
     if bajo_pantalla:
         print()
 
+    for ref in smd_bajo_pantalla:
+        print(f"BAJO LA PANTALLA: {ref}")
+    if smd_bajo_pantalla:
+        print()
+
     for n in via_en_modulo:
         print(f"VIA EN PASTILLA DEL MODULO: {n}")
     if via_en_modulo:
         print()
 
-    if not (fuera or choques or bajo_modulo or bajo_pantalla or via_en_modulo):
+    if not (fuera or choques or bajo_modulo or bajo_pantalla
+            or smd_bajo_pantalla or via_en_modulo):
         print("OK: sin solapamientos de pads y todo dentro de la placa.")
         return 0
     return 1

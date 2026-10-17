@@ -141,10 +141,9 @@ PISTAS = {
                           _u2(4.40, 1.80), _u2(4.40, -2.65), _u2(3.55, -3.50)]),
     # L1.1 (VSYS_F, del lado derecho de U2) tiene que llegar a L2.2 y a los
     # pines 2/3 (lado izquierdo). Por arriba lo tapan la red de FB y los
-    # pasivos; por abajo pasa entre el codo del 5V (y=U2+1.8) y los pines
-    # THT del LCD (y=9.6, borde del pad en 8.75): 0.25 de ancho en y=8.35
-    # deja 0.27 a cada lado. Mismo motivo que arriba: dos corridas seguidas
-    # de freerouting lo dejaron abierto.
+    # pasivos; por abajo pasa entre el codo del 5V (y=U2+1.8) y el borde
+    # inferior de la placa: 0.25 de ancho en y=U2+2.35. Mismo motivo que
+    # arriba: dos corridas seguidas de freerouting lo dejaron abierto.
     "L1_VSYS_F": dict(net="VSYS_F", capa="B.Cu", ancho=0.25, via=False,
                       puntos=[_u2(5.80, 0.00), _u2(5.80, 2.35),
                               _u2(-3.80, 2.35), _u2(-3.80, 0.00)]),

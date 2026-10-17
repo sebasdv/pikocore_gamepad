@@ -211,8 +211,9 @@ def _choca(caja, ocupadas):
 
 
 def _ocupadas_del_dorso(board):
-    """Courtyards que bloquean el dorso: todo lo ya colocado que este al dorso
-    o tenga pads pasantes, porque un THT perfora las cuatro capas."""
+    """Cajas que bloquean el dorso: el courtyard de lo ya colocado al dorso, y
+    solo la caja de los pads de lo del frente que tenga pads pasantes (un THT
+    perfora las cuatro capas; su cuerpo queda del otro lado)."""
     out = []
     for fp in board.GetFootprints():
         pasante = any(p.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH,

@@ -11,7 +11,7 @@ Que sale en el DXF, una capa por refdes:
   - cruz (+) en el ORIGEN del footprint = la posicion de placements.py.
     Mover la cruz = nueva posicion. Es lo unico que hay que mover.
   - rectangulo punteado con la extension real de los pads, para ver cuanto
-    ocupa de verdad cada pieza.
+    ocupa de verdad cada pieza (la pantalla, J4: su cuerpo, ver CUERPO_EN_DXF).
   - capa BOARD_OUTLINE con el contorno. Moverla cambia el tamano de la placa.
 
 El bbox sale del board, no de datos hardcodeados, asi que siempre refleja los
@@ -61,6 +61,11 @@ OUT = os.path.join(HERE, "pikocore_gamepad_template.dxf")
 # todo SMD y es la pieza mecanica mayor (corte USB-C, acceso BOOT/RESET).
 MECANICOS_SMD = {"U1"}
 
+# Piezas cuyo rectangulo en el DXF es el cuerpo (F.CrtYd) y no los pads: la
+# pantalla (J4) tiene cobre solo en la fila de 7 pines, pero lo que importa
+# para la ventana del enclosure es el modulo entero (27.78 x 39.22).
+CUERPO_EN_DXF = {"J4"}
+
 
 def to_mm(v):
     return pcbnew.ToMM(v)
@@ -100,6 +105,15 @@ def pad_bbox_mm(fp):
             to_mm(max(xs1)), to_mm(max(ys1)))
 
 
+def courtyard_bbox_mm(fp):
+    # Por vertices: SHAPE_POLY_SET.BBox() le suma 0.05mm de cada lado.
+    fp.BuildCourtyardCaches()
+    o = fp.GetCourtyard(pcbnew.F_CrtYd).Outline(0)
+    pts = [o.CPoint(i) for i in range(o.PointCount())]
+    return (to_mm(min(q.x for q in pts)), to_mm(min(q.y for q in pts)),
+            to_mm(max(q.x for q in pts)), to_mm(max(q.y for q in pts)))
+
+
 def contorno_geometrico(board):
     """(x0, y0, x1, y1) del contorno SIN el ancho de linea del Edge.Cuts.
 
@@ -131,7 +145,8 @@ def main():
         items.append(dxf_io.Item(
             ref=fp.GetReference(),
             x=to_mm(pos.x), y=to_mm(pos.y),
-            bbox=pad_bbox_mm(fp),
+            bbox=(courtyard_bbox_mm(fp) if fp.GetReference() in CUERPO_EN_DXF
+                  else pad_bbox_mm(fp)),
             back=fp.IsFlipped(),
         ))
 
