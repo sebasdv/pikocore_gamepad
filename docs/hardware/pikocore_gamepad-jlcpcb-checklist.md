@@ -308,6 +308,10 @@ Y una comprobación de orientación, también con el módulo en mano: pantalla
 hacia arriba y fila del header arriba, la etiqueta de más a la izquierda tiene
 que decir GND y va en el pad cuadrado (la placa ya tiene las etiquetas GND/BLK
 en serigrafía). Al revés se cruzan GND/BLK, 3V3/DC y SCK/RES.
+La foto del módulo del usuario (2026-10-17) ya muestra ese orden: con la pantalla
+arriba y el texto legible, la fila de pines queda arriba y se lee GND VCC SCL SDA
+RES DC BLK de izquierda a derecha, con GND en el pad cuadrado. Falta solo
+repetirlo a simple vista con la pieza antes de soldar.
 
 Medidas, se cargan en `params.py` con `verified=True`; si no queda otro rojo,
 `gen_fab.py` deja de pedir `--force`.

@@ -87,7 +87,10 @@ the repo but not wired to J4). No board has been built.
   pin size.
 - Orientation: screen up, header row at the top, the leftmost label must read
   GND and goes into the square pad (the board has GND/BLK silk labels). A wrong
-  orientation swaps GND/BLK, 3V3/DC and SCK/RES.
+  orientation swaps GND/BLK, 3V3/DC and SCK/RES. The user's photo of the module
+  (2026-10-17) shows exactly this order (GND VCC SCL SDA RES DC BLK, left to
+  right, header on top, GND on the square pad); only a glance at the real part
+  before soldering is left.
 
 Not verified either: the Plus's castellation copper against the Pico footprint
 (needs a 1:1 paper print), the module's battery connector against the user's
