@@ -1,7 +1,10 @@
 # pikocore_gamepad — pantalla: modulo IPS 1.3" de 7 pines en lugar del panel de 24 pines
 
 Fecha: 2026-10-17. Rama: `hw/pantalla-7pines`, cortada de `hw/modulo-micro-midi` (PR #3).
-Estado: propuesta para revision. Nada de esto esta aplicado todavia.
+Estado (2026-10-17): implementado y ruteado en la rama (commits 33c623f..57ebe7d, puertas en
+el commit de docs). Puertas: 218 tests OK; ERC 0/0; DRC 0 errores / 0 sin conectar / 0 paridad
+(15 avisos); G-5/G-4/G-2/placement OK; G-0 rojo solo por `LCD7_PIN_ROW_TO_EDGE` y
+`LCD7_PIN_DRILL` (por medir con el modulo en mano), asi que el paquete sale `NO-FABRICABLE`.
 
 ## Por que
 

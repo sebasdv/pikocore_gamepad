@@ -1,5 +1,30 @@
 # pikocore_gamepad — qué falta antes de mandar a JLCPCB
 
+> **Actualización 2026-10-17, rama `hw/pantalla-7pines` — pantalla de 7 pines.**
+> Placa de 100 × 60 con el RP2350-Plus soldado plano al dorso y MIDI TRS
+> (heredado de `hw/modulo-micro-midi`, PR #3), y la pantalla cambiada al
+> **módulo IPS 1.3" 240×240 ST7789 de 7 pines** (J4, header a 2.54 mm,
+> pasante, soldado a mano en el frente; ver §2.5). Sin conector FPC ni
+> backlight en la placa: el módulo trae el suyo y `LCD_BLK` (GP7) va directo
+> a su pin BLK; GP26 queda libre (el módulo no tiene TE). Puertas, corridas
+> en vivo: 218 tests OK; `run_all.py` rojo **solo en G-0**, por las dos cotas
+> del módulo que faltan medir (`LCD7_PIN_DRILL`, `LCD7_PIN_ROW_TO_EDGE`, ver
+> §2.5); G-5, G-4 (25 pines), G-2 (248 conexiones) y placement OK; ERC 0/0;
+> DRC 0 errores / 0 sin conectar / 0 paridad, 15 avisos (11 serigrafía al
+> borde, 2 serigrafía sobre cobre, 2 `lib_footprint_mismatch` de SW9/SW10).
+> `gen_fab.py --force` → `pikocore_gamepad_fab_NO-FABRICABLE.zip`: 16
+> gerbers, 46 líneas de BOM (**19 sin LCSC**: los 12 tacts, los 3 jacks,
+> 470 µF, el parlante, el módulo RP2350-Plus y la pantalla), 55 SMD en el
+> CPL. **No es fabricable** mientras G-0 siga rojo.
+>
+> **Al pedir en JLCPCB:** excluir del ensamblaje el módulo RP2350-Plus (U1) y
+> la pantalla (J4); los dos los compra y suelda el usuario (no salen en el CPL,
+> pero sí en el BOM sin LCSC: marcarlos "do not place"). La huella de U1
+> tiene aperturas **solo en B.Paste** (3.8 × 2.2, más grandes que su cobre) que
+> un stencil del dorso imprimiría: **pedir que no se ponga pasta en U1**, y 12
+> vías de señal tocan el borde de esas aperturas (van tapadas con máscara,
+> `tenting front back`; solo importa si se imprime pasta ahí).
+
 > **Actualización 2026-10-14.** Corrida completa de la skill `pcb-verify` sobre
 > el clon en `C:\pikocore_gamepad` (KiCad 9.0.1 en `C:\Program Files\KiCad`):
 > 201 tests OK, G-0/G-5/G-4/G-2/placement OK, ERC 0 errores (2 avisos: GP27 y
@@ -56,26 +81,10 @@
 > pikocore_gamepad" en claude.ai; pendiente de decisión antes de aplicar.
 >
 > **Cuarta corrida, misma fecha — pantalla por flex + propuesta aplicada.**
-> Panel desnudo DisplayModule DM-TFT13-377 de 24 pines (LCSC no tiene paneles
-> de 1.3" en stock; la variante de 12 pines usa FPC de 0.7 mm y LCSC no vende
-> conectores a ese paso). Conector J4 = XUNPU FPC-05FB-24PH20 (C2856831,
-> 0.5 mm, contactos de las dos caras), huella y STEP importados con
-> easyeda2kicad a `gamesetup_lcsc`. Panel = `LCD1`, huella sin pads generada
-> por `gen_fp.py` (origen en el centro del área activa), DNP para el CPL pero
-> en el BOM. Backlight: R21 27 Ω (0805, C17594) + Q1 2N7002 (C8545)
-> + R22 100k; C30/C31 de desacoplo. TE → GP26 (`LCD_TE`). Layout del estudio:
-> panel con el BL en y 3.0, grupos centrados en y 53.2, Select (50, 51) y
-> Start (50, 63), J4 en (50, 44.6) rot 180, R19/R20 bajados a y 72.5/75.5;
-> el boost no se movió porque ya no hay pines pasantes del LCD en el dorso.
-> **G-0 bloqueado a propósito** por `LCD_FPC_PIN_ORDER` (V-8): el lado de los
-> contactos del FPC no sale del datasheet; medir continuidad LEDA → J4.1 con
-> el panel en mano; si está espejado, J4 a rot 0. Hasta entonces `gen_fab.py`
-> solo genera con `--force` y el zip sale `_NO-FABRICABLE`. Pipeline:
-> `plane_vias.py` saltea el pad cuando hay una vía propia a <0.6 mm (los 13
-> GND del conector a 0.5 mm daban `hole_to_hole`) y el fanout rechaza
-> candidatos pegados a una vía de la misma net; `finish_pcb.py` borra stubs
-> colgantes. Faltan 18 LCSC en el BOM: THT manuales, 470 µF, el panel y la R
-> de 24 Ω.
+> La pantalla pasó a un panel desnudo de 24 pines por flex y se aplicó el
+> layout del estudio ergonómico. Esa variante sigue en la rama
+> `hw/modulo-micro-midi` (PR #3); en esta rama la reemplaza el módulo de 7
+> pines (arriba).
 
 Estado al **2026-08-25**, rama `pikocore-gamepad-hardware`. Generado corriendo en
 vivo `tests/run_tests.py` (185 OK) y `checks/run_all.py` con el Python de KiCad
@@ -279,6 +288,24 @@ El LCSC `C2838125` cargado es el NJM4556AD en **DIP-8**. Para SMD:
 Dos salidas: dibujar el DMP8 en `gamesetup_fp`, o conseguir un SOIC-8 real. El
 ahorro de 95mm² que justificaba pasar a SMD hay que **recalcularlo** con el área
 del DMP8.
+
+### 2.5 Pantalla (J4) — comprada, faltan dos medidas (bloquean G-0)
+
+**Comprada en AliExpress** (sin código LCSC: la suelda el usuario, no JLCPCB).
+Módulo IPS 1.3" 240×240 ST7789 de 7 pines (GND, VCC, SCL, SDA, RES, DC, BLK),
+huella `LCD_ST7789_240x240_7P` según el dibujo del fabricante (27.78 × 39.22,
+pin 1 a 6.27 del borde izquierdo, paso 2.54). Los 4 agujeros de 2 mm del
+módulo **no se taladran**: se sostiene por sus pines.
+
+Faltan dos cotas, que se miden **con el módulo en mano** (calibre):
+
+| Constante | Valor supuesto | Qué es |
+|---|---|---|
+| `LCD7_PIN_ROW_TO_EDGE` | 1.27 | eje de la fila de pines → borde del módulo del lado de los pines; el dibujo no la acota y corre el contorno y el área activa respecto de los pines |
+| `LCD7_PIN_DRILL` | 1.0 | taladro de los 7 pines en la placa; sale del diámetro real de los pines |
+
+Medidas, se cargan en `params.py` con `verified=True`; si no queda otro rojo,
+`gen_fab.py` deja de pedir `--force`.
 
 ## 3. ~~Medidas físicas pendientes~~ — ✅ CERRADO
 
