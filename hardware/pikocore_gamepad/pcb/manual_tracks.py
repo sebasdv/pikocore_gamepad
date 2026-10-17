@@ -155,6 +155,15 @@ PISTAS = {
     "C7_5V": dict(net="5V", capa="B.Cu", ancho=0.30, via=False,
                   puntos=[_u2(3.55, -3.50), _u2(3.55, -4.65),
                           _u2(7.425, -4.65), _u2(7.425, -3.50)]),
+    # R4.1 (arriba del divisor de FB) a C5.1: une la isla de salida del boost
+    # (U2.6, C5, C7) con el resto de 5V. Pasa por ARRIBA de R4.2 (FB) a
+    # y=-4.65, la misma fila que C7_5V, y entra en diagonal a C5.1 por arriba
+    # a la izquierda (sin pisar el tramo vertical de C7_5V): 0.475 al pad de
+    # R4.2, 1.9 a los pads de los tacts. Con la pantalla de 7 pines
+    # freerouting dejo "U2-6 -> R4-1" abierto en las dos pasadas del ciclo.
+    "R4_5V": dict(net="5V", capa="B.Cu", ancho=0.40, via=False,
+                  puntos=[_u2(-1.825, -3.50), _u2(-1.825, -4.65),
+                          _u2(2.70, -4.65), _u2(3.55, -3.50)]),
     # C4.1 (el 10uF de entrada) tambien es VSYS_F y queda del otro lado de
     # L2.1 (VSYS), en la misma fila. Pasa por ARRIBA de L2, por el corredor
     # de 0.9mm que queda entre la fila de pasivos (y=2.5) y los pads del
