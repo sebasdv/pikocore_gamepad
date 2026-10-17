@@ -21,7 +21,7 @@ when built with `-DPIKO_GAMEPAD=ON` (see `hardware/pikocore_gamepad/README.md`).
 | GP4 | `DPAD_LEFT` | D-pad left |
 | GP5 | `LCD_DC` | Display data/command select |
 | GP6 | `LCD_RES` | Display reset |
-| GP7 | `LCD_BLK` | Display backlight (PWM) |
+| GP7 | `LCD_BLK` | Display backlight (PWM, straight to the module's BLK pin) |
 | GP8 | `I2S_DIN` | PCM5102A data in (PIO) |
 | GP9 | `DPAD_RIGHT` | D-pad right |
 | GP10 | `BTN_X` | Face button X |
@@ -37,14 +37,16 @@ when built with `-DPIKO_GAMEPAD=ON` (see `hardware/pikocore_gamepad/README.md`).
 | GP20 | `SPK_SHDN` | Speaker amp shutdown (1 = speaker on) |
 | GP21 | `JACK_DET` | Headphone jack detect (0 = plug inserted, needs pull-up) |
 | GP22 | `DAC_XSMT` | DAC mute control (starts muted via 100k pulldown) |
-| GP26 | `LCD_TE` | Panel tearing-effect output (input to the MCU, optional; firmware defines `PIN_LCD_TE` and does not use it yet). Was `BTN_OK` (NAV5 centre) until 2026-10-14, when the D-pad went back to four discrete 6×6 tacts (SW1–SW4): a single 5-way actuator cannot press two directions at once, which Up+Down+B+A and Down+Left+X+B need. |
-| GP27, GP28 | — | Reserved, unconnected (battery voltage sense candidate). Firmware parks pikocore's clock-in (GP27, pull-up) and trigger-out (GP28) here so the stock engine code runs unchanged; wire a jack and they just work |
+| GP26 | — | Free, unconnected. Was `BTN_OK` (NAV5 centre) until 2026-10-14, when the D-pad went back to four discrete 6×6 tacts (SW1–SW4): a single 5-way actuator cannot press two directions at once, which Up+Down+B+A and Down+Left+X+B need. Then `LCD_TE` of the bare 24-pin panel; the 7-pin module that replaced it (2026-10-17) has no TE pin |
+| GP27 | `MIDI_RX` | From the MIDI IN optocoupler (H11L1, J6); read by a PIO UART (firmware side not written yet) |
+| GP28 | `MIDI_TX` | UART0 TX to the MIDI OUT jack (J7, through a 74LVC1G17) |
 | GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor). Firmware uses the GP25 onboard LED as the beat LED |
 
-Display (since 2026-10-14): bare 1.3" panel DisplayModule DM-TFT13-377, 24-pin
-0.5 mm FPC into J4 (XUNPU FPC-05FB-24PH20). 4-SPI with IM=1; CS is tied to GND
-(always selected, as the old 7-pin module was), RD and DB0–DB7 to GND. Backlight:
-2 white LEDs from VSYS through R21 (27 Ω) and Q1 (2N7002) switched by `LCD_BLK`.
+Display (since 2026-10-17): 1.3" 240×240 ST7789 IPS module with a 7-pin 2.54 mm
+header (GND, VCC, SCL, SDA, RES, DC, BLK), J4, soldered by hand on the front. 4-SPI;
+CS is tied to GND on the module itself (always selected) and it has no TE pin. The
+backlight driver is on the module: `LCD_BLK` (GP7) drives its BLK pin directly. The
+previous bare 24-pin panel on a flex stays on branch `hw/modulo-micro-midi`.
 
 The electrical topology is the same one the superseded from-scratch plan called for
 — each button switches its GPIO net to GND, and firmware enables `gpio_pull_up()` on

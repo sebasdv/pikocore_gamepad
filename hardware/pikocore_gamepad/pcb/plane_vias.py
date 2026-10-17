@@ -251,8 +251,8 @@ def via_prohibida(board, x, y, diam):
     """True si una via de `diam` en (x, y) toca un area que prohibe vias.
 
     Las que importan son las del modulo soldado plano (U1): "Pad Keep Out
-    TPn", debajo de sus pads de prueba. El conector del flex (J4, frente)
-    queda justo detras, y sin esto sus vias a GND caian adentro.
+    TPn", debajo de sus pads de prueba. Sin esto, los fanouts a GND de las
+    piezas vecinas podian caer adentro.
     """
     p = pcbnew.VECTOR2I(mm(x), mm(y))
     zonas = list(board.Zones()) + [z for fp in board.GetFootprints()
@@ -328,9 +328,9 @@ def lugar_para_via(board, pad, diam, ancho, dists=DIST_FANOUT, fuera_de=None):
             if h_via < necesita_via or via_prohibida(board, x, y, diam):
                 continue
             # hueco_en ignora el cobre de la MISMA net, asi que dos fanouts
-            # vecinos del conector del FPC (3V3 en los pads 4/5/6, GND en
-            # 13..20) elegian el mismo punto y quedaban con los taladros a
-            # 0.01mm: hole_to_hole en el DRC. Una via propia tambien ocupa.
+            # vecinos de la misma net elegian el mismo punto y quedaban con
+            # los taladros a 0.01mm: hole_to_hole en el DRC. Una via propia
+            # tambien ocupa.
             if via_misma_net_cerca(board, x, y, net):
                 continue
             if all(hueco_en(board, px + (x - px) * k / MUESTRAS_STUB,
@@ -417,8 +417,8 @@ def main():
             saltadas += 1
             continue
         if via_vecina_misma_net(board, pad):
-            # Pads de la misma net a paso fino (los 13 GND del conector del
-            # FPC, a 0.5mm): una via por pad deja los taladros a 0.2mm y el
+            # Pads de la misma net a paso fino (varios GND seguidos a
+            # 0.5mm): una via por pad deja los taladros a 0.2mm y el
             # DRC reporta hole_to_hole. Con una via cada dos pads los
             # taladros quedan a 0.7mm, y el pad sin via lo une freerouting
             # al vecino con una pista de medio milimetro.
