@@ -23,18 +23,20 @@ del commit 4d66184. Con ese modulo la unica incertidumbre es una medicion con ca
 
 Nets del modulo (pin 1 a 7): GND, 3V3, `LCD_SCK`, `LCD_MOSI`, `LCD_RES`, `LCD_DC`, `LCD_BLK`.
 
-## Geometria (del historial, sin calibre: pendiente de medir)
+## Geometria (dibujo del fabricante, confirmado por el usuario el 2026-10-17)
 
-Recuperada de `LCD_ST7789_240x240_7P.kicad_mod` (commit 4d66184~1), que salio de
-`GAMESETUP/layout.png`. Origen = pin 1, X a lo largo de la fila de pines, Y hacia el
-cuerpo del modulo:
+El dibujo del modulo (27.78 x 39.22; pin 1 a 6.27 del borde izquierdo; paso 2.54;
+agujeros de 2 mm a 2.5 mm de los bordes; area activa 23.40 con 5.00 + 1.33 de borde
+superior a ventana) coincide con la huella vieja `LCD_ST7789_240x240_7P.kicad_mod`
+(commit 4d66184~1). Origen = pin 1, X a lo largo de la fila de pines, Y hacia el cuerpo:
 
-- Placa del modulo 27.78 x 39.22 mm: x -6.27..21.51, y -1.27..37.95.
+- Placa 27.78 x 39.22 mm: x -6.27..21.51, y -1.27..37.95.
 - Pines en y = 0, x = 0, 2.54 ... 15.24; pad 1.7 mm, taladro 1.0 mm.
 - Area activa 23.4 mm cuadrada: x -4.08..19.32, y 5.06..28.46, centro (7.62, 16.76).
-- 4 agujeros de montaje de 2.0 mm en (-3.77, 1.23), (19.01, 1.23), (-3.77, 35.45),
-  (19.01, 35.45). **No se taladran** en la placa: el modulo se sostiene por sus pines
-  (y, si se quiere, pegamento o separadores).
+- 4 agujeros de 2.0 mm en (-3.77, 1.23), (19.01, 1.23), (-3.77, 35.45), (19.01, 35.45).
+  **No se taladran** en la placa: el modulo se sostiene por sus pines.
+- Sin dato en el dibujo: la distancia del eje de pines al borde (1.27 viene de la huella
+  vieja) y el diametro real de los pines: quedan `verified=False`.
 
 ## Colocacion
 
@@ -59,14 +61,11 @@ modulo como no verificadas), `pinmap.py` + `config.h` (GP26 libre, sin `PIN_LCD_
 
 ## Pendiente de medir con el modulo en mano
 
-1. Largo y ancho de la placa del modulo (27.78 x 39.22 esperado).
-2. Distancia del eje de los pines al borde del lado de los pines.
-3. Paso de los pines (2.54 esperado) y orden de las etiquetas.
-4. Que el centro de la ventana de pantalla coincida con las cotas de arriba.
+1. Distancia del eje de los pines al borde del lado de los pines (1.27 esperado).
+2. Diametro de los pines del modulo (taladro de 1.0 mm supuesto).
 
-Hasta que se midan, esos parametros quedan `verified=False` y G-0 sigue rojo; con
-las cuatro medidas pasan a verificados y el paquete pasa a `FABRICABLE` (si no queda
-otro rojo).
+Hasta entonces esos dos parametros quedan `verified=False` y G-0 sigue rojo; medidos,
+pasan a verificados y el paquete pasa a `FABRICABLE` si no queda otro rojo.
 
 ## Fuera de alcance
 
