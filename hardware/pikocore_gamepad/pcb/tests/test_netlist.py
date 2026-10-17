@@ -344,13 +344,18 @@ class TestFootprints(unittest.TestCase):
                          f"{placements.BOARD_W}x{placements.BOARD_H}: {malas}")
 
     def test_el_frente_es_la_disposicion_micro(self):
-        # Spec 2026-10-15 (rama chip-down): panel al centro, cruceta a la
-        # izquierda y rombo a la derecha, todos centrados en y=24 (area
-        # activa del panel). Las cruces miden 8.5mm de paso; cuerpos =
-        # origen + (3.25, 2.25).
+        # Spec 2026-10-15 (rama chip-down): pantalla al centro, cruceta a la
+        # izquierda y rombo a la derecha, centrados en y=24. Las cruces miden
+        # 8.5mm de paso; cuerpos = origen + (3.25, 2.25). Spec 2026-10-17: el
+        # modulo de 7 pines (origen = pin 1) deja el centro del area activa
+        # en (50, 22.5), con la fila de pines arriba, entre los jacks.
         import placements
         pos = {ref: (x, y) for ref, _, x, y, _, _ in placements.PLACEMENTS}
-        self.assertEqual(pos["LCD1"], (50.0, 24.0))
+        self.assertNotIn("LCD1", pos)
+        self.assertEqual(pos["J4"], (42.38, 5.74))
+        w = gen_fp.lcd_window()
+        self.assertAlmostEqual(pos["J4"][0] + (w["x0"] + w["x1"]) / 2, 50.0, places=3)
+        self.assertAlmostEqual(pos["J4"][1] + (w["y0"] + w["y1"]) / 2, 22.5, places=3)
         cuerpo = lambda r: (pos[r][0] + 3.25, pos[r][1] + 2.25)
         self.assertEqual(cuerpo("SW1"), (18.0, 15.5))   # UP
         self.assertEqual(cuerpo("SW3"), (9.5, 24.0))    # LEFT
@@ -362,7 +367,43 @@ class TestFootprints(unittest.TestCase):
         self.assertEqual(cuerpo("SW8"), (82.0, 32.5))   # B
         self.assertEqual(cuerpo("SW12"), (76.0, 46.0))  # SELECT
         self.assertEqual(cuerpo("SW11"), (88.0, 46.0))  # START
-        self.assertEqual(pos["J4"], (50.0, 52.4))
+
+    def test_la_pantalla_va_al_frente_sin_girar(self):
+        import placements
+        j4 = [r for r in placements.PLACEMENTS if r[0] == "J4"]
+        self.assertEqual(len(j4), 1)
+        self.assertEqual(j4[0][4] % 360, 0)
+        self.assertFalse(j4[0][5], "el modulo de pantalla va al frente")
+
+    def test_ninguna_pata_de_la_pantalla_pisa_el_modulo(self):
+        # Las patas del header atraviesan al dorso, donde el RP2350 apoya
+        # plano: el cobre entero del pad (no solo su centro) tiene que quedar
+        # a >= 0.9mm de MODULE_BOX. Spec: pads hasta y 6.59, caja desde 7.5.
+        import placements
+        x, y = next((r[2], r[3]) for r in placements.PLACEMENTS if r[0] == "J4")
+        m = placements.MODULE_BOX
+        pads = gen_fp.lcd_pads()
+        self.assertEqual(len(pads), 7)
+        for p in pads:
+            r = p["size"] / 2
+            px0, py0 = x + p["x"] - r, y + p["y"] - r
+            px1, py1 = x + p["x"] + r, y + p["y"] + r
+            dx = max(m[0] - px1, px0 - m[2], 0)
+            dy = max(m[1] - py1, py0 - m[3], 0)
+            self.assertGreaterEqual(math.hypot(dx, dy), 0.9 - 1e-9,
+                                    f"J4.{p['num']} a {math.hypot(dx, dy):.2f} del modulo")
+
+    def test_nada_mas_del_frente_bajo_el_cuerpo_de_la_pantalla(self):
+        # El cuerpo del modulo (x 36.11..63.89, y 4.47..43.69) tapa el frente.
+        import placements
+        x, y = next((r[2], r[3]) for r in placements.PLACEMENTS if r[0] == "J4")
+        c = gen_fp.lcd_outline()
+        x0, y0, x1, y1 = x + c["x0"], y + c["y0"], x + c["x1"], y + c["y1"]
+        self.assertAlmostEqual(x0, 36.11, places=2)
+        self.assertAlmostEqual(y1, 43.69, places=2)
+        bajo = [ref for ref, _, rx, ry, _, flip in placements.PLACEMENTS
+                if not flip and ref != "J4" and x0 < rx < x1 and y0 < ry < y1]
+        self.assertEqual(bajo, [], f"piezas del frente bajo la pantalla: {bajo}")
 
     def test_todo_el_frente_cae_dentro_de_100x60(self):
         import placements

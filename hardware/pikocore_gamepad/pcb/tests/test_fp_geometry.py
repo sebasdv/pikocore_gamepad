@@ -1,4 +1,6 @@
 import math
+import os
+import re
 import unittest
 
 import gen_fp
@@ -67,6 +69,81 @@ class TestLcdFootprint(unittest.TestCase):
                 self.assertGreater(d, h["drill"] / 2 + p["size"] / 2,
                                    f"agujero ({h['x']:.2f},{h['y']:.2f}) "
                                    f"pisa el pad {p['num']}")
+
+
+class TestLcdFootprintArchivo(unittest.TestCase):
+    """El .kicad_mod que carga gen_pcb.py, pad por pad. Es el archivo el que
+    va a la placa: que lcd_pads() este bien no sirve si el archivo quedo
+    viejo o lo escribio otra cosa."""
+
+    PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "lib", "gamesetup_fp.pretty",
+                        "LCD_ST7789_240x240_7P.kicad_mod")
+    PAD = re.compile(r'\(pad\s+"([^"]*)"\s+(\S+)\s+(\S+)\s+\(at\s+([-\d.]+)\s+([-\d.]+)\)'
+                     r'\s+\(size\s+([-\d.]+)\s+([-\d.]+)\)\s+\(drill\s+([-\d.]+)\)'
+                     r'.*?\(pinfunction\s+"([^"]*)"\)')
+    HOLES = [(-3.77, 1.23), (-3.77, 35.45), (19.01, 1.23), (19.01, 35.45)]
+
+    def setUp(self):
+        with open(self.PATH, encoding="utf-8") as f:
+            self.txt = f.read()
+
+    def test_esta_al_dia_con_gen_fp(self):
+        self.assertEqual(self.txt, gen_fp.build_lcd(),
+                         "correr gen_fp.py: el archivo no es el que sale de params.py")
+
+    def test_siete_pads_pasantes_pin_por_pin(self):
+        pads = self.PAD.findall(self.txt)
+        self.assertEqual(len(pads), 7)
+        nombres = ["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]
+        for i, (num, tipo, forma, x, y, w, h, drill, fn) in enumerate(pads):
+            self.assertEqual(num, str(i + 1))
+            self.assertEqual(tipo, "thru_hole", f"pad {num}")
+            self.assertEqual(forma, "rect" if i == 0 else "circle", f"pad {num}")
+            self.assertAlmostEqual(float(x), i * 2.54, places=3, msg=f"pad {num}")
+            self.assertAlmostEqual(float(y), 0.0, places=3, msg=f"pad {num}")
+            self.assertEqual((float(w), float(h)), (1.7, 1.7), f"pad {num}")
+            self.assertAlmostEqual(float(drill), 1.0, places=3, msg=f"pad {num}")
+            self.assertEqual(fn, nombres[i], f"pad {num}")
+
+    def test_no_hay_pads_npth_ni_otros_pads(self):
+        # Los agujeros del modulo NO se taladran: el modulo se sostiene por
+        # sus pines. Solo van dibujados.
+        self.assertNotIn("np_thru_hole", self.txt)
+        self.assertEqual(self.txt.count("(pad "), 7)
+
+    def test_los_agujeros_van_solo_como_dibujo(self):
+        circ = re.findall(r'\(fp_circle\s+\(center\s+([-\d.]+)\s+([-\d.]+)\)\s+'
+                          r'\(end\s+([-\d.]+)\s+[-\d.]+\).*?\(layer\s+"([^"]+)"\)',
+                          self.txt)
+        for capa in ("Cmts.User", "F.Fab"):
+            de_capa = [(float(x), float(y), float(ex)) for x, y, ex, c in circ
+                       if c == capa]
+            self.assertEqual(sorted((x, y) for x, y, _ in de_capa), self.HOLES, capa)
+            for x, _, ex in de_capa:
+                self.assertAlmostEqual(ex - x, 1.0, places=3, msg=capa)  # radio
+
+    def _puntos(self, capa):
+        out = []
+        for m in re.finditer(r'\(fp_line\s+\(start\s+([-\d.]+)\s+([-\d.]+)\)\s+'
+                             r'\(end\s+([-\d.]+)\s+([-\d.]+)\)[^\n]*\(layer\s+"'
+                             + re.escape(capa) + r'"\)', self.txt):
+            v = [float(g) for g in m.groups()]
+            out += [(v[0], v[1]), (v[2], v[3])]
+        return out
+
+    def test_el_contorno_va_en_fab_y_courtyard(self):
+        for capa in ("F.Fab", "F.CrtYd"):
+            pts = self._puntos(capa)
+            self.assertTrue(pts, capa)
+            self.assertEqual((min(x for x, _ in pts), min(y for _, y in pts),
+                              max(x for x, _ in pts), max(y for _, y in pts)),
+                             (-6.27, -1.27, 21.51, 37.95), capa)
+
+    def test_el_area_activa_va_en_cmts(self):
+        pts = self._puntos("Cmts.User")
+        self.assertIn((-4.08, 5.06), pts)
+        self.assertIn((19.32, 28.46), pts)
 
 
 if __name__ == "__main__":

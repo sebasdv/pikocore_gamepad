@@ -19,6 +19,7 @@ ORIGEN del footprint de la pantalla = PIN 1 (GND), X a lo largo de la fila
 de pines, Y hacia el cuerpo: la posicion se verifica con una regla sobre la
 placa impresa.
 """
+import itertools
 import os
 import re
 import uuid as uuidlib
@@ -28,11 +29,16 @@ import params
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "lib", "gamesetup_fp.pretty")
 
+LCD_NAME = "LCD_ST7789_240x240_7P"
 LCD_PIN_NAMES = ["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]
+
+# UUIDs deterministicos: regenerar con las mismas cotas da el mismo archivo
+# byte a byte (git no ve cambios falsos y el test compara el archivo entero).
+_ids = itertools.count()
 
 
 def u():
-    return str(uuidlib.uuid4())
+    return str(uuidlib.uuid5(uuidlib.NAMESPACE_URL, f"gen_fp/{next(_ids)}"))
 
 
 def F(v):
@@ -95,6 +101,52 @@ def _line(layer, x0, y0, x1, y1, w=0.12):
 def _box(layer, x0, y0, x1, y1, w=0.12):
     return (_line(layer, x0, y0, x1, y0, w) + _line(layer, x1, y0, x1, y1, w) +
             _line(layer, x1, y1, x0, y1, w) + _line(layer, x0, y1, x0, y0, w))
+
+
+def _circle(layer, x, y, r, w=0.12):
+    return (f'  (fp_circle (center {F(x)} {F(y)}) (end {F(x + r)} {F(y)}) '
+            f'(stroke (width {F(w)}) (type solid)) (fill none) '
+            f'(layer "{layer}") (uuid "{u()}"))\n')
+
+
+def build_lcd():
+    """El .kicad_mod del modulo, todo desde LCD7_* via lcd_*()."""
+    global _ids
+    _ids = itertools.count()
+    c, win = lcd_outline(), lcd_window()
+    out = [
+        f'(footprint "{LCD_NAME}"\n',
+        '  (version 20240108)\n',
+        '  (generator "gen_fp.py")\n',
+        '  (layer "F.Cu")\n',
+        '  (attr through_hole)\n',
+        '  (descr "Modulo IPS 1.3in 240x240 ST7789, 7 pines pasantes, header '
+        'soldado directo. Origen = pin 1 (GND). Cotas de params.py (LCD7_*). '
+        'Los 4 agujeros del modulo van solo dibujados (Cmts.User/F.Fab), no se '
+        'taladran. El rectangulo interior de Cmts.User es el area activa: es '
+        'lo que hay que recortar en la tapa del enclosure.")\n',
+        f'  (property "Reference" "J**" (at 0 -3 0) (layer "F.SilkS") '
+        f'(uuid "{u()}") (effects (font (size 1 1) (thickness 0.15))))\n',
+        f'  (property "Value" "{LCD_NAME}" (at 0 -5 0) (layer "F.Fab") '
+        f'(uuid "{u()}") (effects (font (size 1 1) (thickness 0.15))))\n',
+    ]
+    for p in lcd_pads():
+        out.append(f'  (pad "{p["num"]}" thru_hole '
+                   f'{"rect" if p["num"] == 1 else "circle"} '
+                   f'(at {F(p["x"])} {F(p["y"])}) (size {F(p["size"])} {F(p["size"])}) '
+                   f'(drill {F(p["drill"])}) (layers "*.Cu" "*.Mask") '
+                   f'(pinfunction "{p["name"]}") (uuid "{u()}"))\n')
+    # Contorno del modulo: Fab (documentacion), CrtYd (lo que ocupa en el
+    # frente) y Cmts (guia para Rhino), mas el area activa.
+    out.append(_box("F.Fab", c["x0"], c["y0"], c["x1"], c["y1"]))
+    out.append(_box("F.CrtYd", c["x0"], c["y0"], c["x1"], c["y1"], 0.05))
+    out.append(_box("Cmts.User", c["x0"], c["y0"], c["x1"], c["y1"]))
+    out.append(_box("Cmts.User", win["x0"], win["y0"], win["x1"], win["y1"], 0.2))
+    for layer in ("Cmts.User", "F.Fab"):
+        for h in lcd_holes():
+            out.append(_circle(layer, h["x"], h["y"], h["drill"] / 2))
+    out.append(')\n')
+    return "".join(out)
 
 
 # NOTA: el jack 3.5mm ya NO se genera aca. Se dibujo un footprint propio y
@@ -200,6 +252,10 @@ def derivar_modulo_castellated():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    path = os.path.join(OUT, LCD_NAME + ".kicad_mod")
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(build_lcd())
+    print(f"OK -> {path}")
     if derivar_modulo_castellated():
         print(f"OK -> {os.path.join(OUT, CASTELLATED_NAME + '.kicad_mod')}")
 

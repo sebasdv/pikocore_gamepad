@@ -6,16 +6,17 @@ esto corre en un segundo sobre el board recien generado y dice si el layout
 es viable, que es lo que hace falta mientras se itera con el DXF de Rhino.
 
 Compara PAD CONTRA PAD, no bounding box contra bounding box. La diferencia
-importa: la bbox del modulo LCD abarca sus 27.78 x 39.22 enteros porque tiene
-cuatro agujeros en las esquinas, pero su interior no tiene ni un poco de
-cobre — y es justamente ahi donde conviene poner componentes del dorso. Con
-comparacion por bbox, cada pieza colocada bajo el display aparece como choque.
+importa: el modulo de pantalla (J4) tapa 27.78 x 39.22 del frente pero su
+cobre es solo la fila de 7 pines — y bajo el, en el dorso, conviene poner
+componentes. Con comparacion por bbox, cada pieza del dorso bajo la pantalla
+apareceria como choque.
 
 Un par de pads se considera conflictivo si comparten capa de cobre, o si
 alguno de los dos es pasante: un THT perfora las cuatro capas.
 
 No mira courtyards: dos piezas cuyos courtyards se rozan suelen ser
-aceptables, y aca lo que interesa es el cobre encimado.
+aceptables, y aca lo que interesa es el cobre encimado. La excepcion es el
+cuerpo de la pantalla (su F.CrtYd): ahi no puede asomar ninguna pata pasante.
 
 Correr con el python de KiCad:
   "$LOCALAPPDATA/Programs/KiCad/9.0/bin/python.exe" checks/check_placement.py
@@ -113,6 +114,19 @@ def main():
                     and mx0 < x < mx1 and my0 < y < my1):
                 bajo_modulo.append(f"{fp.GetReference()}.{p.GetNumber()}")
 
+    # La pantalla (J4) apoya en el frente sobre su header: ninguna pata pasante
+    # de otra pieza (ni su soldadura, que queda en el frente) bajo su placa.
+    # Los jacks del dorso sueldan sus patas del lado del frente.
+    bajo_pantalla = []
+    j4 = board.FindFootprintByReference("J4")
+    if j4:
+        j4.BuildCourtyardCaches()
+        cb = j4.GetCourtyard(pcbnew.F_CrtYd).BBox()
+        t = pcbnew.ToMM
+        cuerpo = (t(cb.GetLeft()), t(cb.GetTop()), t(cb.GetRight()), t(cb.GetBottom()))
+        bajo_pantalla = [n for n, c, pasante, _ in pads
+                         if pasante and not n.startswith("J4.") and solapan(c, cuerpo)]
+
     # Sus pastillas se sueldan a mano: una via que toca el cobre de una
     # chupa el estano. Circulo de la via contra el rectangulo que envuelve la
     # pastilla: las pastillas son estadios, asi que la prueba es conservadora
@@ -154,12 +168,17 @@ def main():
     if bajo_modulo:
         print()
 
+    for n in bajo_pantalla:
+        print(f"PATA BAJO LA PANTALLA: {n}")
+    if bajo_pantalla:
+        print()
+
     for n in via_en_modulo:
         print(f"VIA EN PASTILLA DEL MODULO: {n}")
     if via_en_modulo:
         print()
 
-    if not fuera and not choques and not bajo_modulo and not via_en_modulo:
+    if not (fuera or choques or bajo_modulo or bajo_pantalla or via_en_modulo):
         print("OK: sin solapamientos de pads y todo dentro de la placa.")
         return 0
     return 1
