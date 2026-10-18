@@ -27,11 +27,11 @@ class TestParams(unittest.TestCase):
         for name in self.LCD7_DEL_DIBUJO:
             self.assertTrue(params.ALL[name].verified, name)
 
-    def test_las_dos_cotas_que_el_dibujo_no_da_quedan_sin_verificar(self):
+    def test_las_dos_cotas_que_el_dibujo_no_da_estan_verificadas_por_el_usuario(self):
         self.assertAlmostEqual(params.v("LCD7_PIN_ROW_TO_EDGE"), 1.27, places=4)
         self.assertAlmostEqual(params.v("LCD7_PIN_DRILL"), 1.0, places=4)
         for name in self.LCD7_A_MEDIR:
-            self.assertFalse(params.ALL[name].verified, name)
+            self.assertTrue(params.ALL[name].verified, name)
 
     def test_los_pines_quedan_centrados_en_el_ancho(self):
         # 6.27 + 6 x 2.54 + 6.27 = 27.78 exacto.
@@ -78,12 +78,10 @@ class TestCheckVerified(unittest.TestCase):
         pend = check_verified.pendientes(falso)
         self.assertEqual(pend, ["PENDIENTE"])
 
-    def test_hoy_quedan_exactamente_las_dos_medidas_del_modulo(self):
-        # G-0 en rojo a proposito: el eje de pines al borde y el diametro de
-        # los pines no salen del dibujo, se miden con el modulo en mano.
-        # gen_fab.py se niega sin --force hasta entonces.
-        self.assertEqual(check_verified.pendientes(params.ALL),
-                         ["LCD7_PIN_DRILL", "LCD7_PIN_ROW_TO_EDGE"])
+    def test_no_queda_ninguna_constante_sin_verificar(self):
+        # El usuario midio con el modulo en mano el eje de pines al borde y el
+        # diametro de los pines (2026-10-17): G-0 queda en verde.
+        self.assertEqual(check_verified.pendientes(params.ALL), [])
 
     def test_pasa_cuando_todo_esta_verificado(self):
         from params import Param

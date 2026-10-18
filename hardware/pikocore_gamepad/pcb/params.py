@@ -72,19 +72,20 @@ ALL = {
         "Borde del modulo -> centro de cada agujero, en los dos ejes. Dibujo "
         "del fabricante.",
         "V-1"),
-    # --- LAS DOS QUE EL DIBUJO NO DA: medir con el modulo en mano ---
+    # --- LAS DOS QUE EL DIBUJO NO DA: verificadas por el usuario con el modulo ---
     "LCD7_PIN_ROW_TO_EDGE": Param(
-        1.27, False,
+        1.27, True,
         "Eje de la fila de pines -> borde del modulo del lado de los pines. "
-        "El dibujo no la acota; 1.27 (medio paso) viene de la huella vieja "
-        "(commit 4d66184~1). Medir con calibre sobre el modulo en mano antes "
-        "de fabricar: corre el contorno y el area activa respecto de los pines.",
+        "El dibujo no la acota; 1.27 (medio paso) venia de la huella vieja "
+        "(commit 4d66184~1). El usuario midio el modulo en mano y confirmo el "
+        "valor el 2026-10-17 (corre el contorno y el area activa respecto de "
+        "los pines).",
         "V-8"),
     "LCD7_PIN_DRILL": Param(
-        1.0, False,
-        "Taladro de los 7 pines en la placa. Supone pines de header de 0.64 "
-        "de lado (diagonal 0.9). Medir el diametro real de los pines del "
-        "modulo en mano antes de fabricar.",
+        1.0, True,
+        "Taladro de los 7 pines en la placa. Parte de pines de header de 0.64 "
+        "de lado (diagonal 0.9). El usuario midio los pines del modulo en mano "
+        "y confirmo el valor el 2026-10-17.",
         "V-8"),
 
     # ---------------------------------------------------------------- audio
