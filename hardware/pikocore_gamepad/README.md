@@ -89,8 +89,9 @@ the repo but not wired to J4). No board has been built.
   GND and goes into the square pad (the board has GND/BLK silk labels). A wrong
   orientation swaps GND/BLK, 3V3/DC and SCK/RES. The user's photo of the module
   (2026-10-17) shows exactly this order (GND VCC SCL SDA RES DC BLK, left to
-  right, header on top, GND on the square pad); only a glance at the real part
-  before soldering is left.
+  right, header on top, GND on the square pad), and the user confirmed on
+  2026-10-17 that the part in hand is the one in the photo: orientation is
+  closed; only the two caliper measurements remain.
 
 Not verified either: the Plus's castellation copper against the Pico footprint
 (needs a 1:1 paper print), the module's battery connector against the user's
