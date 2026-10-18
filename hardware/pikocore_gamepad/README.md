@@ -94,8 +94,8 @@ the repo but not wired to J4). No board has been built.
   closed; only the two caliper measurements remain.
 
 Not verified either: the Plus's castellation copper against the Pico footprint
-(the user states they are identical; a 1:1 paper print over the module remains
-the physical proof and also shows whether the underside is flat), the module's battery connector against the user's
+(the user confirmed on 2026-10-17 that they are identical; whether the underside
+is flat is not checked), the module's battery connector against the user's
 JST GH cells, a PIO UART receiver on GP27 (firmware), the enclosure.
 
 To reproduce the board, `bash pcb/route_cycle.sh` regenerates schematic, netlist
