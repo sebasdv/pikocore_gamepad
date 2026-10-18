@@ -8,6 +8,9 @@
 // GAMEPI_SPI / GAMEPI_LCD_SPI_HZ viven ahora en hw_gamepi13.h, para que
 // flush() (ui.cpp) pueda reafirmar la velocidad del LCD con el mismo valor.
 
+// TOP del PWM del backlight: 0..1023 es 0..100 % (ver gamepi_lcd_init).
+#define GAMEPI_LCD_BL_WRAP 1023u
+
 int EPD_RST_PIN = GAMEPI_LCD_RST_PIN;
 int EPD_DC_PIN = GAMEPI_LCD_DC_PIN;
 int EPD_CS_PIN = GAMEPI_LCD_CS_PIN;
@@ -60,8 +63,12 @@ void gamepi_lcd_dev_init(void) {
   // slice 1, ni con el tick de audio del gamepad en el slice 0)
   gpio_set_function(GAMEPI_LCD_BL_PIN, GPIO_FUNC_PWM);
   uint slice = pwm_gpio_to_slice_num(GAMEPI_LCD_BL_PIN);
+  // 150 MHz / (1023 + 1) = ~146 kHz: fuera de la banda de audio. El 3V3
+  // del modulo es el mismo riel que el del DAC; con clkdiv 4 y wrap 65535
+  // quedaba en ~572 Hz, audible si el ripple del backlight se cuela.
   pwm_config cfg = pwm_get_default_config();
-  pwm_config_set_clkdiv(&cfg, 4.f);
+  pwm_config_set_clkdiv(&cfg, 1.f);
+  pwm_config_set_wrap(&cfg, GAMEPI_LCD_BL_WRAP);
   pwm_init(slice, &cfg, true);
   gamepi_lcd_backlight(0);  // apagado hasta después del splash
 }
@@ -69,5 +76,5 @@ void gamepi_lcd_dev_init(void) {
 void gamepi_lcd_backlight(uint8_t percent) {
   if (percent > 100) percent = 100;
   pwm_set_gpio_level(GAMEPI_LCD_BL_PIN,
-                     (uint16_t)((uint32_t)percent * 65535u / 100u));
+                     (uint16_t)((uint32_t)percent * GAMEPI_LCD_BL_WRAP / 100u));
 }

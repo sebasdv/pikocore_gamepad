@@ -21,63 +21,71 @@ from collections import namedtuple
 Param = namedtuple("Param", "value verified note gate")
 
 ALL = {
-    # -------------------------------------------------------------- PANEL LCD
-    # Panel desnudo DisplayModule DM-TFT13-377 variante 24 pines (LH133T-IF05,
-    # ST7789VW), FPC de 24 posiciones a 0.5mm. Cotas del "Mechanical Drawing"
-    # rev C (2017-12-12) del datasheet publico, sin calibre: cierran por
-    # aritmetica (BL - AA = 2 x margen) y son cotas de diseno del fabricante.
-    # Reemplaza al modulo de 7 pines pasantes (27.78 x 39.22): sin header, sin
-    # agujeros de montaje, se pega al frente y el FPC baja a un conector ZIF.
+    # ---------------------------------------------------------- PANTALLA LCD
+    # Modulo IPS 1.3in 240x240 ST7789 de 7 pines pasantes (EC-Buying,
+    # AliExpress 32880670572), el que el usuario tiene en mano. Cotas del
+    # dibujo del fabricante, confirmadas por el usuario el 2026-10-17; cierran
+    # por aritmetica (pines y area activa centrados en el ancho). Las dos que
+    # el dibujo no da quedan sin verificar y bloquean G-0 hasta medirlas.
     #
-    # ORIENTACION EN LA PLACA: el FPC sale hacia ABAJO (+Y). El lado de 26.16
-    # del BL queda horizontal (ancho) y el de 29.22 vertical (alto); la franja
-    # del IC/FPC (4.26) queda abajo y el margen chico (1.56) arriba.
-    "PANEL_BL_W": Param(
-        26.16, True,
-        "Ancho del backlight (BL), horizontal en la placa. Drawing: 26.16+-0.2.",
+    # Huella: origen = pin 1 (GND), X a lo largo de la fila de pines, Y hacia
+    # el cuerpo del modulo.
+    "LCD7_BOARD_W": Param(
+        27.78, True, "Ancho de la placa del modulo. Dibujo del fabricante.",
         "V-1"),
-    "PANEL_BL_H": Param(
-        29.22, True,
-        "Alto del BL, vertical en la placa (lado por el que sale el FPC). "
-        "Drawing: 29.22+-0.2.",
+    "LCD7_BOARD_H": Param(
+        39.22, True, "Alto de la placa del modulo. Dibujo del fabricante.",
         "V-1"),
-    "PANEL_AA": Param(
+    "LCD7_PIN1_X": Param(
+        6.27, True,
+        "Borde izquierdo -> eje del pin 1. Dibujo: 6.27 + 6 x 2.54 + 6.27 = "
+        "27.78 exacto, los 7 pines quedan centrados en el ancho.",
+        "V-1"),
+    "LCD7_PIN_PITCH": Param(
+        2.54, True, "Paso de los pines. Dibujo del fabricante.", "V-1"),
+    "LCD7_PIN_PAD": Param(
+        1.7, True,
+        "Diametro del pad en la placa. Eleccion de diseno (no es cota del "
+        "modulo): con el taladro de 1.0 deja 0.35 de anillo por lado.",
+        "V-1"),
+    "LCD7_AA": Param(
         23.40, True,
-        "Area activa, cuadrada. Drawing: 23.40 LCD (AA); 240 px x 0.0975 mm.",
+        "Area activa, cuadrada. Dibujo: 23.40 = 240 px x 0.0975 mm.", "V-1"),
+    "LCD7_AA_OFF_X": Param(
+        2.19, True,
+        "Borde izquierdo -> area activa: (27.78 - 23.40) / 2 = 2.19, centrada "
+        "en el ancho.",
         "V-1"),
-    "PANEL_AA_OFF_X": Param(
-        1.38, True,
-        "Margen del BL al area activa en los dos lados cortos: (26.16-23.40)/2 "
-        "= 1.38 exacto. Drawing: 0.33 (BL->POL) + 1.05.",
+    "LCD7_AA_OFF_TOP": Param(
+        6.33, True,
+        "Borde del lado de los pines -> area activa. Dibujo: 5.00 al vidrio "
+        "+ 1.33 de marco del vidrio a la ventana.",
         "V-1"),
-    "PANEL_AA_OFF_TOP": Param(
-        1.56, True,
-        "Margen del BL al area activa en el lado opuesto al FPC: 0.23 + 1.33 "
-        "del drawing. El otro lado es 29.22 - 23.40 - 1.56 = 4.26, la franja "
-        "del driver y la salida del FPC.",
+    "LCD7_HOLE_DIA": Param(
+        2.0, True,
+        "Diametro de los 4 agujeros de montaje del modulo. Dibujo del "
+        "fabricante. En la placa son solo dibujo: no se taladran, el modulo "
+        "se sostiene por sus pines.",
         "V-1"),
-    "PANEL_FPC_W": Param(
-        13.0, True,
-        "Ancho de la cola del FPC. Drawing: 12.5+-0.1 de contactos mas 0.25 "
-        "por lado; conector de 24P a 0.5mm.",
+    "LCD7_HOLE_INSET": Param(
+        2.5, True,
+        "Borde del modulo -> centro de cada agujero, en los dos ejes. Dibujo "
+        "del fabricante.",
         "V-1"),
-    "PANEL_FPC_LEN": Param(
-        14.93, True,
-        "Largo de la cola del FPC desde el borde del vidrio hasta su punta "
-        "(contactos en los ultimos 2mm). Drawing: 14.93.",
-        "V-1"),
-    "PANEL_T": Param(
-        1.5, True, "Espesor del panel, max. Drawing: 1.5mm MAX.", "V-1"),
-    # --- LA QUE NO SE PUEDE VERIFICAR SIN LA PIEZA ---
-    "LCD_FPC_PIN_ORDER": Param(
-        1.0, False,
-        "1 = el pin 1 del FPC cae del lado del pin 1 del conector con el FPC "
-        "derecho (sin plegar) y los contactos hacia la placa, que es como lo "
-        "dibuja el datasheet. 0 = espejado. NO se verifica con el datasheet: "
-        "depende de que lado del FPC lleva los contactos, y el conector "
-        "C2856831 acepta las dos caras. Confirmar con el panel en mano "
-        "(continuidad entre LEDA del FPC y el pad 1 de J4) antes de fabricar; "
-        "si sale 0, J4 va con rot 0 en vez de 180 en placements.py.",
+    # --- LAS DOS QUE EL DIBUJO NO DA: verificadas por el usuario con el modulo ---
+    "LCD7_PIN_ROW_TO_EDGE": Param(
+        1.27, True,
+        "Eje de la fila de pines -> borde del modulo del lado de los pines. "
+        "El dibujo no la acota; 1.27 (medio paso) venia de la huella vieja "
+        "(commit 4d66184~1). El usuario midio el modulo en mano y confirmo el "
+        "valor el 2026-10-17 (corre el contorno y el area activa respecto de "
+        "los pines).",
+        "V-8"),
+    "LCD7_PIN_DRILL": Param(
+        1.0, True,
+        "Taladro de los 7 pines en la placa. Parte de pines de header de 0.64 "
+        "de lado (diagonal 0.9). El usuario midio los pines del modulo en mano "
+        "y confirmo el valor el 2026-10-17.",
         "V-8"),
 
     # ---------------------------------------------------------------- audio

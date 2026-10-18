@@ -34,9 +34,10 @@ and swaps only what the carrier PCB changes:
   samples are out, then goes high. `SPK_SHDN` (GP20) follows `JACK_DET` (GP21,
   pull-up): plug in = speaker off.
 - **LCD:** same vendored ST7789 driver on SPI0 (SCK GP2, MOSI GP3, DC GP5, RES GP6,
-  BLK GP7 PWM through Q1, 1 = on), no CS line (tied to GND on the panel's FPC:
-  `GAMEPI_LCD_CS_PIN -1`, skipped in `dev_shim.c`). The panel's TE output on GP26 is
-  defined (`PIN_LCD_TE`) but not used.
+  BLK GP7 PWM straight to the module's BLK pin, 1 = on). The display is the 1.3"
+  240x240 IPS module with a 7-pin header; it has no CS line (tied to GND on the
+  module: `GAMEPI_LCD_CS_PIN -1`, skipped in `dev_shim.c`) and no TE pin, so GP26
+  is free.
 - **Not built:** microSD (no socket; mode 8 stays unreachable, FatFs is not linked)
   and the HDMI mirror. `PIKO_GAMEPI13=ON` keeps building unchanged.
 
@@ -52,35 +53,64 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state on branch `hw/modulo-micro-midi` (2026-10-16):** **100 × 60 mm**,
-4 layers, 81 parts, the Micro layout ported to the module
-([spec](../../docs/superpowers/specs/2026-10-16-pikocore-gamepad-module-micro-midi-design.md)).
-The front is the Micro arrangement (panel on top, D-pad, X/Y/A/B, Select/Start,
-triggers in the top corners, J4 below the panel). On the back the RP2350-Plus is
-**soldered flat by its castellated edges** — no socket; footprint
-`RP2350-Plus_Castellated`, KiCad's Pico hand-solder footprint without the
-mounting holes — centred at (50, 33) with its USB-C at the bottom edge. MIDI IN
-(J6, H11L1 opto into GP27) and MIDI OUT (J7, GP28 through a 74LVC1G17) are TRS
-type A at the top edge; the phones jack moved to the left edge. Routed in one
-freerouting cycle (`route_cycle.sh`); hand copper is still only the boost loop.
-Gates: 201 tests OK; `run_all.py` red only on G-0 (`LCD_FPC_PIN_ORDER`, as on
-`main`), G-5/G-4 (26 pins)/G-2 (278 connections)/placement green; ERC 0; DRC 0
+**Current state on branch `hw/pantalla-7pines` (2026-10-17):** **100 × 60 mm**,
+4 layers, 76 parts: the Micro layout on the RP2350-Plus module
+([spec](../../docs/superpowers/specs/2026-10-16-pikocore-gamepad-module-micro-midi-design.md)),
+with the display switched to the 1.3" 240x240 ST7789 IPS module with a 7-pin
+2.54 mm header ([spec](../../docs/superpowers/specs/2026-10-17-pantalla-7-pines-design.md)).
+The module (J4, 27.78 × 39.22 per the manufacturer's drawing) sits on the front
+over its header, pins soldered by hand, pin row at the top between the two MIDI
+jacks; D-pad and X/Y/A/B on either side, Select/Start at the lower right,
+triggers in the top corners. It carries its own backlight driver: `LCD_BLK` (GP7) goes straight to
+its BLK pin. On the back the RP2350-Plus is **soldered flat by its castellated
+edges** (footprint `RP2350-Plus_Castellated`) at (50, 33) with its USB-C at the
+bottom edge. MIDI IN (J6, H11L1 opto into GP27) and MIDI OUT (J7, GP28 through
+a 74LVC1G17) are TRS type A at the top edge; the phones jack is on the left
+edge. Hand copper: the boost loop only. Gates: 219 tests OK; `run_all.py` exit 0
+with every gate green, G-0 included ("all physical constants and footprints are
+verified"), plus G-5/G-4 (25 pins)/G-2 (248 connections)/placement; ERC 0; DRC 0
 errors, 0 unconnected, 0 parity mismatches, 15 warnings (silkscreen, and a
-library mismatch on SW9/SW10). `gen_fab.py --force` writes
-`pikocore_gamepad_fab_NO-FABRICABLE.zip` (49 BOM lines, 20 without LCSC; 61 SMD
-in the CPL), so G-F also stays red: the unsuffixed zip cannot exist until G-0
-closes. The DXF template is regenerated at 100 × 60. Not verified: the Plus's
-castellation copper against the Pico footprint (needs a 1:1 paper print), the
-module's battery connector against the user's JST GH cells, a PIO UART receiver
-on GP27 (firmware), the enclosure. No board has been built and the branch is not
-pushed.
+library mismatch on SW9/SW10). `gen_fab.py` without `--force` writes
+`pikocore_gamepad_fab.zip` (165 KB, no NO-FABRICABLE suffix; 46 BOM lines, 19
+without LCSC; 55 SMD in the CPL) and G-F reports everything up to date. The 19
+lines without LCSC are parts the user buys and solders or places by hand (12
+tacts, the 3 audio/MIDI jacks, the speaker, the two 470 uF, U1 and J4); U1 and
+J4 are not in the CPL. Gates passing is not the same as a board built or
+checked: see the open items below. The DXF template (100 × 60) now carries J4 with its full module
+outline, for the enclosure window. The display module has no 3D model, so it
+does not appear in renders (the user's STEP, `pcb/1.3 Inch 1.3.step`, is in
+the repo but not wired to J4). No board has been built.
+
+The user measured the module in hand and confirmed on 2026-10-17
+`LCD7_PIN_ROW_TO_EDGE` = 1.27 mm and `LCD7_PIN_DRILL` = 1.0 mm; both are
+`verified=True` in `pcb/params.py`, which is why G-0 is green.
+
+Orientation: screen up, header row at the top, the leftmost label must read
+GND and goes into the square pad (the board has GND/BLK silk labels). A wrong
+orientation swaps GND/BLK, 3V3/DC and SCK/RES. The user's photo of the module
+(2026-10-17) shows exactly this order (GND VCC SCL SDA RES DC BLK, left to
+right, header on top, GND on the square pad), and the user confirmed on
+2026-10-17 that the part in hand is the one in the photo: orientation is
+closed.
+
+Not verified (no gate covers it): the Plus's castellation pad pattern against
+the Pico footprint (the user confirmed on 2026-10-17 that they are identical)
+but not that its underside is flat so it sits on the board; the module's
+battery connector against the user's JST GH cells (the carrier cannot reach the
+module's battery line, so the cells need a GH-to-MX1.25 pigtail or a re-crimped
+plug); a PIO UART receiver on GP27 (firmware); the BLK polarity and pull state
+of the display module (firmware assumes active-high); an optional 1 uF at J4
+pin 2; the enclosure. When ordering, JLCPCB must be told not to assemble U1 and
+J4 and not to paste U1's B.Paste-only openings.
+
 To reproduce the board, `bash pcb/route_cycle.sh` regenerates schematic, netlist
 and board from scratch (`gen_pcb.py` calls `NewBoard()`: GUI edits and the
 previous routing are discarded) and re-routes with freerouting; edit the JAR
 path at the top of the script for your machine.
 
-**Historical, `main` as of 2026-10-14 (not this branch):** 100 × 80 mm, 72 parts, bare
-1.3" panel on a flex into J4 (FPC-05FB-24PH20), RP2350-Plus on a socket, hand-routed boost loop.
+**Other variants (not this branch):** the same board with the bare 24-pin panel
+on a flex stays on branch `hw/modulo-micro-midi` (PR #3); `main` as of
+2026-10-14 is the older 100 × 80 mm board with the RP2350-Plus on a socket.
 
 `PARTES.md` and `PENDIENTES.md` inside `pcb/` are inherited from GAMESETUP and
 describe *that* project, not this one — kept for the component research they

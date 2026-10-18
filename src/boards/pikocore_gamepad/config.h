@@ -37,6 +37,5 @@
 #define PIN_SPK_SHDN     20  // out: 1 = PAM8302A on
 #define PIN_JACK_DET     21  // in, pull-up: 0 = plug inserted
 #define PIN_DAC_XSMT     22  // out: 100k pulldown on the PCB, boots muted
-#define PIN_LCD_TE       26  // panel tearing-effect out (input, optional, unused)
 #define PIN_MIDI_TX      28  // UART0 TX -> MIDI OUT jack
 #define PIN_MIDI_RX      27  // from the MIDI IN optocoupler; read by a PIO UART

@@ -31,10 +31,15 @@
 #define GAMEPI_BTN_START PIN_BTN_START
 #define GAMEPI_BTN_L PIN_BTN_L
 #define GAMEPI_BTN_R PIN_BTN_R
-// LCD ST7789 1.3" 240x240 (DM-TFT13-377, 24-pin FPC, 4-SPI) on SPI0. CS is
-// tied to GND on the PCB (always selected), so EPD_CS_PIN is -1 and
-// dev_shim.c skips it. Backlight: GP7 PWM drives an NMOS (1 = on, same
-// polarity as the GamePi13). TE (PIN_LCD_TE, GP26) is routed but unused.
+// LCD ST7789 1.3" 240x240 (7-pin IPS module, 4-SPI) on SPI0. CS is tied to
+// GND on the module itself (always selected), so EPD_CS_PIN is -1 and
+// dev_shim.c skips it. Backlight: GP7 PWM straight to the module's BLK pin.
+// BLK is assumed active-high on this module ("1 = on", like the GamePi13);
+// not probed yet. The PWM runs at ~146 kHz (clkdiv 1, wrap 1023 at 150 MHz)
+// to stay out of the audio band: the module's VCC is the DAC's 3V3 rail.
+// BLK floats during BOOTSEL/reset (no pull-down on the carrier); most
+// modules pull it up, so the backlight on while flashing is harmless.
+// The module has no TE pin.
 #define GAMEPI_LCD_CS_PIN -1
 #define GAMEPI_LCD_CLK_PIN PIN_LCD_SCK
 #define GAMEPI_LCD_MOSI_PIN PIN_LCD_MOSI
