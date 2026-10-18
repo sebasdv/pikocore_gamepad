@@ -7,18 +7,29 @@
 > pasante, soldado a mano en el frente; ver §2.5). Sin conector FPC ni
 > backlight en la placa: el módulo trae el suyo y `LCD_BLK` (GP7) va directo
 > a su pin BLK; GP26 queda libre (el módulo no tiene TE). Puertas, corridas
-> en vivo: 218 tests OK; `run_all.py` rojo **solo en G-0**, por las dos cotas
-> del módulo que faltan medir (`LCD7_PIN_DRILL`, `LCD7_PIN_ROW_TO_EDGE`, ver
+> en vivo: 219 tests OK; `run_all.py` sale 0 con todas las puertas en verde,
+> **G-0 incluida** (las dos cotas del módulo, `LCD7_PIN_DRILL` y
+> `LCD7_PIN_ROW_TO_EDGE`, las midió y confirmó el usuario el 2026-10-17; ver
 > §2.5); G-5, G-4 (25 pines), G-2 (248 conexiones) y placement OK; ERC 0/0;
 > DRC 0 errores / 0 sin conectar / 0 paridad, 15 avisos (11 serigrafía al
 > borde, 2 serigrafía sobre cobre, 2 `lib_footprint_mismatch` de SW9/SW10).
-> `gen_fab.py --force` → `pikocore_gamepad_fab_NO-FABRICABLE.zip`: 16
-> gerbers, 46 líneas de BOM (**19 sin LCSC**: los 12 tacts, los 3 jacks,
-> 470 µF, el parlante, el módulo RP2350-Plus y la pantalla), 55 SMD en el
-> CPL. **No es fabricable** mientras G-0 siga rojo.
+> `gen_fab.py` sin `--force` → `pikocore_gamepad_fab.zip` (165 KB, sin sufijo
+> `_NO-FABRICABLE`), 46 líneas de BOM (**19 sin LCSC**: los 12 tacts, los 3
+> jacks PHONES/MIDI IN/MIDI OUT, el parlante, los dos 470 µF, el módulo
+> RP2350-Plus y la pantalla), 55 SMD en el CPL; G-F: "Todo al día". Que las
+> puertas pasen no es lo mismo que placa construida: **no se construyó ninguna**
+> y ninguna puerta cubre lo siguiente: que el dorso del RP2350-Plus sea plano y
+> asiente en la placa (el usuario confirmó la huella idéntica a la de la Pico,
+> o sea el patrón de pads, no el dorso); el conector de batería del módulo
+> contra las celdas JST GH del usuario (el carrier no llega a la línea de
+> batería del módulo: hace falta un pigtail GH a MX1.25 o recrimpar el plug); el
+> receptor UART por PIO en GP27 (firmware); la polaridad y el pull de BLK en la
+> pantalla (el firmware asume activo en alto); un 1 µF opcional en J4 pin 2; la
+> caja.
 >
 > **Al pedir en JLCPCB:** excluir del ensamblaje el módulo RP2350-Plus (U1) y
-> la pantalla (J4); los dos los compra y suelda el usuario (no salen en el CPL,
+> la pantalla (J4); los dos los compra y suelda el usuario, igual que los tacts,
+> los jacks, el parlante y los 470 µF (U1 y J4 no salen en el CPL,
 > pero sí en el BOM sin LCSC: marcarlos "do not place"). La huella de U1
 > tiene aperturas **solo en B.Paste** (3.8 × 2.2, más grandes que su cobre) que
 > un stencil del dorso imprimiría: **pedir que no se ponga pasta en U1**, y 12
@@ -289,7 +300,7 @@ Dos salidas: dibujar el DMP8 en `gamesetup_fp`, o conseguir un SOIC-8 real. El
 ahorro de 95mm² que justificaba pasar a SMD hay que **recalcularlo** con el área
 del DMP8.
 
-### 2.5 Pantalla (J4) — comprada, faltan dos medidas (bloquean G-0)
+### 2.5 Pantalla (J4) — comprada, medidas confirmadas el 2026-10-17 (G-0 en verde)
 
 **Comprada en AliExpress** (sin código LCSC: la suelda el usuario, no JLCPCB).
 Módulo IPS 1.3" 240×240 ST7789 de 7 pines (GND, VCC, SCL, SDA, RES, DC, BLK),
@@ -297,14 +308,16 @@ huella `LCD_ST7789_240x240_7P` según el dibujo del fabricante (27.78 × 39.22,
 pin 1 a 6.27 del borde izquierdo, paso 2.54). Los 4 agujeros de 2 mm del
 módulo **no se taladran**: se sostiene por sus pines.
 
-Faltan dos cotas, que se miden **con el módulo en mano** (calibre):
+Las dos cotas que faltaban las midió el usuario **con el módulo en mano** y
+confirmó el 2026-10-17 que los valores son correctos; ambas están en `params.py`
+con `verified=True`:
 
-| Constante | Valor supuesto | Qué es |
+| Constante | Valor confirmado | Qué es |
 |---|---|---|
 | `LCD7_PIN_ROW_TO_EDGE` | 1.27 | eje de la fila de pines → borde del módulo del lado de los pines; el dibujo no la acota y corre el contorno y el área activa respecto de los pines |
 | `LCD7_PIN_DRILL` | 1.0 | taladro de los 7 pines en la placa; sale del diámetro real de los pines |
 
-Y una comprobación de orientación, también con el módulo en mano: pantalla
+Y la comprobación de orientación, también con el módulo en mano: pantalla
 hacia arriba y fila del header arriba, la etiqueta de más a la izquierda tiene
 que decir GND y va en el pad cuadrado (la placa ya tiene las etiquetas GND/BLK
 en serigrafía). Al revés se cruzan GND/BLK, 3V3/DC y SCK/RES.
@@ -312,16 +325,17 @@ La foto del módulo del usuario (2026-10-17) ya muestra ese orden: con la pantal
 arriba y el texto legible, la fila de pines queda arriba y se lee GND VCC SCL SDA
 RES DC BLK de izquierda a derecha, con GND en el pad cuadrado. El usuario
 confirmo el 2026-10-17 que la pieza que tiene es la de la foto: la orientacion
-queda cerrada; solo faltan las dos medidas con calibre.
+queda cerrada.
 
-Medidas, se cargan en `params.py` con `verified=True`; si no queda otro rojo,
-`gen_fab.py` deja de pedir `--force`.
+Con las dos medidas cargadas con `verified=True` y ningún otro rojo, G-0 pasa y
+`gen_fab.py` ya no pide `--force`: el paquete sale sin sufijo.
 
 ## 3. ~~Medidas físicas pendientes~~ — ✅ CERRADO
 
 > Nota histórica: el 1.27 salió de un STEP dibujado desde el plano del
-> fabricante, no de un calibre. Hoy es `LCD7_PIN_ROW_TO_EDGE`, otra vez con
-> `verified=False`: ver §2.5.
+> fabricante, no de un calibre. Hoy es `LCD7_PIN_ROW_TO_EDGE`, que el usuario
+> midió con el módulo en mano y confirmó el 2026-10-17 (`verified=True`):
+> cerrada, ver §2.5.
 
 Las dos cotas del LCD que faltaban salieron del **STEP del módulo** que modeló
 el usuario a partir del dibujo, no de un calibre:
@@ -389,7 +403,8 @@ datasheet, y el caso del jack mostró que eso no es un trámite.
 
 **G-0 es una puerta, no un aviso**: sin `--force` el script se niega a generar
 mientras queden constantes o footprints provisionales. Con `--force` el zip sale
-con el sufijo `_NO-FABRICABLE` en el nombre, para que no se confunda con uno real.
+con el sufijo `_NO-FABRICABLE` en el nombre, para que no se confunda con uno real
+(el sufijo aparece solo mientras G-0 esté rojo; con G-0 verde sale sin sufijo).
 
 Detalles verificados contra la salida real:
 - Extensiones **Protel** (`.gtl`/`.g1`/`.g2`/`.gbl`...), que es lo que espera el

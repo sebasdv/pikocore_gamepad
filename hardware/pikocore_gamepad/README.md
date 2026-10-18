@@ -66,37 +66,42 @@ its BLK pin. On the back the RP2350-Plus is **soldered flat by its castellated
 edges** (footprint `RP2350-Plus_Castellated`) at (50, 33) with its USB-C at the
 bottom edge. MIDI IN (J6, H11L1 opto into GP27) and MIDI OUT (J7, GP28 through
 a 74LVC1G17) are TRS type A at the top edge; the phones jack is on the left
-edge. Hand copper: the boost loop only. Gates: 218 tests OK; `run_all.py` red
-only on G-0, for the two module dimensions still to be measured (below);
-G-5/G-4 (25 pins)/G-2 (248 connections)/placement green; ERC 0; DRC 0 errors,
-0 unconnected, 0 parity mismatches, 15 warnings (silkscreen, and a library
-mismatch on SW9/SW10). `gen_fab.py --force` writes
-`pikocore_gamepad_fab_NO-FABRICABLE.zip` (46 BOM lines, 19 without LCSC; 55 SMD
-in the CPL), so G-F also stays red: the unsuffixed zip cannot exist until G-0
-closes. The DXF template (100 × 60) now carries J4 with its full module
+edge. Hand copper: the boost loop only. Gates: 219 tests OK; `run_all.py` exit 0
+with every gate green, G-0 included ("all physical constants and footprints are
+verified"), plus G-5/G-4 (25 pins)/G-2 (248 connections)/placement; ERC 0; DRC 0
+errors, 0 unconnected, 0 parity mismatches, 15 warnings (silkscreen, and a
+library mismatch on SW9/SW10). `gen_fab.py` without `--force` writes
+`pikocore_gamepad_fab.zip` (165 KB, no NO-FABRICABLE suffix; 46 BOM lines, 19
+without LCSC; 55 SMD in the CPL) and G-F reports everything up to date. The 19
+lines without LCSC are parts the user buys and solders or places by hand (12
+tacts, the 3 audio/MIDI jacks, the speaker, the two 470 uF, U1 and J4); U1 and
+J4 are not in the CPL. Gates passing is not the same as a board built or
+checked: see the open items below. The DXF template (100 × 60) now carries J4 with its full module
 outline, for the enclosure window. The display module has no 3D model, so it
 does not appear in renders (the user's STEP, `pcb/1.3 Inch 1.3.step`, is in
 the repo but not wired to J4). No board has been built.
 
-**Still to measure, with the module in hand** (both `verified=False` in
-`pcb/params.py`, the only reason G-0 is red):
-- `LCD7_PIN_ROW_TO_EDGE` (1.27 assumed): pin-row axis to the module edge on the
-  pin side. The drawing does not give it; it shifts the outline and active area
-  relative to the pins.
-- `LCD7_PIN_DRILL` (1.0 assumed): the board drill for the 7 pins, from the real
-  pin size.
-- Orientation: screen up, header row at the top, the leftmost label must read
-  GND and goes into the square pad (the board has GND/BLK silk labels). A wrong
-  orientation swaps GND/BLK, 3V3/DC and SCK/RES. The user's photo of the module
-  (2026-10-17) shows exactly this order (GND VCC SCL SDA RES DC BLK, left to
-  right, header on top, GND on the square pad), and the user confirmed on
-  2026-10-17 that the part in hand is the one in the photo: orientation is
-  closed; only the two caliper measurements remain.
+The user measured the module in hand and confirmed on 2026-10-17
+`LCD7_PIN_ROW_TO_EDGE` = 1.27 mm and `LCD7_PIN_DRILL` = 1.0 mm; both are
+`verified=True` in `pcb/params.py`, which is why G-0 is green.
 
-Not verified either: the Plus's castellation copper against the Pico footprint
-(the user confirmed on 2026-10-17 that they are identical; whether the underside
-is flat is not checked), the module's battery connector against the user's
-JST GH cells, a PIO UART receiver on GP27 (firmware), the enclosure.
+Orientation: screen up, header row at the top, the leftmost label must read
+GND and goes into the square pad (the board has GND/BLK silk labels). A wrong
+orientation swaps GND/BLK, 3V3/DC and SCK/RES. The user's photo of the module
+(2026-10-17) shows exactly this order (GND VCC SCL SDA RES DC BLK, left to
+right, header on top, GND on the square pad), and the user confirmed on
+2026-10-17 that the part in hand is the one in the photo: orientation is
+closed.
+
+Not verified (no gate covers it): the Plus's castellation pad pattern against
+the Pico footprint (the user confirmed on 2026-10-17 that they are identical)
+but not that its underside is flat so it sits on the board; the module's
+battery connector against the user's JST GH cells (the carrier cannot reach the
+module's battery line, so the cells need a GH-to-MX1.25 pigtail or a re-crimped
+plug); a PIO UART receiver on GP27 (firmware); the BLK polarity and pull state
+of the display module (firmware assumes active-high); an optional 1 uF at J4
+pin 2; the enclosure. When ordering, JLCPCB must be told not to assemble U1 and
+J4 and not to paste U1's B.Paste-only openings.
 
 To reproduce the board, `bash pcb/route_cycle.sh` regenerates schematic, netlist
 and board from scratch (`gen_pcb.py` calls `NewBoard()`: GUI edits and the
