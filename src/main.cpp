@@ -1875,6 +1875,23 @@ int main(void) {
 #else
   if (CLOCK_PIN >= 0) gpio_pull_down(CLOCK_PIN);
 #endif
+#if PIKO_GAMEPAD
+  // MIDI IN jack: the H11L1 (U10) open-collector output with R43 4k7 to 3V3,
+  // a plain UART signal (idle high, start bit low). The one-wire receiver
+  // (doth/onewiremidi.pio) was written for pikocore's inverting clock-jack
+  // frontend: idle low, start bit high, data bits flipped back in software.
+  // Rather than fork that shared program, invert GP27 in the IO bank: INOVER
+  // sits before the input is broadcast to SIO and PIO. No internal pulls, the
+  // board has R43. Untested on hardware (no board yet): if the receiver never
+  // syncs, this inversion is the first thing to check.
+  gpio_init(PIN_MIDI_RX);
+  gpio_disable_pulls(PIN_MIDI_RX);
+  gpio_set_inover(PIN_MIDI_RX, GPIO_OVERRIDE_INVERT);
+  // MIDI OUT jack: UART0 TX on GP28 (function 2) into the LVC1G17 buffer,
+  // 31250 baud 8N1. After set_sys_clock_khz(), so the divisor is right.
+  uart_init(uart0, 31250);
+  gpio_set_function(PIN_MIDI_TX, GPIO_FUNC_UART);
+#endif
 #if !PIKO_GAMEPI13
   // Pico power-save pin; on the GamePi13, GP23 is the L button.
   gpio_init(23);
@@ -2014,10 +2031,14 @@ int main(void) {
   };
 
   // initialize one wire midi
-  // No clock pin (-1): no one-wire receiver; onewiremidi stays NULL.
-  if (CLOCK_PIN >= 0) {
+#if PIKO_GAMEPAD
+  const int midi_in_pin = PIN_MIDI_RX;  // MIDI IN jack, see the GPIO setup
+#else
+  const int midi_in_pin = CLOCK_PIN;  // -1 = no clock jack: stays NULL
+#endif
+  if (midi_in_pin >= 0) {
     onewiremidi =
-        Onewiremidi_new(pio1, 0, CLOCK_PIN, midi_note_on, midi_note_off,
+        Onewiremidi_new(pio1, 0, midi_in_pin, midi_note_on, midi_note_off,
                         midi_start, midi_continue, midi_stop, midi_timing);
   }
 
@@ -2055,7 +2076,14 @@ int main(void) {
     clock_ms++;
     clock_sync_ms++;
 
-    if (clock_input_ittybittymidi && onewiremidi) {
+#if PIKO_GAMEPAD
+    // Dedicated MIDI IN jack, always live: the clock-input mode only picks
+    // between clock pulses and one-wire MIDI on a clock jack this PCB lacks.
+    const bool midi_in_live = onewiremidi != NULL;
+#else
+    const bool midi_in_live = clock_input_ittybittymidi && onewiremidi;
+#endif
+    if (midi_in_live) {
       Onewiremidi_receive(onewiremidi);
     }
 #if WS2812_ENABLED == 1

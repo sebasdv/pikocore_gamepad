@@ -110,7 +110,9 @@ the Pico footprint (the user confirmed on 2026-10-17 that they are identical)
 but not that its underside is flat so it sits on the board; the module's
 battery connector against the user's JST GH cells (the carrier cannot reach the
 module's battery line, so the cells need a GH-to-MX1.25 pigtail or a re-crimped
-plug); a PIO UART receiver on GP27 (firmware); the BLK polarity and pull state
+plug); the MIDI jacks in firmware (written 2026-11-04, never run: the one-wire
+PIO receiver on GP27 with the input inverted in the IO bank, UART0 TX on
+GP28); the BLK polarity and pull state
 of the display module (firmware assumes active-high); an optional 1 uF at J4
 pin 2; the enclosure. When ordering, JLCPCB must be told not to assemble U1 and
 J4 and not to paste U1's B.Paste-only openings.
