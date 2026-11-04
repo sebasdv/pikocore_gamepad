@@ -86,8 +86,7 @@ HOJAS = [
 
     ("02_mcu_controles", "MCU, pantalla y controles", [
         "U1",                                      # modulo RP2350-Plus
-        "J4", "LCD1",                              # conector FPC + panel
-        "Q1", "R21", "R22", "C30", "C31",          # backlight y desacoplo
+        "J4",                                      # modulo LCD de 7 pines
         "SW1", "SW2", "SW3", "SW4",                # D-pad UP DOWN LEFT RIGHT
         "SW5", "SW6", "SW7", "SW8",                # X Y A B
         "SW11", "SW12",                            # START SELECT
@@ -116,6 +115,11 @@ HOJAS = [
         "R16", "R17", "C25", "C26",                # suma mono
         "U4", "C27", "C28", "J5",                  # class-D y parlante
     ], ["NOTA_JACK", "NOTA_SPK"]),
+
+    ("07_midi", "MIDI - entrada y salida TRS tipo A", [
+        "J7", "U9", "R40", "R41",                  # MIDI OUT
+        "J6", "R42", "D3", "U10", "R43", "C56",    # MIDI IN
+    ], ["NOTA_MIDI"]),
 ]
 
 
@@ -250,14 +254,17 @@ def verificar_colisiones(instancias):
 # que viene a verificar el diseno sin haberlo hecho.
 NOTAS = {
     "NOTA_RAIZ":
-        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 120x80mm, panel unico.\n"
-        "MCU: modulo Waveshare RP2350-Plus 16MB sobre socket 2x20.\n"
+        "pikocore_gamepad - PCB de 4 capas (F.Cu / GND / PWR / B.Cu), 100x60mm, panel unico.\n"
+        "MCU: modulo Waveshare RP2350-Plus 16MB soldado plano al dorso por sus bordes\n"
+        "castellated.\n"
         "\n"
-        "La bateria LiPo va al PH1.25 DEL PROPIO MODULO, que trae cargador ETA6096 a bordo:\n"
-        "esta placa NO lleva circuito de carga. SW15 no corta la bateria, corta 3V3_EN del\n"
-        "modulo, que tiene pull-up interno de 100K a VSYS.\n"
+        "La bateria LiPo va al conector DEL PROPIO MODULO (modelo sin confirmar), que trae\n"
+        "cargador ETA6096 a bordo: esta placa NO lleva circuito de carga. SW15 no corta la\n"
+        "bateria, corta 3V3_EN del modulo, que tiene pull-up interno de 100K a VSYS.\n"
         "\n"
-        "TODAS las conexiones son por GLOBAL LABEL, validas en las cinco hojas. La hoja raiz\n"
+        "MIDI IN/OUT en TRS tipo A (hoja 7).\n"
+        "\n"
+        "TODAS las conexiones son por GLOBAL LABEL, validas en las seis hojas. La hoja raiz\n"
         "no tiene ninguna senal cableada: solo los simbolos de hoja y esta nota.",
     "NOTA_ALIM":
         "El riel de 5V alimenta SOLO al op-amp U3 (hoja 4). Es a proposito: el riel analogico\n"
@@ -278,17 +285,13 @@ NOTAS = {
         "Los 12 controles van DIRECTO a GPIO del modulo, sin expansor I2C. La asignacion esta\n"
         "en pinmap.py y la verifica la puerta G-4 contra el firmware.\n"
         "\n"
-        "PANTALLA: panel desnudo DM-TFT13-377 de 24 pines (ST7789VW) pegado al frente, FPC de\n"
-        "0.5mm al conector J4 (XUNPU FPC-05FB-24PH20, contactos de las dos caras). 4-SPI con\n"
-        "IM=1 y CS A MASA (siempre seleccionado, como hacia el modulo de 7 pines): el bus SPI0\n"
-        "sigue sin poder compartirse. RD y DB0-7 a masa, TE a GP26. Backlight: 2 LED blancos en\n"
-        "paralelo (3.0V, 40mA) desde VSYS por R21 (24R, PERILLA de brillo maximo) y Q1 (2N7002)\n"
-        "a masa, con el PWM de LCD_BLK en la puerta y R22 de pulldown. No cuelga del riel de 5V\n"
-        "para no meter el PWM en la alimentacion del op-amp.\n"
+        "PANTALLA: modulo IPS 1.3in 240x240 ST7789 de 7 pines pasantes a 2.54 (J4), soldado por\n"
+        "sus propios pines. CS esta atado a GND EN EL MODULO (siempre seleccionado): el bus SPI0\n"
+        "no se puede compartir. El backlight lo maneja directo LCD_BLK (PWM, GP7) sobre el pin\n"
+        "BLK; el transistor esta en el modulo. Sin TE: el modulo no lo expone y GP26 queda libre.\n"
         "\n"
-        "ORDEN DE PINES DEL FPC: J4 va a rot 180 asumiendo contactos hacia la placa. Si el panel\n"
-        "trae los contactos hacia arriba el orden se espeja: LCD_FPC_PIN_ORDER en params.py queda\n"
-        "SIN VERIFICAR hasta medir continuidad con el panel en mano (bloquea G-0).\n"
+        "Eje de pines al borde (1.27) y taladro (1.0): medidos por el usuario con el modulo en\n"
+        "mano el 2026-10-17 (LCD7_PIN_ROW_TO_EDGE y LCD7_PIN_DRILL en params.py).\n"
         "\n"
         "Los tacts de 6mm (SW1-SW8, SW11, SW12) tienen cuatro patas que son DOS PARES unidos\n"
         "dentro del switch; el simbolo declara 2 pines porque el footprint oficial de KiCad\n"
@@ -359,6 +362,23 @@ NOTAS = {
         "El apagado del parlante al enchufar auriculares es POR FIRMWARE (JACK_DET -> SPK_SHDN),\n"
         "no por hardware. Es deliberado: permite politicas como oir el parlante con los\n"
         "auriculares puestos, que un corte mecanico prohibe.",
+    "NOTA_MIDI":
+        "MIDI en jacks 3.5mm TRS TIPO A, el estandar de la MIDI Association (RP-054): Tip =\n"
+        "DIN 5, Ring = DIN 4, Sleeve = DIN 2. Los equipos tipo B (Korg y otros) tienen Tip y\n"
+        "Ring al reves: necesitan un adaptador A-B. TX en GP28 (UART0); RX en GP27, que no\n"
+        "tiene UART de hardware: el firmware lo lee con una UART en PIO.\n"
+        "\n"
+        "SALIDA (J7): norma electrica 3.3V (CA-033): 33R de 3V3 al Ring, 10R del buffer al Tip.\n"
+        "U9 (74LVC1G17) pone los 5mA del lazo; el GPIO ve solo una entrada CMOS.\n"
+        "\n"
+        "ENTRADA (J6): el emisor pone corriente por DIN 4 (Ring) y la recibe por DIN 5 (Tip):\n"
+        "Ring -> 220R -> anodo del LED del H11L1, Tip -> catodo (salida Schmitt, colector\n"
+        "abierto, pull-up 4k7). D3 en antiparalelo al LED aguanta un cable al reves. La MALLA\n"
+        "de J6 NO va a masa: la norma pide que el receptor no aterrice el blindaje.\n"
+        "\n"
+        "PINOUTS VERIFICADOS: U9 contra TI SCES351Y (DCK: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC); U10 contra\n"
+        "Fairchild/onsemi H11L1M rev. 1.0.7 (1 anodo, 2 catodo, 3 NC, 4 VO, 5 GND, 6 VCC; opera de\n"
+        "3 a 15V). Copias en hardware/pikocore_gamepad/datasheets/.",
 }
 
 
@@ -508,7 +528,7 @@ def build_root():
              '    (title "pikocore_gamepad - indice")',
              f'    (date "{FECHA}")',
              '    (rev "A")',
-             '    (comment 1 "MCU: Waveshare RP2350-Plus 16MB en socket | LiPo al PH1.25 del modulo")',
+             '    (comment 1 "MCU: Waveshare RP2350-Plus 16MB soldado plano | LiPo al conector del modulo")',
              '    (comment 2 "Pinout: pinmap.py, verificado contra el firmware por la puerta G-4")',
              '  )',
              '  (lib_symbols',

@@ -30,3 +30,4 @@ fp-info-cache
 # freerouting 2.4.1 con "-l en" crea un directorio "en/" con su log al lado
 # del .dsn. No es del proyecto.
 en/
+pikocore_gamepad-backups/

@@ -62,48 +62,22 @@ SYMS = {
     "RP2350-Plus": dict(
         ref="U", w=15.24, h=27.94,
         desc="Waveshare RP2350-Plus 16MB (RP2350A, cargador LiPo ETA6096, "
-             "USB-C). Pin-compatible Raspberry Pi Pico, montado en socket 2x20. "
+             "USB-C). Pin-compatible Raspberry Pi Pico, soldado plano por sus "
+             "bordes castellated. "
              "GP23/24/25 son internos del modulo y GP29 no sale al header.",
         ds="https://www.waveshare.com/wiki/RP2350-Plus",
         pins=_mcu_pin_geometry(),
     ),
-    "LCD_FPC24": dict(
-        ref="J", w=12.7, h=35.56,
-        desc="Conector FPC 24P a 0.5mm (XUNPU FPC-05FB-24PH20, flip-top, "
-             "contactos de las dos caras) para el panel DM-TFT13-377 de 24 "
-             "pines. Pinout del datasheet del panel (LH133T-IF05, rev C): "
-             "1=LEDA 2=LEDK 3=GND 4=VDD 5=VDDIO 6=IM(1=4-SPI) 7=RESET 8=CS "
-             "9=SCL 10=D/C 11=RD 12=SDA 13..20=DB0..DB7 21=TE 22=NC 23/24=GND. "
-             "25/26 son las lenguetas de anclaje del conector. CS va A MASA: "
-             "siempre seleccionado, como el modulo de 7 pines que reemplaza. "
-             "ORDEN DE PINES SIN VERIFICAR contra la pieza (LCD_FPC_PIN_ORDER "
-             "en params.py): si el FPC lleva los contactos hacia arriba, el "
-             "orden se espeja y J4 va a rot 0 en vez de 180.",
-        ds="https://cdn.shopify.com/s/files/1/0264/7629/files/DM-TFT13-377P24.pdf",
-        pins=_dual_pins(["LEDA", "LEDK", "GND", "VDD", "VDDIO", "IM", "RESET",
-                         "CS", "SCL", "D/C", "RD", "SDA", "DB0"],
-                        ["DB1", "DB2", "DB3", "DB4", "DB5", "DB6", "DB7", "TE",
-                         "NC", "GND", "GND", "MP", "MP"]),
-    ),
-    "LCD_PANEL": dict(
-        ref="LCD", w=12.7, h=12.7,
-        desc="Panel IPS 1.3in 240x240 ST7789VW desnudo, DisplayModule "
-             "DM-TFT13-377 variante 24 pines (LH133T-IF05). Pieza MECANICA: "
-             "sin pines, se pega al frente de la placa y se conecta por J4. "
-             "Solo existe para que la placa tenga su contorno, el area activa "
-             "y la cola del FPC (enclosure y Rhino). Se compra aparte, no la "
-             "monta JLCPCB.",
-        ds="https://displaymodule.com/products/1-3-inch-ips-display-240x240-with-spi",
-        pins=[],
-    ),
-    "Q_NMOS": dict(
-        ref="Q", w=7.62, h=7.62,
-        desc="MOSFET canal N en SOT-23 (2N7002). Pinout SOT-23 estandar: "
-             "1=G 2=S 3=D, igual que el footprint Package_TO_SOT_SMD:SOT-23 "
-             "de KiCad. Interruptor del backlight del panel.",
-        ds="https://www.lcsc.com/product-detail/C8545.html",
-        pins=[("1", "G", -7.62, 0.0, 0), ("2", "S", 7.62, -2.54, 180),
-              ("3", "D", 7.62, 2.54, 180)],
+    "LCD_ST7789": dict(
+        ref="J", w=7.62, h=10.16,
+        desc="Modulo IPS 1.3in 240x240 ST7789, 7 pines pasantes a 2.54 "
+             "(EC-Buying). Los pines del modulo se sueldan directo a la placa. "
+             "NO tiene pin CS: el modulo lo ata a GND (siempre seleccionado), "
+             "asi que su SPI no se puede compartir. El transistor del "
+             "backlight esta en el modulo: BLK se maneja directo desde el "
+             "GPIO. Sin TE.",
+        ds="https://www.aliexpress.com/item/32880670572.html",
+        pins=_left_pins(["GND", "VCC", "SCL", "SDA", "RES", "DC", "BLK"]),
     ),
     "SW_Push": dict(
         ref="SW", w=7.62, h=5.08,
@@ -266,6 +240,38 @@ SYMS = {
               pins=[("1", "1", -5.08, 0.0, 0), ("2", "2", 5.08, 0.0, 180)]),
     "D": dict(ref="D", w=2.54, h=7.62, desc="Diodo de senal SMD", ds="",
               pins=[("1", "A", -5.08, 0.0, 0), ("2", "K", 5.08, 0.0, 180)]),
+    "D_1N4148": dict(
+        ref="D", w=2.54, h=7.62,
+        desc="Diodo de senal 1N4148W (SOD-123). Pin 1 = CATODO, como todos los "
+             "footprints de diodo de KiCad; pin 2 = anodo. Antiparalelo al LED "
+             "del opto de MIDI IN: protege contra un cable con polaridad al reves.",
+        ds="",
+        pins=[("1", "K", 5.08, 0.0, 180), ("2", "A", -5.08, 0.0, 0)],
+    ),
+    "H11L1": dict(
+        ref="U", w=10.16, h=10.16,
+        desc="Optoacoplador con salida Schmitt (onsemi H11L1M, SMDIP-6). "
+             "PINOUT VERIFICADO contra el datasheet Fairchild/onsemi H11L1M "
+             "Rev. 1.0.7 (septiembre 2014, figura 1, esquema): 1 anodo, 2 "
+             "catodo, 3 sin conexion, 4 VO (colector abierto, hunde 16mA a "
+             "0.4V), 5 GND, 6 VCC. Copia en hardware/pikocore_gamepad/datasheets/.",
+        ds="https://www.onsemi.com/products/interfaces/optocouplers/h11l1m",
+        pins=[("1", "A", -10.16, 2.54, 0), ("2", "K", -10.16, 0.0, 0),
+              ("3", "NC", -10.16, -2.54, 0), ("4", "VO", 10.16, 0.0, 180),
+              ("5", "GND", 10.16, -2.54, 180), ("6", "VCC", 10.16, 2.54, 180)],
+    ),
+    "LVC1G17": dict(
+        ref="U", w=7.62, h=7.62,
+        desc="Buffer Schmitt de una compuerta SN74LVC1G17 (SC-70-5 / DCK). "
+             "Toma los 5mA del lazo MIDI en vez del GPIO. PINOUT VERIFICADO "
+             "contra el datasheet de TI SCES351Y (rev. octubre 2025, pagina 3, "
+             "tabla Pin Functions, columna DBV/DCK/DRL/DPW): 1 NC, 2 A, 3 GND, "
+             "4 Y, 5 VCC. VCC 1.65-5.5V; IOL/IOH 16mA a 3V (el lazo MIDI pide 5).",
+        ds="https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf",
+        pins=[("1", "NC", -7.62, 2.54, 0), ("2", "A", -7.62, 0.0, 0),
+              ("3", "GND", -7.62, -2.54, 0), ("4", "Y", 7.62, 0.0, 180),
+              ("5", "VCC", 7.62, 2.54, 180)],
+    ),
 }
 
 # Simbolos cuyo pinout NO viene verificado de V1. Su descripcion lo dice, asi
@@ -371,12 +377,10 @@ def _mcu_nets():
             nets[pin] = "PWR_EN"
         elif name.startswith("GP"):
             g = int(name[2:])
-            if g in pinmap.GPIO:
-                nets[pin] = pinmap.GPIO[g]
-            elif g in pinmap.FREE:
-                nets[pin] = f"EXP_GP{g}"
-            else:
-                nets[pin] = NC
+            # Los libres (pinmap.FREE) van a NC: sin header de expansion no
+            # los consume nadie, y una etiqueta de un solo extremo es un
+            # aviso de ERC.
+            nets[pin] = pinmap.GPIO.get(g, NC)
         else:
             # RUN, ADC_VREF y VBUS no se usan: el modulo los resuelve solo.
             nets[pin] = NC
@@ -399,45 +403,16 @@ TACTS = [
 INSTANCES = [
     # ---------------------------------------------------------------- MCU
     ("RP2350-Plus", "U1", "RP2350-Plus-16MB", 60.0, 60.0, _mcu_nets(),
-     {"FP": "gamesetup_fp:RP2350-Plus_Socket"}),
+     {"FP": "gamesetup_fp:RP2350-Plus_Castellated", "MANUAL": True}),
 
     # ------------------------------------------------------------ display
-    # Panel desnudo por FPC. CS a masa: siempre seleccionado, igual que hacia
-    # el modulo de 7 pines, asi que SPI0 sigue sin poder compartirse. RD y el
-    # bus paralelo DB0-7 a masa (4-SPI, IM=1). TE a GP26, que quedo libre.
-    ("LCD_FPC24", "J4", "LCD_FPC", 200.0, 40.0, {
-        "1": "BL_A", "2": "BL_K", "3": "GND", "4": "3V3", "5": "3V3",
-        "6": "3V3", "7": "LCD_RES", "8": "GND", "9": "LCD_SCK",
-        "10": "LCD_DC", "11": "GND", "12": "LCD_MOSI",
-        "13": "GND", "14": "GND", "15": "GND", "16": "GND",
-        "17": "GND", "18": "GND", "19": "GND", "20": "GND",
-        "21": "LCD_TE", "22": NC, "23": "GND", "24": "GND",
-        "25": "GND", "26": "GND"},
-     {"LCSC": "C2856831",
-      "FP": "gamesetup_lcsc:FPC-SMD_24P-P0.50_FPC-05FB-24PH20"}),
-    # El panel en si: pieza mecanica, sin pines. MANUAL = DNP para JLCPCB
-    # (la pega el usuario), pero queda en el BOM para comprarla.
-    ("LCD_PANEL", "LCD1", "DM-TFT13-377-24P", 200.0, 80.0, {},
-     {"FP": "gamesetup_fp:LCD_LH133T_24P", "MANUAL": True}),
-    # Backlight: 2 LED blancos en paralelo, 3.0V / 40mA segun el datasheet.
-    # Desde VSYS (3.4-4.2V con LiPo) y no desde 3V3 (0.3V de margen sobre la
-    # Vf: la corriente quedaria a merced de la dispersion del LED) ni desde
-    # el riel de 5V (es el riel del op-amp y el PWM le meteria ruido).
-    # R21 fija el brillo maximo: a 3.9V nominal, (3.9-3.0)/24 = 37mA.
-    # ponytail: R21 es la perilla de calibracion; con la LiPo llena da ~50mA
-    # y vacia ~17mA. Si molesta, driver de corriente constante en V2.
-    ("R", "R21", "24R", 190.0, 20.0,
-     {"1": "VSYS", "2": "BL_A"}, {"FP": C0805_FP}),
-    ("Q_NMOS", "Q1", "2N7002", 190.0, 40.0,
-     {"1": "LCD_BLK", "2": "GND", "3": "BL_K"},
-     {"LCSC": "C8545", "FP": "Package_TO_SOT_SMD:SOT-23"}),
-    # Pulldown de puerta: con el GPIO sin configurar (reset, bootsel) el
-    # backlight queda apagado en vez de flotar.
-    ("R", "R22", "100k", 180.0, 40.0,
-     {"1": "LCD_BLK", "2": "GND"}, {"FP": R_FP}),
-    # Desacoplo del panel, al lado del conector.
-    ("C", "C30", "1uF", 210.0, 20.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
-    ("C", "C31", "100nF", 218.0, 20.0, {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
+    # Modulo de 7 pines pasantes. CS a masa y el transistor del backlight van
+    # en el modulo: LCD_BLK (PWM) llega directo al pin BLK. Sin TE, asi que
+    # GP26 queda libre. MANUAL: lo suelda el usuario, sin LCSC.
+    ("LCD_ST7789", "J4", "ST7789_240x240", 200.0, 40.0, {
+        "1": "GND", "2": "3V3", "3": "LCD_SCK", "4": "LCD_MOSI",
+        "5": "LCD_RES", "6": "LCD_DC", "7": "LCD_BLK"},
+     {"FP": "gamesetup_fp:LCD_ST7789_240x240_7P", "MANUAL": True}),
 ]
 
 # ------------------------------------------------------------------- tacts
@@ -690,6 +665,49 @@ INSTANCES += [
      {"FP": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"}),
 ]
 
+# ==================================================================== MIDI
+#
+#   MIDI OUT (J7, TRS tipo A): Tip = DIN 5, Ring = DIN 4, Sleeve = DIN 2.
+#       3V3 -[33R R40]- Ring        MIDI_TX -> U9 (74LVC1G17) -[10R R41]- Tip
+#   Norma MIDI 1.0 electrica, variante 3.3V (CA-033). U9 pone los 5mA del
+#   lazo; el GPIO solo ve la entrada CMOS del buffer.
+#
+#   MIDI IN (J6): el emisor pone corriente por DIN 4 (= Ring en tipo A) y la
+#   recibe por DIN 5 (= Tip). Ring -[220R R42]- anodo del LED de U10 (H11L1);
+#   Tip - catodo. D3 antiparalelo al LED, para un cable al reves. La salida Schmitt de U10 es colector abierto:
+#   R43 4k7 a 3V3 -> MIDI_RX. La MALLA de J6 queda al aire: el receptor no
+#   aterriza el blindaje (lazo de masa con el emisor).
+INSTANCES += [
+    ("JACK_AUDIO", "J7", "MIDI OUT", 280.0, 300.0, {
+        "S": "GND", "T": "MIDI_OUT_T", "R": "MIDI_OUT_R", "TN": NC, "RN": NC},
+     {"FP": JACK_FP}),
+    ("R", "R40", "33R", 288.0, 290.0,
+     {"1": "3V3", "2": "MIDI_OUT_R"}, {"FP": R_FP}),
+    ("R", "R41", "10R", 288.0, 300.0,
+     {"1": "MIDI_TX_BUF", "2": "MIDI_OUT_T"}, {"FP": R_FP}),
+    ("LVC1G17", "U9", "SN74LVC1G17DCKR", 300.0, 300.0,
+     {"1": NC, "2": "MIDI_TX", "3": "GND", "4": "MIDI_TX_BUF", "5": "3V3"},
+     {"LCSC": "C10425", "FP": "Package_TO_SOT_SMD:SOT-353_SC-70-5"}),
+    ("JACK_AUDIO", "J6", "MIDI IN", 280.0, 330.0, {
+        "S": NC, "T": "MIDI_IN_K", "R": "MIDI_IN_R", "TN": NC, "RN": NC},
+     {"FP": JACK_FP}),
+    ("R", "R42", "220R", 288.0, 325.0,
+     {"1": "MIDI_IN_R", "2": "MIDI_IN_A"}, {"FP": R_FP}),
+    ("D_1N4148", "D3", "1N4148W", 288.0, 335.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K"}, {"LCSC": "C81598", "FP": D_FP}),
+    # H11L1SR2M = el H11L1M en version de montaje superficial (patas
+    # gull-wing, "SOP-6-2.54mm" en LCSC), en carrete; el C16587 es el DIP
+    # pasante y no va con la huella SMDIP-6.
+    ("H11L1", "U10", "H11L1SR2M", 300.0, 330.0,
+     {"1": "MIDI_IN_A", "2": "MIDI_IN_K", "3": NC, "4": "MIDI_RX",
+      "5": "GND", "6": "3V3"},
+     {"LCSC": "C20082", "FP": "Package_DIP:SMDIP-6_W7.62mm"}),
+    ("R", "R43", "4.7k", 312.0, 325.0,
+     {"1": "3V3", "2": "MIDI_RX"}, {"FP": R_FP}),
+    ("C", "C56", "100nF", 312.0, 335.0,
+     {"1": "3V3", "2": "GND"}, {"FP": C_FP}),
+]
+
 # ---------------------------------------------------------------- codigos LCSC
 # Partes concretas por (valor, footprint). Se aplican abajo a toda instancia
 # que no traiga un LCSC propio en sus props.
@@ -715,6 +733,11 @@ LCSC_PASIVOS = {
     ("470R", R_FP): "C23179",
     ("4.7k", R_FP): "C23162",
     ("47k",  R_FP): "C25819",
+    # MIDI (verificados en lcsc.com el 2026-10-16): 10R y 33R de la salida
+    # (norma 3.3V), 220R de la entrada.
+    ("10R",  R_FP): "C22859",   # 0603WAF100JT5E
+    ("33R",  R_FP): "C23140",   # 0603WAF330JT5E
+    ("220R", R_FP): "C22962",   # 0603WAF2200T5E
     # Ceramicos.
     ("100nF", C_FP):     "C14663",   # 50V X7R
     ("1uF",   C_FP):     "C15849",   # 50V X5R

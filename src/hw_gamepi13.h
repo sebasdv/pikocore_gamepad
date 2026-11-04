@@ -16,13 +16,12 @@
 #define GAMEPI_I2S_SM 0
 // RP2350-Plus onboard LED (module-internal GP25, not on the header).
 #define GAMEPI_LED_PIN 25
-// The carrier PCB has no clock jack nor trigger jack. GP27/GP28 are the two
-// FREE (unconnected, ADC-capable) header pins per pinmap.py; parking the
-// clock input there with its pull-up reads idle HIGH (no false clock pulses,
-// same reasoning as the GamePi13 branch in main()), and the trigger output
-// toggles a pin nothing listens to. Wire them to a jack and they just work.
-#define GAMEPI_CLOCK_PIN 27
-#define GAMEPI_TRIGO_PIN 28
+// The carrier PCB has no clock jack nor trigger jack, and GP27/GP28 (the last
+// two header pins the module exposes) are MIDI_RX/MIDI_TX. -1 = not present:
+// main.cpp skips the clock-in setup (the clock reads idle) and the trigger
+// output.
+#define GAMEPI_CLOCK_PIN -1
+#define GAMEPI_TRIGO_PIN -1
 
 // The 8 pikocore music buttons, pikocore order 0..7 (same as GamePi13):
 //                            Up            Dn              Lt              Rt              Y          X          B          A
@@ -32,10 +31,16 @@
 #define GAMEPI_BTN_START PIN_BTN_START
 #define GAMEPI_BTN_L PIN_BTN_L
 #define GAMEPI_BTN_R PIN_BTN_R
-// LCD ST7789 1.3" 240x240 (DM-TFT13-377, 24-pin FPC, 4-SPI) on SPI0. CS is
-// tied to GND on the PCB (always selected), so EPD_CS_PIN is -1 and
-// dev_shim.c skips it. Backlight: GP7 PWM drives an NMOS (1 = on, same
-// polarity as the GamePi13). TE (PIN_LCD_TE, GP26) is routed but unused.
+// LCD ST7789 1.3" 240x240 (7-pin IPS module, 4-SPI) on SPI0. CS is tied to
+// GND on the module itself (always selected), so EPD_CS_PIN is -1 and
+// dev_shim.c skips it. Backlight: GP7 PWM straight to the module's BLK pin.
+// BLK is assumed active-high on this module ("1 = on", like the GamePi13);
+// not probed yet. The PWM runs at ~242 kHz (clkdiv 1, wrap 1023 at the
+// 248 MHz clk_sys) to stay out of the audio band: the module's VCC is the
+// DAC's 3V3 rail.
+// BLK floats during BOOTSEL/reset (no pull-down on the carrier); most
+// modules pull it up, so the backlight on while flashing is harmless.
+// The module has no TE pin.
 #define GAMEPI_LCD_CS_PIN -1
 #define GAMEPI_LCD_CLK_PIN PIN_LCD_SCK
 #define GAMEPI_LCD_MOSI_PIN PIN_LCD_MOSI

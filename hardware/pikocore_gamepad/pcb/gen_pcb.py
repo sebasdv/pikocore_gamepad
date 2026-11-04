@@ -145,9 +145,10 @@ def setup_stackup(board):
 def setup_netclasses(board):
     """Netclass Power a 0.4mm para los tres rieles.
 
-    0.4 y no 0.5: el hueco entre pads del socket U1 es 0.84mm, y una pista de
-    0.4 mas 2x0.2 de clearance da 0.8, que pasa justo. Con 0.5 serian 0.9 y no
-    entra. El DSN lleva la clase y freerouting la respeta.
+    0.4 y no 0.5: con el modulo castellated ya no hay un corredor entre pads
+    de U1 que condicione el ancho (el hueco es 0.34mm, no entra ninguna pista
+    ahi); 0.4 sale de la corriente del riel de 5V hacia el amplificador. El DSN
+    lleva la clase y freerouting la respeta.
     """
     ns = board.GetDesignSettings().m_NetSettings
     nc = pcbnew.NETCLASS("Power")
@@ -210,15 +211,22 @@ def _choca(caja, ocupadas):
 
 
 def _ocupadas_del_dorso(board):
-    """Courtyards que bloquean el dorso: todo lo ya colocado que este al dorso
-    o tenga pads pasantes, porque un THT perfora las cuatro capas."""
+    """Cajas que bloquean el dorso: el courtyard de lo ya colocado al dorso, y
+    solo la caja de los pads de lo del frente que tenga pads pasantes (un THT
+    perfora las cuatro capas; su cuerpo queda del otro lado)."""
     out = []
     for fp in board.GetFootprints():
         pasante = any(p.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH,
                                            pcbnew.PAD_ATTRIB_NPTH)
                       for p in fp.Pads())
-        if fp.IsFlipped() or pasante:
+        if fp.IsFlipped():
             out.append(_ocupacion_mm(fp))
+        elif pasante:
+            # De una pieza del frente al dorso solo llegan las patas: su
+            # cuerpo y su courtyard quedan del otro lado. Con el courtyard,
+            # el del modulo de pantalla (27.78 x 39.22) vaciaba las columnas
+            # del dorso a los lados del RP2350.
+            out.append(_pad_bbox_mm(fp))
     return out
 
 
@@ -324,19 +332,13 @@ MODELOS_PROPIOS = {
         (1.0, 5.0, 7.0),
         (-180.0, 0.0, -90.0),
     ),
-    # El socket 2x20 es un header generico sin modelo; el que interesa ver es
-    # el MODULO que se enchufa encima (Waveshare RP2350-Plus, STEP en mm).
-    #
-    # AJUSTADOS A MANO en KiCad con el preview a la vista. No re-derivarlos por
-    # calculo: el STEP es un ENSAMBLAJE de 93 solidos, cada uno con su propia
-    # transformacion, asi que muestrear sus CARTESIAN_POINT en crudo da ejes
-    # equivocados — por ese camino salio una rotacion de 90 que dejaba el
-    # modulo perpendicular al socket.
-    # Si hay que retocarlos: doble clic en U1 -> pestana 3D Models, y copiar
-    # los numeros de vuelta aca.
-    "gamesetup_fp:RP2350-Plus_Socket": (
+    # Modulo Waveshare RP2350-Plus soldado plano por castellations (STEP en
+    # mm). Sin offset: el origen de la huella es el centro del modulo. Solo
+    # afecta renders; si hay que retocarlo: doble clic en U1 -> pestana 3D
+    # Models, y copiar los numeros de vuelta aca.
+    "gamesetup_fp:RP2350-Plus_Castellated": (
         "RP2350-Plus_Module.step",
-        (-10.54, -25.40, 2.00),
+        (0, 0, 0.0),
         (0.0, 0.0, 0.0),
     ),
 }
@@ -398,7 +400,7 @@ def colocar(board, netmap, nets):
             else:
                 sin_net.append(f"{ref}.{num}")
 
-    # Pads mecanicos sin numero con anillo 0 -> NPTH (taladros del modulo LCD).
+    # Pads mecanicos sin numero con anillo 0 -> NPTH (hoy, las patas mecanicas de SW9/SW10).
     for fp in board.GetFootprints():
         for pad in fp.Pads():
             if pad.GetNumber() == "" and pad.GetAttribute() == pcbnew.PAD_ATTRIB_PTH:
@@ -447,7 +449,7 @@ def agregar_keepout_npth(board):
 
     Aparecio con las patas mecanicas de los tacts angulados: una pista de
     BTN_R quedo a 0.211mm de un agujero de SW10, contra los 0.4 de la regla.
-    Los otros cuatro NPTH son los agujeros de montaje del display.
+    Son los unicos NPTH: la pantalla ya no taladra sus agujeros de montaje.
     """
     puestos = 0
     for fp in board.GetFootprints():
@@ -488,7 +490,8 @@ def _zona(board, layer, net, x0, y0, x1, y1, redondeada=True):
         z.SetNet(net)
     # 0.2 y no 0.25: con 0.25 el relleno no pasaba entre taladros vecinos y el
     # plano quedaba en 15 islas. El paso critico es la columna de pads del
-    # socket U1 (2.54mm entre centros, pad de 1.7): con 0.25 de clearance el
+    # modulo U1 (2.54mm entre centros, pad castellated de 2.2 de alto, hueco
+    # 0.34mm): con 0.25 de clearance el
     # cuello queda en 0.34mm y con min_thickness 0.25 apenas entra; a 0.2 el
     # cuello sube a 0.44 y pasa con margen.
     z.SetLocalClearance(mm(0.2))

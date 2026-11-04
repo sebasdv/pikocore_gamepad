@@ -141,10 +141,9 @@ PISTAS = {
                           _u2(4.40, 1.80), _u2(4.40, -2.65), _u2(3.55, -3.50)]),
     # L1.1 (VSYS_F, del lado derecho de U2) tiene que llegar a L2.2 y a los
     # pines 2/3 (lado izquierdo). Por arriba lo tapan la red de FB y los
-    # pasivos; por abajo pasa entre el codo del 5V (y=U2+1.8) y los pines
-    # THT del LCD (y=9.6, borde del pad en 8.75): 0.25 de ancho en y=8.35
-    # deja 0.27 a cada lado. Mismo motivo que arriba: dos corridas seguidas
-    # de freerouting lo dejaron abierto.
+    # pasivos; por abajo pasa entre el codo del 5V (y=U2+1.8) y el borde
+    # inferior de la placa: 0.25 de ancho en y=U2+2.35. Mismo motivo que
+    # arriba: dos corridas seguidas de freerouting lo dejaron abierto.
     "L1_VSYS_F": dict(net="VSYS_F", capa="B.Cu", ancho=0.25, via=False,
                       puntos=[_u2(5.80, 0.00), _u2(5.80, 2.35),
                               _u2(-3.80, 2.35), _u2(-3.80, 0.00)]),
@@ -155,6 +154,15 @@ PISTAS = {
     "C7_5V": dict(net="5V", capa="B.Cu", ancho=0.30, via=False,
                   puntos=[_u2(3.55, -3.50), _u2(3.55, -4.65),
                           _u2(7.425, -4.65), _u2(7.425, -3.50)]),
+    # R4.1 (arriba del divisor de FB) a C5.1: une la isla de salida del boost
+    # (U2.6, C5, C7) con el resto de 5V. Pasa por ARRIBA de R4.2 (FB) a
+    # y=-4.65, la misma fila que C7_5V, y entra en diagonal a C5.1 por arriba
+    # a la izquierda (sin pisar el tramo vertical de C7_5V): 0.475 al pad de
+    # R4.2, 1.9 a los pads de los tacts. Con la pantalla de 7 pines
+    # freerouting dejo "U2-6 -> R4-1" abierto en las dos pasadas del ciclo.
+    "R4_5V": dict(net="5V", capa="B.Cu", ancho=0.40, via=False,
+                  puntos=[_u2(-1.825, -3.50), _u2(-1.825, -4.65),
+                          _u2(2.70, -4.65), _u2(3.55, -3.50)]),
     # C4.1 (el 10uF de entrada) tambien es VSYS_F y queda del otro lado de
     # L2.1 (VSYS), en la misma fila. Pasa por ARRIBA de L2, por el corredor
     # de 0.9mm que queda entre la fila de pasivos (y=2.5) y los pads del
