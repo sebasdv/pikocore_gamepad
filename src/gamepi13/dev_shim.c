@@ -63,9 +63,10 @@ void gamepi_lcd_dev_init(void) {
   // slice 1, ni con el tick de audio del gamepad en el slice 0)
   gpio_set_function(GAMEPI_LCD_BL_PIN, GPIO_FUNC_PWM);
   uint slice = pwm_gpio_to_slice_num(GAMEPI_LCD_BL_PIN);
-  // 150 MHz / (1023 + 1) = ~146 kHz: fuera de la banda de audio. El 3V3
-  // del modulo es el mismo riel que el del DAC; con clkdiv 4 y wrap 65535
-  // quedaba en ~572 Hz, audible si el ripple del backlight se cuela.
+  // clk_sys / (1023 + 1): ~242 kHz a los 248 MHz del firmware (esto corre
+  // despues de set_sys_clock_khz), fuera de la banda de audio. El 3V3 del
+  // modulo es el mismo riel que el del DAC; con clkdiv 4 y wrap 65535
+  // quedaba en ~950 Hz, audible si el ripple del backlight se cuela.
   pwm_config cfg = pwm_get_default_config();
   pwm_config_set_clkdiv(&cfg, 1.f);
   pwm_config_set_wrap(&cfg, GAMEPI_LCD_BL_WRAP);

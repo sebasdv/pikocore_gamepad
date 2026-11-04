@@ -520,7 +520,12 @@ Sequencer sequencer;
 Onewiremidi *onewiremidi;
 int8_t midi_button1 = -1;
 int8_t midi_button2 = -1;
+#if PIKO_GAMEPAD
+// Fixed at MIDI: no clock jack, the MIDI IN jack is the only external sync.
+volatile bool clock_input_ittybittymidi = true;
+#else
 volatile bool clock_input_ittybittymidi = false;
+#endif
 volatile bool clock_input_write_pending = false;
 volatile bool clock_input_write_value = false;
 volatile bool clock_input_write_done = false;
@@ -1750,6 +1755,10 @@ bool piko_clock_input_ittybittymidi() {
 }
 
 bool piko_set_clock_input_ittybittymidi(bool enabled) {
+#if PIKO_GAMEPAD
+  // No clock jack to switch to: MIDI is already on, CLOCK is refused (ERR).
+  return enabled;
+#endif
   clock_input_write_done = false;
   clock_input_write_ok = false;
   clock_input_write_value = enabled;
@@ -1880,10 +1889,12 @@ int main(void) {
   // a plain UART signal (idle high, start bit low). The one-wire receiver
   // (doth/onewiremidi.pio) was written for pikocore's inverting clock-jack
   // frontend: idle low, start bit high, data bits flipped back in software.
-  // Rather than fork that shared program, invert GP27 in the IO bank: INOVER
-  // sits before the input is broadcast to SIO and PIO. No internal pulls, the
-  // board has R43. Untested on hardware (no board yet): if the receiver never
-  // syncs, this inversion is the first thing to check.
+  // Rather than fork that shared program, invert GP27 in the IO bank: the
+  // bank has one input per GPIO after the override (GPIO_STATUS.INTOPERI;
+  // INFROMPAD is the raw pad), and PIO samples that one like every
+  // peripheral. gpio_init() rewrites CTRL, so the override goes after it. No
+  // internal pulls, the board has R43. Untested on hardware (no board yet):
+  // if the receiver never syncs, this inversion is the first thing to check.
   gpio_init(PIN_MIDI_RX);
   gpio_disable_pulls(PIN_MIDI_RX);
   gpio_set_inover(PIN_MIDI_RX, GPIO_OVERRIDE_INVERT);
@@ -2076,14 +2087,7 @@ int main(void) {
     clock_ms++;
     clock_sync_ms++;
 
-#if PIKO_GAMEPAD
-    // Dedicated MIDI IN jack, always live: the clock-input mode only picks
-    // between clock pulses and one-wire MIDI on a clock jack this PCB lacks.
-    const bool midi_in_live = onewiremidi != NULL;
-#else
-    const bool midi_in_live = clock_input_ittybittymidi && onewiremidi;
-#endif
-    if (midi_in_live) {
+    if (clock_input_ittybittymidi && onewiremidi) {
       Onewiremidi_receive(onewiremidi);
     }
 #if WS2812_ENABLED == 1
@@ -2202,6 +2206,9 @@ int main(void) {
         const bool clock_mode_was = clock_input_ittybittymidi;
         clock_input_ittybittymidi =
             save_data[SAVE_CLOCK_INPUT_MODE] == CLOCK_INPUT_MIDI;
+#if PIKO_GAMEPAD
+        clock_input_ittybittymidi = true;  // whatever the slot says
+#endif
         save_data[SAVE_CLOCK_INPUT_MODE] =
             clock_input_ittybittymidi ? CLOCK_INPUT_MIDI : CLOCK_INPUT_CLOCK;
         // reset_clock_timing() reinicializa el detector de clock EXTERNO, pero

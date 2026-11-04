@@ -28,11 +28,18 @@ static inline void MidiOut_send(const uint8_t msg[3]) {
 #endif
 #if PIKO_GAMEPAD
   // DIN MIDI OUT: UART0 -> LVC1G17 -> jack (main.cpp sets it up). Called
-  // from the audio ISR, so it never blocks. ponytail: a byte is dropped only
-  // with 32 already queued (10 messages, ~10 ms); this traffic never gets
-  // there -- add a ring buffer drained from the main loop if retrigs do.
-  for (int i = 0; i < 3; i++) {
-    if (uart_is_writable(uart0)) uart_get_hw(uart0)->dr = msg[i];
+  // from the audio ISR, so it never blocks, and a message goes out whole or
+  // not at all: the PL011 has no fill-level register, so count the bytes
+  // written since the 32-byte TX FIFO was last seen empty (an upper bound on
+  // what is still queued). ponytail: a message is dropped only with 30+
+  // bytes in flight (10 messages, ~10 ms); add a ring buffer drained from
+  // the main loop if that ever happens.
+  static uint8_t in_flight = 0;
+  uart_hw_t *hw = uart_get_hw(uart0);
+  if (hw->fr & UART_UARTFR_TXFE_BITS) in_flight = 0;
+  if (in_flight + 3 <= 32) {
+    for (int i = 0; i < 3; i++) hw->dr = msg[i];
+    in_flight += 3;
   }
 #endif
   (void)msg;
