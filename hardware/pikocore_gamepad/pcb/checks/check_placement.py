@@ -111,14 +111,10 @@ def main(board=None):
 
     # El modulo va soldado plano al dorso: una cola pasante del frente
     # debajo de el lo levanta (o lo cortocircuita contra su cara inferior).
-    mx0, my0, mx1, my1 = MODULE_BOX
-    bajo_modulo = []
-    for fp in board.GetFootprints():
-        for p in fp.Pads():
-            x, y = pcbnew.ToMM(p.GetX()), pcbnew.ToMM(p.GetY())
-            if (p.GetAttribute() == pcbnew.PAD_ATTRIB_PTH
-                    and mx0 < x < mx1 and my0 < y < my1):
-                bajo_modulo.append(f"{fp.GetReference()}.{p.GetNumber()}")
+    # Por el COBRE del pad, no por su centro: con el centro 0.1 fuera de la
+    # caja, 0.75 de pad (y su soldadura) quedan igual debajo del modulo.
+    bajo_modulo = [n for n, c, pasante, _ in pads
+                   if pasante and solapan(c, MODULE_BOX)]
 
     # La pantalla (J4) apoya en el frente sobre su header: ninguna pata pasante
     # de otra pieza (ni su soldadura, que queda en el frente) bajo su placa.
