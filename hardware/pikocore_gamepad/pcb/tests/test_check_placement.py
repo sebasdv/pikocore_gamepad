@@ -43,6 +43,16 @@ class TestBajoLaPantalla(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertIn("PATA BAJO LA PANTALLA: SW4.", out)
 
+    def test_pata_con_el_centro_fuera_pero_el_cobre_bajo_el_modulo(self):
+        # SW4 en (60, 2.9): su segunda fila de patas queda en y 7.4, 0.1 por
+        # fuera de MODULE_BOX (desde 7.5), pero el pad de 2 mm llega a 8.4.
+        # Mirando centros no se veia; el modulo apoyaria sobre esa soldadura.
+        b = cargar()
+        b.FindFootprintByReference("SW4").SetPosition(pcbnew.VECTOR2I(mm(60), mm(2.9)))
+        rc, out = correr(b)
+        self.assertEqual(rc, 1)
+        self.assertIn("TACTO BAJO EL MODULO: SW4.", out)
+
     def test_pad_smd_del_frente_bajo_la_pantalla(self):
         b = cargar()
         fp = pcbnew.FOOTPRINT(b)

@@ -39,13 +39,16 @@ def vias_sueltas(board):
     Quedan cuando se borra el stub que llegaba a ellas, o cuando freerouting
     deja una via con pista de un solo lado. El DRC las marca como
     via_dangling y no conectan nada. Cuenta como capa: una pista que termina
-    en la via, un pad que la contiene, o una zona de la misma net que la
-    contiene (el plano GND/3V3, o las zonas del nucleo RP2350A en la cara
-    del chip, que no llevan pista).
+    en la via o que le pasa por encima, un pad que la contiene, o una zona
+    de la misma net que la contiene (el plano GND/3V3, o las zonas que
+    vienen dentro de una huella, como las del nucleo RP2350A del chip-down,
+    que no llevan pista).
     """
     tramos = [t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK"]
     pads = [p for fp in board.GetFootprints() for p in fp.Pads()]
-    zonas = [z for z in board.Zones() if not z.GetIsRuleArea()]
+    zonas = [z for z in list(board.Zones())
+             + [z for fp in board.GetFootprints() for z in fp.Zones()]
+             if not z.GetIsRuleArea()]
     out = []
     for v in board.GetTracks():
         if v.GetClass() != "PCB_VIA":
@@ -53,9 +56,11 @@ def vias_sueltas(board):
         c, r = v.GetPosition(), v.GetWidth(pcbnew.F_Cu) // 2
         capas = set()
         for t in tramos:
-            if (t.GetNetCode() == v.GetNetCode()
-                    and ((t.GetStart() - c).EuclideanNorm() <= r
-                         or (t.GetEnd() - c).EuclideanNorm() <= r)):
+            # HitTest con tolerancia r: la pista que termina en la via y
+            # tambien la que le pasa por encima sin terminar ahi. Mirando
+            # solo los extremos, una via en medio de una pista se borraba y
+            # la pista caia en la vuelta siguiente.
+            if t.GetNetCode() == v.GetNetCode() and t.HitTest(c, r):
                 capas.add(t.GetLayer())
         for p in pads:
             if p.GetNetCode() == v.GetNetCode() and p.HitTest(c):
