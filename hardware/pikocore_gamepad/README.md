@@ -53,7 +53,7 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state on branch `hw/pantalla-7pines` (2026-10-17):** **100 × 60 mm**,
+**Current state on `main` (layout of 2026-10-17, merged 2026-11-04):** **100 × 60 mm**,
 4 layers, 76 parts: the Micro layout on the RP2350-Plus module
 ([spec](../../docs/superpowers/specs/2026-10-16-pikocore-gamepad-module-micro-midi-design.md)),
 with the display switched to the 1.3" 240x240 ST7789 IPS module with a 7-pin
@@ -122,9 +122,13 @@ and board from scratch (`gen_pcb.py` calls `NewBoard()`: GUI edits and the
 previous routing are discarded) and re-routes with freerouting; edit the JAR
 path at the top of the script for your machine.
 
-**Other variants (not this branch):** the same board with the bare 24-pin panel
-on a flex stays on branch `hw/modulo-micro-midi` (PR #3); `main` as of
-2026-10-14 is the older 100 × 80 mm board with the RP2350-Plus on a socket.
+**History:** this layout reached `main` on 2026-11-04 through PR #3 (module
+soldered flat, Micro layout, MIDI) and PR #4 (7-pin display module). Earlier
+variants live in the history: the same board with the bare 24-pin panel on a
+flex (`hw/modulo-micro-midi` before PR #4 was merged into it), the 100 × 80 mm
+board with the RP2350-Plus on a socket (`main` before merge `572ca8a`), and
+the chip-down RP2350A board (branch `hw/chipdown-rp2350`, PR #2, kept as
+reference).
 
 `PARTES.md` and `PENDIENTES.md` inside `pcb/` are inherited from GAMESETUP and
 describe *that* project, not this one — kept for the component research they
