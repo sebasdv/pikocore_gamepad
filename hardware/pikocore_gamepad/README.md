@@ -81,6 +81,18 @@ outline, for the enclosure window. The display module has no 3D model, so it
 does not appear in renders (the user's STEP, `pcb/1.3 Inch 1.3.step`, is in
 the repo but not wired to J4). No board has been built.
 
+**Why not the cheaper RP2040-Plus 16MB (evaluated 2026-11-04):** same Pico
+footprint, pinout and battery header, US$1-2 less, but it does not fit. The
+firmware runs from RAM (`copy_to_ram`, inherited from upstream pikocore): the
+`PIKO_GAMEPAD` build configured with `-DPICO_BOARD=waveshare_rp2040_plus_16mb`
+compiles, but the link needs 392 860 B of RAM against the RP2040's 262 144 B
+main region (overflow of 130 716 B; code plus constants alone are 249 KB, so
+even dropping the 115 KB framebuffer would not do). It only links as an XIP
+build (151 092 B of RAM), and that is a port, not a board swap: audio ISR at
+~1 MHz from the 16 KB XIP cache, flash writes during USB sample loading with
+core 1 running from flash, and `src/gamepad/audio_i2s.h` uses the RP2350-only
+DMA ENDLESS mode (an RP2040 needs two chained channels). The RP2350-Plus stays.
+
 The user measured the module in hand and confirmed on 2026-10-17
 `LCD7_PIN_ROW_TO_EDGE` = 1.27 mm and `LCD7_PIN_DRILL` = 1.0 mm; both are
 `verified=True` in `pcb/params.py`, which is why G-0 is green.
