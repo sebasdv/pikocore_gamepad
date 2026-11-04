@@ -22,10 +22,11 @@ from params import v
 BOARD_W = v("BOARD_W")
 BOARD_H = v("BOARD_H")
 
-# El panel al CENTRO, la cruceta a la izquierda y el rombo a la derecha,
-# todos centrados en y=24. El origen del panel es el centro del area activa.
-_LCD_X = BOARD_W / 2
-_LCD_Y = 24.0
+# La pantalla al CENTRO, la cruceta a la izquierda y el rombo a la derecha
+# (estos dos centrados en y=24). El origen del modulo de 7 pines es el PIN 1:
+# el centro del area activa (7.62, 16.76 desde el pin 1) cae en (50, 22.5).
+_LCD_X = 42.38
+_LCD_Y = 5.74
 
 # Modulo RP2350-Plus al dorso, eje largo en Y, USB-C hacia el borde inferior.
 # MODULE_BOX es hasta donde llegan sus pads (+-11.1 x +-25.5 del centro): el
@@ -36,16 +37,11 @@ MODULE_BOX = (38.9, 7.5, 61.1, 58.5)
 
 PLACEMENTS = [
     # ================================================ FRENTE: display
-    ("LCD1", "gamesetup_fp:LCD_LH133T_24P",             _LCD_X, _LCD_Y, 0, False),
-    # Conector del FPC debajo del panel, en el frente. El vidrio termina en
-    # y = 24 - 11.7 - 1.56 + 29.22 = 39.96 y el flex llega desplegado
-    # 14.93 mas abajo; con rot 180 los contactos del conector caen 1.62 por
-    # debajo de su origen, asi que el origen va 12.4 bajo el vidrio.
-    # rot 180 asume contactos del FPC hacia la placa: LCD_FPC_PIN_ORDER.
-    # Es SMD del frente: detras, al dorso, va el modulo (cobre en caras
-    # opuestas, sin pasantes).
-    ("J4",  "gamesetup_lcsc:FPC-SMD_24P-P0.50_FPC-05FB-24PH20",
-      _LCD_X,   52.40, 180, False),
+    # Modulo IPS 1.3" de 7 pines pasantes, soldado directo. Sus patas salen al
+    # dorso, donde apoya el RP2350: la fila de pines va ARRIBA, entre los dos
+    # jacks MIDI (dorso, x < 37.6 y x > 62.3). Pads hasta y 6.59, MODULE_BOX
+    # desde 7.5: 0.9 de margen. El cuerpo tapa x 36.11..63.89, y 4.47..43.69.
+    ("J4",  "gamesetup_fp:LCD_ST7789_240x240_7P",       _LCD_X, _LCD_Y, 0, False),
 
     # ================================================ FRENTE: controles
     # Cruceta: cuatro tacts 6x6 con paso 8.5mm. El origen del SW_PUSH_6mm es
@@ -83,13 +79,17 @@ PLACEMENTS = [
     # ================================================ DORSO: jacks
     # El extremo superior del modulo (y=7.5) tapa el centro del borde de
     # arriba: MIDI IN arriba a la izquierda y MIDI OUT arriba a la derecha,
-    # simetricos, con flip y rot 180 (barril por el borde superior, pads a
-    # 3mm del canto, cuerpo 14.5mm hacia adentro). x=33/67: el cuerpo (9.2 de
-    # ancho) termina a ~1.3mm del modulo y no tapa las patas de UP ni de X.
+    # casi simetricos, con flip y rot 180 (barril por el borde superior, pads a
+    # 3mm del canto, cuerpo 14.5mm hacia adentro). x=33/68: el cuerpo (9.2 de
+    # ancho) termina a >= 1.3mm del modulo y no tapa las patas de UP ni de X.
     ("J6",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
       33.00,    3.00, 180, True),   # MIDI IN
+    # J7 va en 68 y no en 67 (espejo de J6): flip + rot 180 no espeja el
+    # patron, y en 67 sus patas T y R (x 63.6, soldadas en el frente)
+    # asomaban 0.29 bajo el cuerpo de la pantalla (hasta x 63.89). En 68
+    # quedan a 0.71; su courtyard (hasta 72.55) queda a 0.8 de U9/R40/R41.
     ("J7",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
-      67.00,    3.00, 180, True),   # MIDI OUT
+      68.00,    3.00, 180, True),   # MIDI OUT
     # Auriculares por el borde IZQUIERDO, girado: bajo las patas de la
     # cruceta (hasta y 36) y a la izquierda del slide (desde x 19.9).
     ("J1",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",

@@ -520,7 +520,12 @@ Sequencer sequencer;
 Onewiremidi *onewiremidi;
 int8_t midi_button1 = -1;
 int8_t midi_button2 = -1;
+#if PIKO_GAMEPAD
+// Fixed at MIDI: no clock jack, the MIDI IN jack is the only external sync.
+volatile bool clock_input_ittybittymidi = true;
+#else
 volatile bool clock_input_ittybittymidi = false;
+#endif
 volatile bool clock_input_write_pending = false;
 volatile bool clock_input_write_value = false;
 volatile bool clock_input_write_done = false;
@@ -1750,6 +1755,10 @@ bool piko_clock_input_ittybittymidi() {
 }
 
 bool piko_set_clock_input_ittybittymidi(bool enabled) {
+#if PIKO_GAMEPAD
+  // No clock jack to switch to: MIDI is already on, CLOCK is refused (ERR).
+  return enabled;
+#endif
   clock_input_write_done = false;
   clock_input_write_ok = false;
   clock_input_write_value = enabled;
@@ -1874,6 +1883,25 @@ int main(void) {
   if (CLOCK_PIN >= 0) gpio_pull_up(CLOCK_PIN);
 #else
   if (CLOCK_PIN >= 0) gpio_pull_down(CLOCK_PIN);
+#endif
+#if PIKO_GAMEPAD
+  // MIDI IN jack: the H11L1 (U10) open-collector output with R43 4k7 to 3V3,
+  // a plain UART signal (idle high, start bit low). The one-wire receiver
+  // (doth/onewiremidi.pio) was written for pikocore's inverting clock-jack
+  // frontend: idle low, start bit high, data bits flipped back in software.
+  // Rather than fork that shared program, invert GP27 in the IO bank: the
+  // bank has one input per GPIO after the override (GPIO_STATUS.INTOPERI;
+  // INFROMPAD is the raw pad), and PIO samples that one like every
+  // peripheral. gpio_init() rewrites CTRL, so the override goes after it. No
+  // internal pulls, the board has R43. Untested on hardware (no board yet):
+  // if the receiver never syncs, this inversion is the first thing to check.
+  gpio_init(PIN_MIDI_RX);
+  gpio_disable_pulls(PIN_MIDI_RX);
+  gpio_set_inover(PIN_MIDI_RX, GPIO_OVERRIDE_INVERT);
+  // MIDI OUT jack: UART0 TX on GP28 (function 2) into the LVC1G17 buffer,
+  // 31250 baud 8N1. After set_sys_clock_khz(), so the divisor is right.
+  uart_init(uart0, 31250);
+  gpio_set_function(PIN_MIDI_TX, GPIO_FUNC_UART);
 #endif
 #if !PIKO_GAMEPI13
   // Pico power-save pin; on the GamePi13, GP23 is the L button.
@@ -2014,10 +2042,14 @@ int main(void) {
   };
 
   // initialize one wire midi
-  // No clock pin (-1): no one-wire receiver; onewiremidi stays NULL.
-  if (CLOCK_PIN >= 0) {
+#if PIKO_GAMEPAD
+  const int midi_in_pin = PIN_MIDI_RX;  // MIDI IN jack, see the GPIO setup
+#else
+  const int midi_in_pin = CLOCK_PIN;  // -1 = no clock jack: stays NULL
+#endif
+  if (midi_in_pin >= 0) {
     onewiremidi =
-        Onewiremidi_new(pio1, 0, CLOCK_PIN, midi_note_on, midi_note_off,
+        Onewiremidi_new(pio1, 0, midi_in_pin, midi_note_on, midi_note_off,
                         midi_start, midi_continue, midi_stop, midi_timing);
   }
 
@@ -2174,6 +2206,9 @@ int main(void) {
         const bool clock_mode_was = clock_input_ittybittymidi;
         clock_input_ittybittymidi =
             save_data[SAVE_CLOCK_INPUT_MODE] == CLOCK_INPUT_MIDI;
+#if PIKO_GAMEPAD
+        clock_input_ittybittymidi = true;  // whatever the slot says
+#endif
         save_data[SAVE_CLOCK_INPUT_MODE] =
             clock_input_ittybittymidi ? CLOCK_INPUT_MIDI : CLOCK_INPUT_CLOCK;
         // reset_clock_timing() reinicializa el detector de clock EXTERNO, pero

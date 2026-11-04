@@ -211,15 +211,22 @@ def _choca(caja, ocupadas):
 
 
 def _ocupadas_del_dorso(board):
-    """Courtyards que bloquean el dorso: todo lo ya colocado que este al dorso
-    o tenga pads pasantes, porque un THT perfora las cuatro capas."""
+    """Cajas que bloquean el dorso: el courtyard de lo ya colocado al dorso, y
+    solo la caja de los pads de lo del frente que tenga pads pasantes (un THT
+    perfora las cuatro capas; su cuerpo queda del otro lado)."""
     out = []
     for fp in board.GetFootprints():
         pasante = any(p.GetAttribute() in (pcbnew.PAD_ATTRIB_PTH,
                                            pcbnew.PAD_ATTRIB_NPTH)
                       for p in fp.Pads())
-        if fp.IsFlipped() or pasante:
+        if fp.IsFlipped():
             out.append(_ocupacion_mm(fp))
+        elif pasante:
+            # De una pieza del frente al dorso solo llegan las patas: su
+            # cuerpo y su courtyard quedan del otro lado. Con el courtyard,
+            # el del modulo de pantalla (27.78 x 39.22) vaciaba las columnas
+            # del dorso a los lados del RP2350.
+            out.append(_pad_bbox_mm(fp))
     return out
 
 
@@ -393,7 +400,7 @@ def colocar(board, netmap, nets):
             else:
                 sin_net.append(f"{ref}.{num}")
 
-    # Pads mecanicos sin numero con anillo 0 -> NPTH (taladros del modulo LCD).
+    # Pads mecanicos sin numero con anillo 0 -> NPTH (hoy, las patas mecanicas de SW9/SW10).
     for fp in board.GetFootprints():
         for pad in fp.Pads():
             if pad.GetNumber() == "" and pad.GetAttribute() == pcbnew.PAD_ATTRIB_PTH:
@@ -442,7 +449,7 @@ def agregar_keepout_npth(board):
 
     Aparecio con las patas mecanicas de los tacts angulados: una pista de
     BTN_R quedo a 0.211mm de un agujero de SW10, contra los 0.4 de la regla.
-    Los otros cuatro NPTH son los agujeros de montaje del display.
+    Son los unicos NPTH: la pantalla ya no taladra sus agujeros de montaje.
     """
     puestos = 0
     for fp in board.GetFootprints():

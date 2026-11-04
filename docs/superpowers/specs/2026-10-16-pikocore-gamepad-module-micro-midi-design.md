@@ -155,8 +155,11 @@ on `main`, until the panel is measured; `gen_fab.py --force` therefore writes
 the missing unsuffixed zip for the same reason. What no gate checks:
 
 - The Plus's castellation copper shape against the Pico footprint's. The
-  footprint is KiCad's Pico hand-solder footprint without the mounting holes;
-  it needs a physical 1:1 paper print laid over the module.
+  footprint is KiCad's Pico hand-solder footprint without the mounting holes.
+  Pitch, row spacing and pad count match Waveshare's drawing, and the user
+  confirmed (2026-10-17) that the Plus footprint is identical to the Pico's.
+  Still unchecked: that the module's underside is flat so it sits on the board
+  (a 1:1 paper print laid over the module shows both).
 - The module's battery connector model against the user's JST GH 1.25 cells.
   The carrier cannot reach the module's battery line, so the cells need a
   GH-to-MX1.25 pigtail or a re-crimped plug. The model is still to be confirmed
