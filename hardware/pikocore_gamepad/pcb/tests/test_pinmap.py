@@ -33,18 +33,17 @@ class TestPinmap(unittest.TestCase):
         self.assertIn(pinmap.gpio_of("LCD_SCK"), pinmap.SPI0_SCK_OK)
         self.assertIn(pinmap.gpio_of("LCD_MOSI"), pinmap.SPI0_TX_OK)
 
-    def test_midi_usa_gp27_y_gp28(self):
-        self.assertEqual(pinmap.GPIO[28], "MIDI_TX")
-        self.assertEqual(pinmap.GPIO[27], "MIDI_RX")
+    def test_gp26_a_gp28_quedan_libres(self):
+        # Sin jacks MIDI (spec 2026-11-05, etapa 2): el MIDI va por USB.
+        self.assertEqual(pinmap.FREE, (26, 27, 28))
+        for g in (27, 28):
+            self.assertNotIn(g, pinmap.GPIO)
 
     def test_gp26_queda_libre_porque_el_modulo_no_tiene_te(self):
-        # El modulo de 7 pines no expone TE: GP26 es el unico libre.
+        # El modulo de 7 pines no expone TE.
         self.assertNotIn(26, pinmap.GPIO)
         self.assertNotIn("LCD_TE", pinmap.GPIO.values())
-        self.assertEqual(pinmap.FREE, (26,))
-
-    def test_midi_tx_es_un_pin_tx_de_uart0(self):
-        self.assertIn(pinmap.gpio_of("MIDI_TX"), pinmap.UART0_TX_OK)
+        self.assertIn(26, pinmap.FREE)
 
     def test_no_queda_ningun_gpio_expuesto_sin_declarar(self):
         # Todo pin del header tiene que estar o asignado o explicitamente
@@ -144,7 +143,7 @@ class TestFirmwareStubs(unittest.TestCase):
     def test_los_pines_solo_de_firmware_no_pisan_la_placa(self):
         # -1 = sin pin, el firmware lo salta. 25 = LED onboard del modulo, que
         # no sale al header. Cualquier otro numero pisaria un GPIO de la placa
-        # (GP27/28 son MIDI_RX/MIDI_TX).
+        # (o uno de los libres, GP26-GP28, que tienen que quedar sin usar).
         pines = self._bloque_gamepad()
         self.assertTrue(pines, "no se encontro ningun GAMEPI_*_PIN literal")
         for nombre, n in pines.items():

@@ -38,8 +38,8 @@ MODULE_BOX = (38.9, 7.5, 61.1, 58.5)
 PLACEMENTS = [
     # ================================================ FRENTE: display
     # Modulo IPS 1.3" de 7 pines pasantes, soldado directo. Sus patas salen al
-    # dorso, donde apoya el RP2350: la fila de pines va ARRIBA, entre los dos
-    # jacks MIDI (dorso, x < 37.6 y x > 62.3). Pads hasta y 6.59, MODULE_BOX
+    # dorso, donde apoya el RP2350: la fila de pines va ARRIBA, sobre el
+    # extremo superior del modulo. Pads hasta y 6.59, MODULE_BOX
     # desde 7.5: 0.9 de margen. El cuerpo tapa x 36.11..63.89, y 4.47..43.69.
     ("J4",  "gamesetup_fp:LCD_ST7789_240x240_7P",       _LCD_X, _LCD_Y, 0, False),
 
@@ -77,37 +77,10 @@ PLACEMENTS = [
       MODULE_POS[0], MODULE_POS[1], 0, True),
 
     # ================================================ DORSO: jacks
-    # El extremo superior del modulo (y=7.5) tapa el centro del borde de
-    # arriba: MIDI IN arriba a la izquierda y MIDI OUT arriba a la derecha,
-    # casi simetricos, con flip y rot 180 (barril por el borde superior, pads a
-    # 3mm del canto, cuerpo 14.5mm hacia adentro). x=33/68: el cuerpo (9.2 de
-    # ancho) termina a >= 1.3mm del modulo y no tapa las patas de UP ni de X.
-    ("J6",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
-      33.00,    3.00, 180, True),   # MIDI IN
-    # J7 va en 68 y no en 67 (espejo de J6): flip + rot 180 no espeja el
-    # patron, y en 67 sus patas T y R (x 63.6, soldadas en el frente)
-    # asomaban 0.29 bajo el cuerpo de la pantalla (hasta x 63.89). En 68
-    # quedan a 0.71; su courtyard (hasta 72.55) queda a 0.8 de U9/R40/R41.
-    ("J7",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
-      68.00,    3.00, 180, True),   # MIDI OUT
     # Auriculares por el borde IZQUIERDO, girado: bajo las patas de la
     # cruceta (hasta y 36) y a la izquierda del slide (desde x 19.9).
     ("J1",  "Connector_Audio:Jack_3.5mm_CUI_SJ1-3535NG_Horizontal",
        3.00,   45.00, 270, True),   # phones
-
-    # ================================================ DORSO: MIDI
-    # Opto a rot 0 (patas gull-wing en Y, 10.2mm): x 19.2..26.8, y 1.4..11.6,
-    # entre las patas del gatillo L y las de UP, al lado de J6. Sus pasivos
-    # en la columna entre la cruceta (patas hasta x 30.75) y el modulo.
-    ("U10", "Package_DIP:SMDIP-6_W7.62mm",                 23.00,    6.50, 0, True),
-    ("R42", "Resistor_SMD:R_0603_1608Metric",              35.00,   19.50, 90, True),
-    ("D3",  "Diode_SMD:D_SOD-123",                         35.00,   24.00, 90, True),
-    ("R43", "Resistor_SMD:R_0603_1608Metric",              35.00,   28.50, 90, True),
-    ("C56", "Capacitor_SMD:C_0603_1608Metric",             35.00,   32.00, 90, True),
-    # Buffer del MIDI OUT entre J7 y las patas de X.
-    ("U9",  "Package_TO_SOT_SMD:SOT-353_SC-70-5",          75.00,    4.00, 0, True),
-    ("R40", "Resistor_SMD:R_0603_1608Metric",              75.00,    7.50, 0, True),
-    ("R41", "Resistor_SMD:R_0603_1608Metric",              75.00,   10.50, 0, True),
 
     # ================================================ DORSO: audio
     # DAC y op-amp a la izquierda, entre J1 y el modulo, bajo la cruceta.

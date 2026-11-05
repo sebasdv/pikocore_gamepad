@@ -9,8 +9,8 @@ visible.
 
 El RP2350-Plus es pin-compatible con la Raspberry Pi Pico y expone GP0-GP22
 y GP26-GP28. GP23/24/25 son internos del modulo (MODE del MP28164, sensado
-de VBUS, LED) y GP29 no sale al header. GP27/GP28 son el MIDI (MIDI_RX /
-MIDI_TX) y GP26 queda libre: la pantalla de 7 pines no tiene TE.
+de VBUS, LED) y GP29 no sale al header. GP26, GP27 y GP28 quedan libres:
+la pantalla de 7 pines no tiene TE, y el MIDI va por el USB-C del modulo.
 """
 
 # --- pines validos por periferico, restringido a los que el modulo expone ---
@@ -65,14 +65,13 @@ GPIO = {
     20: "SPK_SHDN",    # salida: 1 = parlante encendido
     21: "JACK_DET",    # entrada con pull-up: 0 = plug insertado
     22: "DAC_XSMT",    # pulldown 100k: arranca muteado
-    27: "MIDI_RX",     # entrada del optoacoplador; la lee una UART por PIO
-    28: "MIDI_TX",     # UART0 TX
 }
 
-# Libre: GP26. Fue BTN_OK (centro del NAV5) hasta el 2026-10-14 y despues
+# Libres. GP26 fue BTN_OK (centro del NAV5) hasta el 2026-10-14 y despues
 # LCD_TE del panel desnudo de 24 pines; el modulo de 7 pines que lo
-# reemplazo (2026-10-17) no expone TE.
-FREE = (26,)
+# reemplazo (2026-10-17) no expone TE. GP27/GP28 fueron MIDI_RX/MIDI_TX de
+# los jacks hasta el 2026-11-05: el MIDI paso al USB-C del modulo.
+FREE = (26, 27, 28)
 
 # Orden fisico del header de 40 pines tipo Pico. El pin 38 es GND (no VSYS_EN).
 HEADER_ORDER = [
