@@ -10,8 +10,9 @@
 //   - nothing else may be named PIN_* (the checker flags it as a pin the
 //     PCB does not know about).
 // Firmware-only choices (which slice ticks the audio engine, the module's
-// onboard LED, the clock-in/trigger-out stubs, off now that GP27/GP28 are MIDI)
-// live in src/hw_gamepi13.h under PIKO_GAMEPAD, not here.
+// onboard LED, the clock-in/trigger-out stubs) live in src/hw_gamepi13.h
+// under PIKO_GAMEPAD, not here. GP26-GP28 are free: MIDI goes over the
+// module's USB-C.
 // ============================================================
 
 #define PIN_DPAD_UP      0
@@ -37,5 +38,3 @@
 #define PIN_SPK_SHDN     20  // out: 1 = PAM8302A on
 #define PIN_JACK_DET     21  // in, pull-up: 0 = plug inserted
 #define PIN_DAC_XSMT     22  // out: 100k pulldown on the PCB, boots muted
-#define PIN_MIDI_TX      28  // UART0 TX -> MIDI OUT jack
-#define PIN_MIDI_RX      27  // from the MIDI IN optocoupler; read by a PIO UART

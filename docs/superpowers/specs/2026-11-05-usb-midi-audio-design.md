@@ -1,7 +1,9 @@
 # pikocore_gamepad — E/S por USB: MIDI y audio por el USB-C del modulo, sin jacks MIDI
 
-Fecha: 2026-11-05. Estado: diseno aprobado en conversacion el 2026-11-05, sin
-implementar. Se ejecuta en tres etapas, cada una con su rama, su PR y su plan
+Fecha: 2026-11-05. Estado: diseno aprobado en conversacion el 2026-11-05.
+Etapa 1 (MIDI IN por USB) en el PR #6, sin probar en hardware; etapa 2 (jacks
+fuera) hecha en la rama `hw/sin-jacks-midi`, con el fanout de freerouting 2.5.0
+apagado; etapa 3 sin empezar. Se ejecuta en tres etapas, cada una con su rama, su PR y su plan
 (`docs/superpowers/plans/`); el orden es 1, 2, 3, y la 3 puede empezar en el
 GamePi13 mientras la 2 esta en ruteo.
 

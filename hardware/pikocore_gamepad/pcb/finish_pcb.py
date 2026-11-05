@@ -83,9 +83,13 @@ def main():
     # marca de soldadura manual desde el netlist. Repetirlo aca es gratis
     # (idempotente) y deja la placa en paridad con el esquematico aunque
     # venga de un ciclo viejo.
-    from gen_pcb import identidad_desde_netlist, marcar_manuales, reparar_capas_pth
+    from gen_pcb import (identidad_desde_netlist, marcar_manuales,
+                         reparar_capas_pth, rotular_a_mano)
     identidad_desde_netlist(board)
     marcar_manuales(board)
+    sin_rotulo = rotular_a_mano(board)
+    if sin_rotulo:
+        print(f"AVISO: referencia sin lugar en la serigrafia: {', '.join(sin_rotulo)}")
     n_pth = reparar_capas_pth(board)
     if n_pth:
         print(f"pads PTH con capas internas restauradas: {n_pth}")

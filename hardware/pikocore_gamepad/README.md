@@ -38,6 +38,8 @@ and swaps only what the carrier PCB changes:
   240x240 IPS module with a 7-pin header; it has no CS line (tied to GND on the
   module: `GAMEPI_LCD_CS_PIN -1`, skipped in `dev_shim.c`) and no TE pin, so GP26
   is free.
+- **MIDI:** over the module's USB-C only. The board has no MIDI jacks since
+  2026-11-05, so GP27 and GP28 are free and the one-wire receiver is not created.
 - **Not built:** microSD (no socket; mode 8 stays unreachable, FatFs is not linked)
   and the HDMI mirror. `PIKO_GAMEPI13=ON` keeps building unchanged.
 
@@ -53,29 +55,36 @@ A scriptable KiCad generation pipeline (Python: `pinmap.py`, `netlist.py`,
 `gen_sch.py`, `gen_pcb.py`, `checks/`), forked and adapted from a sibling project
 (`GAMESETUP`) that targets the same RP2350-Plus module.
 
-**Current state on `main` (layout of 2026-10-17, merged 2026-11-04):** **100 × 60 mm**,
-4 layers, 76 parts: the Micro layout on the RP2350-Plus module
+**Current state (layout of 2026-10-17, MIDI jacks removed on 2026-11-05):** **100 × 60 mm**,
+4 layers, 66 parts: the Micro layout on the RP2350-Plus module
 ([spec](../../docs/superpowers/specs/2026-10-16-pikocore-gamepad-module-micro-midi-design.md)),
 with the display switched to the 1.3" 240x240 ST7789 IPS module with a 7-pin
 2.54 mm header ([spec](../../docs/superpowers/specs/2026-10-17-pantalla-7-pines-design.md)).
+MIDI goes over the module's USB-C
+([spec](../../docs/superpowers/specs/2026-11-05-usb-midi-audio-design.md)): the
+two TRS jacks and their circuit (J6, J7, U9, U10, R40–R43, D3, C56) left the
+board on 2026-11-05, GP27 and GP28 are free, and no other part moved.
 The module (J4, 27.78 × 39.22 per the manufacturer's drawing) sits on the front
-over its header, pins soldered by hand, pin row at the top between the two MIDI
-jacks; D-pad and X/Y/A/B on either side, Select/Start at the lower right,
+over its header, pins soldered by hand, pin row at the top; D-pad and X/Y/A/B on either side, Select/Start at the lower right,
 triggers in the top corners. It carries its own backlight driver: `LCD_BLK` (GP7) goes straight to
 its BLK pin. On the back the RP2350-Plus is **soldered flat by its castellated
 edges** (footprint `RP2350-Plus_Castellated`) at (50, 33) with its USB-C at the
-bottom edge. MIDI IN (J6, H11L1 opto into GP27) and MIDI OUT (J7, GP28 through
-a 74LVC1G17) are TRS type A at the top edge; the phones jack is on the left
-edge. Hand copper: the boost loop only. Gates: 219 tests OK; `run_all.py` exit 0
+bottom edge. The phones jack is on the left edge. Hand copper: the boost loop
+only. Gates: 221 tests OK; `run_all.py` exit 0
 with every gate green, G-0 included ("all physical constants and footprints are
-verified"), plus G-5/G-4 (25 pins)/G-2 (248 connections)/placement; ERC 0; DRC 0
-errors, 0 unconnected, 0 parity mismatches, 15 warnings (silkscreen, and a
+verified"), plus G-5/G-4 (23 pins)/G-2 (215 connections)/placement; ERC 0; DRC 0
+errors, 0 unconnected, 0 parity mismatches, 11 warnings (silkscreen, and a
 library mismatch on SW9/SW10). `gen_fab.py` without `--force` writes
-`pikocore_gamepad_fab.zip` (165 KB, no NO-FABRICABLE suffix; 46 BOM lines, 19
-without LCSC; 55 SMD in the CPL) and G-F reports everything up to date. The 19
+`pikocore_gamepad_fab.zip` (155 KB, no NO-FABRICABLE suffix; 38 BOM lines, 17
+without LCSC; 47 SMD in the CPL) and G-F reports everything up to date. The 17
 lines without LCSC are parts the user buys and solders or places by hand (12
-tacts, the 3 audio/MIDI jacks, the speaker, the two 470 uF, U1 and J4); U1 and
-J4 are not in the CPL. Gates passing is not the same as a board built or
+tacts, the phones jack, the speaker, the two 470 uF, U1 and J4); U1 and
+J4 are not in the CPL. Those 18 parts carry their reference designator on the
+silkscreen of their side, to find their place when assembling; every other
+reference stays on the Fab layers, which are not printed. The three 22 uF (C5, C6, C28) use LCSC C602037, the same
+Samsung series as C45783, which had no stock on 2026-11-05; C602037 may be
+charged as an Extended part (up to US$3.07 per order), so switch back to
+C45783 if it restocks before ordering. Gates passing is not the same as a board built or
 checked: see the open items below. The DXF template (100 × 60) now carries J4 with its full module
 outline, for the enclosure window. The display module has no 3D model, so it
 does not appear in renders (the user's STEP, `pcb/1.3 Inch 1.3.step`, is in
@@ -110,21 +119,23 @@ the Pico footprint (the user confirmed on 2026-10-17 that they are identical)
 but not that its underside is flat so it sits on the board; the module's
 battery connector against the user's JST GH cells (the carrier cannot reach the
 module's battery line, so the cells need a GH-to-MX1.25 pigtail or a re-crimped
-plug); the MIDI jacks in firmware (written 2026-11-04, never run: the one-wire
-PIO receiver on GP27 with the input inverted in the IO bank, UART0 TX on
-GP28); the BLK polarity and pull state
+plug); MIDI over USB (firmware, never run on hardware); the BLK polarity and
+pull state
 of the display module (firmware assumes active-high); an optional 1 uF at J4
 pin 2; the enclosure. When ordering, JLCPCB must be told not to assemble U1 and
 J4 and not to paste U1's B.Paste-only openings.
 
 To reproduce the board, `bash pcb/route_cycle.sh` regenerates schematic, netlist
 and board from scratch (`gen_pcb.py` calls `NewBoard()`: GUI edits and the
-previous routing are discarded) and re-routes with freerouting; edit the JAR
+previous routing are discarded) and re-routes with freerouting 2.5.0, with its
+fanout stage off (it put vias against U1's hand-soldered pads); edit the JAR
 path at the top of the script for your machine.
 
 **History:** this layout reached `main` on 2026-11-04 through PR #3 (module
-soldered flat, Micro layout, MIDI) and PR #4 (7-pin display module). Earlier
-variants live in the history: the same board with the bare 24-pin panel on a
+soldered flat, Micro layout, MIDI) and PR #4 (7-pin display module); the MIDI
+jacks left it on 2026-11-05 (branch `hw/sin-jacks-midi`). Earlier
+variants live in the history: the same board with the two MIDI jacks (`main`
+before the `hw/sin-jacks-midi` merge), the same board with the bare 24-pin panel on a
 flex (`hw/modulo-micro-midi` before PR #4 was merged into it), the 100 × 80 mm
 board with the RP2350-Plus on a socket (`main` before merge `572ca8a`), and
 the chip-down RP2350A board (branch `hw/chipdown-rp2350`, PR #2, kept as

@@ -38,8 +38,8 @@ when built with `-DPIKO_GAMEPAD=ON` (see `hardware/pikocore_gamepad/README.md`).
 | GP21 | `JACK_DET` | Headphone jack detect (0 = plug inserted, needs pull-up) |
 | GP22 | `DAC_XSMT` | DAC mute control (starts muted via 100k pulldown) |
 | GP26 | — | Free, unconnected. Was `BTN_OK` (NAV5 centre) until 2026-10-14, when the D-pad went back to four discrete 6×6 tacts (SW1–SW4): a single 5-way actuator cannot press two directions at once, which Up+Down+B+A and Down+Left+X+B need. Then `LCD_TE` of the bare 24-pin panel; the 7-pin module that replaced it (2026-10-17) has no TE pin |
-| GP27 | `MIDI_RX` | From the MIDI IN optocoupler (H11L1, J6); read by a PIO UART (firmware side not written yet) |
-| GP28 | `MIDI_TX` | UART0 TX to the MIDI OUT jack (J7, through a 74LVC1G17) |
+| GP27 | — | Free, unconnected. Was `MIDI_RX` (MIDI IN jack J6, through an H11L1) until 2026-11-05, when MIDI moved to the module's USB-C |
+| GP28 | — | Free, unconnected. Was `MIDI_TX` (UART0 TX to the MIDI OUT jack J7, through a 74LVC1G17) until 2026-11-05 |
 | GP23, GP24, GP25, GP29 | — | Not broken out (module-internal: MP28164 mode, VBUS sense, onboard LED, VSYS monitor). Firmware uses the GP25 onboard LED as the beat LED |
 
 Display (since 2026-10-17): 1.3" 240×240 ST7789 IPS module with a 7-pin 2.54 mm
