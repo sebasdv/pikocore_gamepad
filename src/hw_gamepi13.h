@@ -12,14 +12,13 @@
 // see src/gamepad/audio_i2s.h.
 #define GAMEPI_AUDIO_TICK_SLICE 0
 #define GAMEPI_I2S_HZ 48000
-#define GAMEPI_I2S_PIO pio0  // pio1 sm0 is the one-wire MIDI receiver
+#define GAMEPI_I2S_PIO pio0  // pio1 sm0: the one-wire MIDI receiver elsewhere
 #define GAMEPI_I2S_SM 0
 // RP2350-Plus onboard LED (module-internal GP25, not on the header).
 #define GAMEPI_LED_PIN 25
-// The carrier PCB has no clock jack nor trigger jack, and GP27/GP28 (the last
-// two header pins the module exposes) are MIDI_RX/MIDI_TX. -1 = not present:
-// main.cpp skips the clock-in setup (the clock reads idle) and the trigger
-// output.
+// The carrier PCB has no clock, trigger or MIDI jack (MIDI goes over USB),
+// and GP26-GP28 stay free. -1 = not present: main.cpp skips the clock-in
+// setup (the clock reads idle), the one-wire receiver and the trigger output.
 #define GAMEPI_CLOCK_PIN -1
 #define GAMEPI_TRIGO_PIN -1
 
