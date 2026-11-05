@@ -107,6 +107,15 @@ static inline void usb_midi_in_service(const UsbMidiInCallbacks *cb) {
 #endif
 }
 
+#if CFG_TUD_MIDI
+// Core 1, from tud_task(). Not static: it fills TinyUSB's weak declaration
+// (midi_device.h), which has no default body, so this one is the only one.
+void tud_midi_rx_cb(uint8_t itf) {
+  uint8_t packet[4];
+  while (tud_midi_n_packet_read(itf, packet)) usb_midi_in_push(packet);
+}
+#endif
+
 #ifdef __cplusplus
 }
 #endif

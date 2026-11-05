@@ -27,6 +27,8 @@ project or with Waveshare.
   blind knob.
 - **USB bank-loader web app** (React + Vite, in `web/`) to build `.pikobank` files
   from your own samples and load them straight over USB.
+- **MIDI clock and transport over USB** — start, stop, continue and clock from a
+  computer or phone sync the sequencer, in either clock-input mode.
 - microSD `.pikobank` browsing exists in the codebase but ships **disabled by
   default** behind a build flag (`PIKO_GAMEPI13_SD`) — see
   [GAMEPI13-INTERFACE.md](GAMEPI13-INTERFACE.md) for why.

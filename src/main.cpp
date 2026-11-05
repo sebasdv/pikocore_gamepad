@@ -31,6 +31,7 @@
 #include "doth/ledarray.h"
 #include "doth/midi_out.h"
 #include "doth/onewiremidi.h"
+#include "doth/usb_midi_in.h"
 #include "doth/runningavg.h"
 #include "doth/sequencer.h"
 #include "doth/trigger_out.h"
@@ -2052,6 +2053,10 @@ int main(void) {
         Onewiremidi_new(pio1, 0, midi_in_pin, midi_note_on, midi_note_off,
                         midi_start, midi_continue, midi_stop, midi_timing);
   }
+  // MIDI IN over USB: same callbacks, fed from core 1 (doth/usb_midi_in.h).
+  static const UsbMidiInCallbacks usb_midi_in_cb = {
+      midi_note_on, midi_note_off, midi_start,
+      midi_continue, midi_stop, midi_timing};
 
 // LED
 #if WS2812_ENABLED == 1
@@ -2090,6 +2095,8 @@ int main(void) {
     if (clock_input_ittybittymidi && onewiremidi) {
       Onewiremidi_receive(onewiremidi);
     }
+    // Always on: USB has no jack, so the clock-input flag does not apply.
+    usb_midi_in_service(&usb_midi_in_cb);
 #if WS2812_ENABLED == 1
     if (clock_ms % 200 == 0) {
       const uint8_t knob_a_led =
