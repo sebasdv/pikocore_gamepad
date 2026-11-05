@@ -150,8 +150,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW5"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "d8632e1a-2a71-4794-a134-d18a3f7850b0")
 			(effects
 				(font
@@ -486,8 +487,9 @@
 		(descr "tactile switch SPST right angle, PTS645VL39-2 LFS")
 		(tags "tactile switch SPST angled PTS645VL39-2 LFS C&K Button")
 		(property "Reference" "SW9"
-			(at 2.25 1.68 0)
-			(layer "F.Fab")
+			(at 2.275 5.64325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "fc97af3b-9c64-49a4-b26e-d5fe27de6cda")
 			(effects
 				(font
@@ -879,8 +881,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW2"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "b80dccfe-1f9f-45dd-8a83-623ccc4293ba")
 			(effects
 				(font
@@ -1215,8 +1218,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW11"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "5076f900-16f3-4371-a424-f41260ecfb05")
 			(effects
 				(font
@@ -1551,8 +1555,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW4"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "174dda1e-56f2-48c5-9b17-92a246b0d011")
 			(effects
 				(font
@@ -1887,8 +1892,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW8"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "19587510-3d91-4871-9cd8-493342747f8b")
 			(effects
 				(font
@@ -2223,8 +2229,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW12"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "6d5bbf23-885b-4805-9838-35e9be9ef43e")
 			(effects
 				(font
@@ -2559,8 +2566,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW6"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "2af94877-7945-4b57-a6a7-24c6736786a4")
 			(effects
 				(font
@@ -2895,8 +2903,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW7"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "3ff09a02-b26d-488c-afd2-ad067fc7829f")
 			(effects
 				(font
@@ -3231,8 +3240,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW3"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "5d9d250c-bcf1-4da4-8843-5c596a7b61b0")
 			(effects
 				(font
@@ -3567,8 +3577,9 @@
 		(descr "Generic 6mm SW tactile push button")
 		(tags "tact sw push 6mm")
 		(property "Reference" "SW1"
-			(at 3.25 -2 0)
-			(layer "F.Fab")
+			(at 3.25 7.19325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "eadcf186-d66d-48d6-aad5-019c9ce1903b")
 			(effects
 				(font
@@ -4216,8 +4227,9 @@
 		(descr "tactile switch SPST right angle, PTS645VL39-2 LFS")
 		(tags "tactile switch SPST angled PTS645VL39-2 LFS C&K Button")
 		(property "Reference" "SW10"
-			(at 2.25 1.68 0)
-			(layer "F.Fab")
+			(at 2.275 5.64325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "b77840e3-3f74-4476-8fb4-1994bbb9b072")
 			(effects
 				(font
@@ -4608,8 +4620,9 @@
 		(at 42.38 5.74)
 		(descr "Modulo IPS 1.3in 240x240 ST7789, 7 pines pasantes, header soldado directo. Origen = pin 1 (GND). Cotas de params.py (LCD7_*). Los 4 agujeros del modulo van solo dibujados (Cmts.User/F.Fab), no se taladran. El rectangulo interior de Cmts.User es el area activa: es lo que hay que recortar en la tapa del enclosure.")
 		(property "Reference" "J4"
-			(at 7.62 -3 0)
-			(layer "F.Fab")
+			(at 7.62 39.14325 0)
+			(unlocked yes)
+			(layer "F.SilkS")
 			(uuid "c23dd693-a41f-443a-8242-d1e32f72ed93")
 			(effects
 				(font
@@ -6306,8 +6319,9 @@
 		(descr "TRS 3.5mm, horizontal, through-hole, with switch, https://www.cui.com/product/resource/sj1-353xng.pdf")
 		(tags "TRS audio jack stereo horizontal")
 		(property "Reference" "J1"
-			(at 0.1 6.45 90)
-			(layer "B.Fab")
+			(at -5.69325 -3.8 0)
+			(unlocked yes)
+			(layer "B.SilkS")
 			(uuid "37d6e8dd-1ffb-4648-b71e-11a501fea593")
 			(effects
 				(font
@@ -6635,16 +6649,16 @@
 		(descr "Raspberry Pi Pico (non-W) surface-mount footprint with debug pads for hand soldering, supports Raspberry Pi Pico 2 (non-W), https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf")
 		(tags "module usb pcb swd")
 		(property "Reference" "U1"
-			(at 11.7475 -24.765 180)
+			(at 13.01 0.375 0)
 			(unlocked yes)
-			(layer "B.Fab")
+			(layer "B.SilkS")
 			(uuid "06b12ef8-4833-48c1-9b7c-086dd83d1f74")
 			(effects
 				(font
 					(size 1 1)
 					(thickness 0.15)
 				)
-				(justify left mirror)
+				(justify mirror)
 			)
 		)
 		(property "Value" "RP2350-Plus-16MB"
@@ -10820,8 +10834,9 @@
 		(descr "JST PH series connector, B2B-PH-K (http://www.jst-mfg.com/product/pdf/eng/ePH.pdf), generated with kicad-footprint-generator")
 		(tags "connector JST PH vertical")
 		(property "Reference" "J5"
-			(at 1 2.9 270)
-			(layer "B.Fab")
+			(at -3.64325 -0.55 0)
+			(unlocked yes)
+			(layer "B.SilkS")
 			(uuid "56719601-6706-4e52-841d-d61aa2f8b89d")
 			(effects
 				(font
@@ -12702,8 +12717,9 @@
 		(descr "SMD capacitor, aluminum electrolytic, Panasonic C55, 6.3x5.4mm")
 		(tags "capacitor electrolytic")
 		(property "Reference" "C23"
-			(at 0 4.35 180)
-			(layer "B.Fab")
+			(at 0 -4.74325 0)
+			(unlocked yes)
+			(layer "B.SilkS")
 			(uuid "0e40a576-0c17-464a-a695-8a3537acaf72")
 			(effects
 				(font
@@ -13329,8 +13345,9 @@
 		(descr "SMD capacitor, aluminum electrolytic, Panasonic C55, 6.3x5.4mm")
 		(tags "capacitor electrolytic")
 		(property "Reference" "C24"
-			(at 0 4.35 180)
-			(layer "B.Fab")
+			(at 6.722381 0 0)
+			(unlocked yes)
+			(layer "B.SilkS")
 			(uuid "67100aa5-b4ce-4171-9566-8e7e7c68f672")
 			(effects
 				(font

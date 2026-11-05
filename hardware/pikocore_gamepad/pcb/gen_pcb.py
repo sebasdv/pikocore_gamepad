@@ -610,6 +610,90 @@ def marcar_manuales(board):
     return manuales
 
 
+# Referencias impresas (2026-11-05): solo las piezas sin codigo LCSC, que
+# compra y suelda el usuario. El resto lo coloca JLCPCB con el CPL y su
+# referencia queda en Fab, que no se imprime.
+SILK_TXT_H = 1.0     # mm, el minimo de JLCPCB para texto de serigrafia
+SILK_TXT_T = 0.15    # mm, como GND/BLK de la huella de J4
+SILK_GAP = 0.3       # mm del courtyard de la pieza al texto
+SILK_LIBRE = 0.2     # mm contra pads, otra serigrafia y otros courtyards
+SILK_BORDE = 0.5     # mm del texto al canto
+
+
+def _candidatos(c, w, h):
+    """Centros posibles del texto alrededor del courtyard c (BOX2I), en orden
+    de preferencia: debajo, arriba, a la derecha, a la izquierda y despues las
+    esquinas de abajo y de arriba."""
+    g = pcbnew.FromMM(SILK_GAP)
+    cx, cy = c.GetCenter().x, c.GetCenter().y
+    abajo, arriba = c.GetBottom() + g + h // 2, c.GetTop() - g - h // 2
+    izq, der = c.GetLeft() + w // 2, c.GetRight() - w // 2
+    return [pcbnew.VECTOR2I(int(x), int(y)) for x, y in (
+        (cx, abajo), (cx, arriba),
+        (c.GetRight() + g + w // 2, cy), (c.GetLeft() - g - w // 2, cy),
+        (izq, abajo), (der, abajo), (izq, arriba), (der, arriba))]
+
+
+def rotular_a_mano(board):
+    """Pasa la referencia de cada pieza sin LCSC a la serigrafia de su cara,
+    horizontal, de 1mm, fuera de su courtyard y sin tocar pads, serigrafia ni
+    courtyards ajenos de esa cara. Devuelve las que no encontraron lugar:
+    quedan en Fab.
+
+    Idempotente: primero vuelve todas a Fab, asi una corrida anterior no les
+    estorba. finish_pcb.py la repite sobre la placa ya ruteada.
+    """
+    refs = [i[1] for i in INSTANCES if not i[6].get("LCSC")]
+    fps = [board.FindFootprintByReference(r) for r in refs]
+    for fp in fps:
+        fp.Reference().SetLayer(pcbnew.B_Fab if fp.IsFlipped() else pcbnew.F_Fab)
+    borde = board.GetBoardEdgesBoundingBox()
+    borde.Inflate(-pcbnew.FromMM(SILK_BORDE))
+    libre = pcbnew.FromMM(SILK_LIBRE)
+    sin_lugar = []
+    for fp in fps:
+        atras = fp.IsFlipped()
+        silk = pcbnew.B_SilkS if atras else pcbnew.F_SilkS
+        cu = pcbnew.B_Cu if atras else pcbnew.F_Cu
+        crtyd = pcbnew.B_CrtYd if atras else pcbnew.F_CrtYd
+        obst = [d.GetBoundingBox() for d in board.GetDrawings() if d.GetLayer() == silk]
+        for otro in board.GetFootprints():
+            obst += [p.GetBoundingBox() for p in otro.Pads() if p.IsOnLayer(cu)]
+            obst += [g.GetBoundingBox() for g in otro.GraphicalItems()
+                     if g.GetLayer() == silk]
+            obst += [f.GetBoundingBox() for f in otro.GetFields()
+                     if f.GetLayer() == silk and f.IsVisible()]
+            if otro is not fp:
+                otro.BuildCourtyardCaches()
+                c = otro.GetCourtyard(crtyd)
+                if c.OutlineCount():
+                    obst.append(c.BBox())
+        for o in obst:
+            o.Inflate(libre)
+
+        f = fp.Reference()
+        f.SetLayer(silk)
+        f.SetVisible(True)
+        f.SetMirrored(atras)
+        f.SetKeepUpright(False)
+        f.SetTextSize(pcbnew.VECTOR2I(pcbnew.FromMM(SILK_TXT_H), pcbnew.FromMM(SILK_TXT_H)))
+        f.SetTextThickness(pcbnew.FromMM(SILK_TXT_T))
+        f.SetTextAngleDegrees(0)
+        f.SetHorizJustify(pcbnew.GR_TEXT_H_ALIGN_CENTER)
+        f.SetVertJustify(pcbnew.GR_TEXT_V_ALIGN_CENTER)
+        tam = f.GetBoundingBox()
+        fp.BuildCourtyardCaches()
+        for pos in _candidatos(fp.GetCourtyard(crtyd).BBox(), tam.GetWidth(), tam.GetHeight()):
+            f.SetPosition(pos)
+            bb = f.GetBoundingBox()
+            if borde.Contains(bb) and not any(bb.Intersects(o) for o in obst):
+                break
+        else:
+            f.SetLayer(pcbnew.B_Fab if atras else pcbnew.F_Fab)
+            sin_lugar.append(fp.GetReference())
+    return sin_lugar
+
+
 def main():
     board = pcbnew.NewBoard(OUT)
     setup_stackup(board)
@@ -627,6 +711,7 @@ def main():
     n_pth = reparar_capas_pth(board)
     identidad_desde_netlist(board)
     manuales = marcar_manuales(board)
+    sin_rotulo = rotular_a_mano(board)
     agregar_keepout(board)
     n_npth = agregar_keepout_npth(board)
     agregar_zonas(board, nets)
@@ -649,6 +734,8 @@ def main():
               f"(quedaron en el origen): {', '.join(sin_lugar)}")
     if sin_net:
         print(f"AVISO: {len(sin_net)} pad(s) sin net: {', '.join(sin_net[:10])}")
+    if sin_rotulo:
+        print(f"AVISO: referencia sin lugar en la serigrafia: {', '.join(sin_rotulo)}")
 
 
 if __name__ == "__main__":

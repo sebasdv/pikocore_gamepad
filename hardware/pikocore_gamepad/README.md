@@ -70,16 +70,18 @@ triggers in the top corners. It carries its own backlight driver: `LCD_BLK` (GP7
 its BLK pin. On the back the RP2350-Plus is **soldered flat by its castellated
 edges** (footprint `RP2350-Plus_Castellated`) at (50, 33) with its USB-C at the
 bottom edge. The phones jack is on the left edge. Hand copper: the boost loop
-only. Gates: 216 tests OK; `run_all.py` exit 0
+only. Gates: 221 tests OK; `run_all.py` exit 0
 with every gate green, G-0 included ("all physical constants and footprints are
 verified"), plus G-5/G-4 (23 pins)/G-2 (215 connections)/placement; ERC 0; DRC 0
 errors, 0 unconnected, 0 parity mismatches, 11 warnings (silkscreen, and a
 library mismatch on SW9/SW10). `gen_fab.py` without `--force` writes
-`pikocore_gamepad_fab.zip` (150 KB, no NO-FABRICABLE suffix; 38 BOM lines, 17
+`pikocore_gamepad_fab.zip` (155 KB, no NO-FABRICABLE suffix; 38 BOM lines, 17
 without LCSC; 47 SMD in the CPL) and G-F reports everything up to date. The 17
 lines without LCSC are parts the user buys and solders or places by hand (12
 tacts, the phones jack, the speaker, the two 470 uF, U1 and J4); U1 and
-J4 are not in the CPL. The three 22 uF (C5, C6, C28) use LCSC C602037, the same
+J4 are not in the CPL. Those 18 parts carry their reference designator on the
+silkscreen of their side, to find their place when assembling; every other
+reference stays on the Fab layers, which are not printed. The three 22 uF (C5, C6, C28) use LCSC C602037, the same
 Samsung series as C45783, which had no stock on 2026-11-05; C602037 may be
 charged as an Extended part (up to US$3.07 per order), so switch back to
 C45783 if it restocks before ordering. Gates passing is not the same as a board built or

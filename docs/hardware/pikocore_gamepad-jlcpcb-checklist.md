@@ -6,14 +6,16 @@
 > J6, J7, U9, U10, R40–R43, D3 y C56, GP27 y GP28 quedan libres y el resto
 > del placement no se movió. Ciclo completo con freerouting 2.5.0, con su
 > etapa de fanout apagada (ponía vías contra las pastillas de U1). Puertas,
-> corridas en vivo: 216 tests OK; `run_all.py` sale 0 con todas en verde
+> corridas en vivo: 221 tests OK; `run_all.py` sale 0 con todas en verde
 > (G-0, G-5, G-4 con 23 pines, G-2 con 215 conexiones, placement); ERC 0/0;
 > DRC 0 errores / 0 sin conectar / 0 paridad, 11 avisos (7 serigrafía al
 > borde, 2 serigrafía sobre cobre, 2 `lib_footprint_mismatch` de SW9/SW10).
-> `gen_fab.py` sin `--force` → `pikocore_gamepad_fab.zip` (150 KB, sin
+> `gen_fab.py` sin `--force` → `pikocore_gamepad_fab.zip` (155 KB, sin
 > sufijo), 66 piezas, 38 líneas de BOM (**17 sin LCSC**: los 12 tacts, el
 > jack PHONES, el parlante, los dos 470 µF, el módulo RP2350-Plus y la
-> pantalla), 47 SMD en el CPL; G-F: "Todo al día".
+> pantalla), 47 SMD en el CPL; G-F: "Todo al día". Esas 18 piezas que
+> suelda el usuario llevan su referencia impresa en la serigrafía de su cara;
+> las demás referencias quedan en Fab, que no se imprime.
 >
 > **Pedido:** JLCPCB arma las **5 placas** (decisión del usuario del
 > 2026-11-05: la producción mínima es de 5 placas, y armar solo 2 dejaba 3
